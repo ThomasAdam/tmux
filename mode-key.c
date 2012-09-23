@@ -77,7 +77,10 @@ const struct mode_key_cmdstr mode_key_cmdstr_choice[] = {
 	{ MODEKEYCHOICE_BACKSPACE, "backspace" },
 	{ MODEKEYCHOICE_CANCEL, "cancel" },
 	{ MODEKEYCHOICE_CHOOSE, "choose" },
+	{ MODEKEYCHOICE_COLLAPSE_ALL, "collapse-all" },
+	{ MODEKEYCHOICE_COLLAPSE_EXPAND_TOGGLE, "collapse-toggle" },
 	{ MODEKEYCHOICE_DOWN, "down" },
+	{ MODEKEYCHOICE_EXPAND_ALL, "expand-all" },
 	{ MODEKEYCHOICE_PAGEDOWN, "page-down" },
 	{ MODEKEYCHOICE_PAGEUP, "page-up" },
 	{ MODEKEYCHOICE_SCROLLDOWN, "scroll-down" },
@@ -218,6 +221,9 @@ const struct mode_key_entry mode_key_vi_choice[] = {
 	{ KEYC_PPAGE,		0, MODEKEYCHOICE_PAGEUP },
 	{ KEYC_UP | KEYC_CTRL,	0, MODEKEYCHOICE_SCROLLUP },
 	{ KEYC_UP,		0, MODEKEYCHOICE_UP },
+	{ ' ',			0, MODEKEYCHOICE_COLLAPSE_EXPAND_TOGGLE },
+	{ KEYC_LEFT | KEYC_CTRL,0, MODEKEYCHOICE_COLLAPSE_ALL },
+	{ KEYC_RIGHT | KEYC_CTRL,0,MODEKEYCHOICE_EXPAND_ALL },
 
 	{ 0,			-1, 0 }
 };
@@ -355,6 +361,9 @@ const struct mode_key_entry mode_key_emacs_choice[] = {
 	{ KEYC_PPAGE,		0, MODEKEYCHOICE_PAGEUP },
 	{ KEYC_UP | KEYC_CTRL,	0, MODEKEYCHOICE_SCROLLUP },
 	{ KEYC_UP,		0, MODEKEYCHOICE_UP },
+	{ ' ',			0, MODEKEYCHOICE_COLLAPSE_EXPAND_TOGGLE },
+	{ KEYC_LEFT | KEYC_CTRL,0, MODEKEYCHOICE_COLLAPSE_ALL },
+	{ KEYC_RIGHT | KEYC_CTRL,0,MODEKEYCHOICE_EXPAND_ALL },
 
 	{ 0,			-1, 0 }
 };
