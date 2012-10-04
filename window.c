@@ -582,6 +582,8 @@ window_printable_flags(struct session *s, struct winlink *wl)
 		flags[pos++] = '+';
 	if (wl->flags & WINLINK_SILENCE)
 		flags[pos++] = '~';
+	if (wl->window->active->pipe_fd != -1)
+		flags[pos++] = '|';
 	if (wl == s->curw)
 		flags[pos++] = '*';
 	if (wl == TAILQ_FIRST(&s->lastw))
