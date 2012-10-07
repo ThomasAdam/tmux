@@ -76,6 +76,9 @@ cmd_select_layout_key_binding(struct cmd *self, int key)
 	case '5' | KEYC_ESCAPE:
 		self->args = args_create(1, "tiled");
 		break;
+	case '6' | KEYC_ESCAPE:
+		self->args = args_create(1, "maximise-pane");
+		break;
 	case 'u':
 		self->args = args_create(0);
 		args_set(self->args, 'u', NULL);

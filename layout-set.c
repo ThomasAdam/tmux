@@ -31,6 +31,7 @@ void	layout_set_even_h(struct window *);
 void	layout_set_even_v(struct window *);
 void	layout_set_main_h(struct window *);
 void	layout_set_main_v(struct window *);
+void	layout_set_maximised_pane (struct window *);
 void	layout_set_tiled(struct window *);
 
 const struct {
@@ -41,6 +42,7 @@ const struct {
 	{ "even-vertical", layout_set_even_v },
 	{ "main-horizontal", layout_set_main_h },
 	{ "main-vertical", layout_set_main_v },
+	{ "maximise-pane", layout_set_maximised_pane },
 	{ "tiled", layout_set_tiled },
 };
 
@@ -460,6 +462,51 @@ layout_set_main_v(struct window *w)
 	}
 
 	/* Fix cell offsets. */
+	layout_fix_offsets(lc);
+	layout_fix_panes(w, w->sx, w->sy);
+
+	layout_print_cell(w->layout_root, __func__, 1);
+
+	server_redraw_window(w);
+}
+
+void
+layout_set_maximised_pane(struct window *w)
+{
+	struct window_pane	*wp_active, *wp;
+	struct layout_cell	*lc, *lcpane, *lcnew;
+	u_int			 n;
+
+	layout_print_cell(w->layout_root, __func__, 1);
+
+	/* Get number of panes. */
+	n = window_count_panes(w);
+	if (n <= 1)
+		return;
+
+	/* Free old tree and create a new root. */
+	layout_free(w);
+	lc = w->layout_root = layout_create_cell(NULL);
+	layout_set_size(lc, w->sx, w->sy, 0, 0);
+	layout_make_node(lc, LAYOUT_TOPBOTTOM);
+
+	wp_active = w->active;
+
+	TAILQ_FOREACH(wp, &w->panes, entry) {
+		if (wp_active == wp)
+			continue;
+
+		/* Create child cell. */
+		lcnew = layout_create_cell(lc);
+		layout_set_size(lcnew, w->sx, w->sy, 0, 0);
+	}
+
+	lcpane = layout_create_cell(lc);
+	layout_set_size(lcpane, w->sx, w->sy, 0, 0);
+	layout_make_leaf(lcpane, wp_active);
+	TAILQ_INSERT_TAIL(&lc->cells, lcpane, entry);
+	layout_resize_adjust(lcpane, LAYOUT_TOPBOTTOM, w->sy);
+
 	layout_fix_offsets(lc);
 	layout_fix_panes(w, w->sx, w->sy);
 
