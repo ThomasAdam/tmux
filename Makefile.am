@@ -118,9 +118,11 @@ dist_tmux_SOURCES = \
 	cmd-server-info.c \
 	cmd-set-buffer.c \
 	cmd-set-environment.c \
+	cmd-set-hook.c \
 	cmd-set-option.c \
 	cmd-show-buffer.c \
 	cmd-show-environment.c \
+	cmd-show-hooks.c \
 	cmd-show-messages.c \
 	cmd-show-options.c \
 	cmd-source-file.c \
@@ -142,6 +144,7 @@ dist_tmux_SOURCES = \
 	grid-utf8.c \
 	grid-view.c \
 	grid.c \
+	hooks.c \
 	input-keys.c \
 	input.c \
 	job.c \
