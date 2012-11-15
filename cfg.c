@@ -36,7 +36,6 @@ void printflike2 cfg_error(struct cmd_ctx *, const char *, ...);
 
 char	 	       *cfg_cause;
 int     	 	cfg_finished;
-struct causelist	cfg_causes = ARRAY_INITIALIZER;
 
 /* ARGSUSED */
 void printflike2
