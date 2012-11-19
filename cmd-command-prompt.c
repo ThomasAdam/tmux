@@ -43,7 +43,8 @@ const struct cmd_entry cmd_command_prompt_entry = {
 	0,
 	cmd_command_prompt_key_binding,
 	NULL,
-	cmd_command_prompt_exec
+	cmd_command_prompt_exec,
+		 NULL
 };
 
 struct cmd_command_prompt_cdata {

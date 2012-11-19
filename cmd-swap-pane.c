@@ -36,7 +36,8 @@ const struct cmd_entry cmd_swap_pane_entry = {
 	0,
 	cmd_swap_pane_key_binding,
 	NULL,
-	cmd_swap_pane_exec
+	cmd_swap_pane_exec,
+		 NULL
 };
 
 void

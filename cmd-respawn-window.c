@@ -36,7 +36,8 @@ const struct cmd_entry cmd_respawn_window_entry = {
 	0,
 	NULL,
 	NULL,
-	cmd_respawn_window_exec
+	cmd_respawn_window_exec,
+		 NULL
 };
 
 enum cmd_retval

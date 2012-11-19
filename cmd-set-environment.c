@@ -36,7 +36,8 @@ const struct cmd_entry cmd_set_environment_entry = {
 	0,
 	NULL,
 	NULL,
-	cmd_set_environment_exec
+	cmd_set_environment_exec,
+		 NULL
 };
 
 enum cmd_retval

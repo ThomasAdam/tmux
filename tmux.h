@@ -1401,6 +1401,7 @@ struct cmd_ctx {
 struct cmd {
 	const struct cmd_entry	*entry;
 	struct args		*args;
+	struct cmd_context	*context;
 
 	TAILQ_ENTRY(cmd)	 qentry;
 };
@@ -1416,25 +1417,34 @@ enum cmd_retval {
 	CMD_RETURN_ATTACH
 };
 
+struct cmd_context {
+	struct client		*ctx_client;
+	struct session		*ctx_session;
+	struct window		*ctx_window;
+	struct winlink		*ctx_wl;
+	struct window_pane	*ctx_window_pane;
+};
+
 struct cmd_entry {
-	const char	*name;
-	const char	*alias;
+	const char		*name;
+	const char		*alias;
 
-	const char	*args_template;
-	int		 args_lower;
-	int		 args_upper;
+	const char		*args_template;
+	int			args_lower;
+	int			args_upper;
 
-	const char	*usage;
+	const char		*usage;
 
 #define CMD_STARTSERVER 0x1
 #define CMD_CANTNEST 0x2
 #define CMD_SENDENVIRON 0x4
 #define CMD_READONLY 0x8
-	int		 flags;
+	int			flags;
 
-	void		 (*key_binding)(struct cmd *, int);
-	int		 (*check)(struct args *);
-	enum cmd_retval	 (*exec)(struct cmd *, struct cmd_ctx *);
+	void			(*key_binding)(struct cmd *, int);
+	int			(*check)(struct args *);
+	enum cmd_retval		(*exec)(struct cmd *, struct cmd_ctx *);
+	void			(*context)(struct cmd *, struct cmd_ctx *);
 };
 
 /* Key binding. */
@@ -1745,6 +1755,7 @@ int		 cmd_pack_argv(int, char **, char *, size_t);
 int		 cmd_unpack_argv(char *, size_t, int, char ***);
 char	       **cmd_copy_argv(int, char *const *);
 void		 cmd_free_argv(int, char **);
+struct cmd_context *cmd_context_create(struct cmd_ctx *);
 struct cmd	*cmd_parse(int, char **, char **);
 enum cmd_retval	 cmd_exec(struct cmd *, struct cmd_ctx *);
 void		 cmd_free(struct cmd *);

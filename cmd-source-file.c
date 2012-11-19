@@ -35,7 +35,8 @@ const struct cmd_entry cmd_source_file_entry = {
 	0,
 	NULL,
 	NULL,
-	cmd_source_file_exec
+	cmd_source_file_exec,
+		 NULL
 };
 
 enum cmd_retval

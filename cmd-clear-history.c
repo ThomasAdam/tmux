@@ -33,7 +33,8 @@ const struct cmd_entry cmd_clear_history_entry = {
 	0,
 	NULL,
 	NULL,
-	cmd_clear_history_exec
+	cmd_clear_history_exec,
+		 NULL
 };
 
 enum cmd_retval

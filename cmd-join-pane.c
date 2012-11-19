@@ -40,7 +40,8 @@ const struct cmd_entry cmd_join_pane_entry = {
 	0,
 	cmd_join_pane_key_binding,
 	NULL,
-	cmd_join_pane_exec
+	cmd_join_pane_exec,
+		 NULL
 };
 
 const struct cmd_entry cmd_move_pane_entry = {
@@ -50,7 +51,8 @@ const struct cmd_entry cmd_move_pane_entry = {
 	0,
 	NULL,
 	NULL,
-	cmd_join_pane_exec
+	cmd_join_pane_exec,
+		 NULL
 };
 
 void

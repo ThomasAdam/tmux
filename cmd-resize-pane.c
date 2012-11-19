@@ -36,7 +36,8 @@ const struct cmd_entry cmd_resize_pane_entry = {
 	0,
 	cmd_resize_pane_key_binding,
 	NULL,
-	cmd_resize_pane_exec
+	cmd_resize_pane_exec,
+		 NULL
 };
 
 void

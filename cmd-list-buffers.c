@@ -36,7 +36,8 @@ const struct cmd_entry cmd_list_buffers_entry = {
 	0,
 	NULL,
 	NULL,
-	cmd_list_buffers_exec
+	cmd_list_buffers_exec,
+		 NULL
 };
 
 /* ARGSUSED */

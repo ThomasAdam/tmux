@@ -36,7 +36,8 @@ const struct cmd_entry cmd_show_messages_entry = {
 	0,
 	NULL,
 	NULL,
-	cmd_show_messages_exec
+	cmd_show_messages_exec,
+		 NULL
 };
 
 enum cmd_retval

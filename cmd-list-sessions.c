@@ -37,7 +37,8 @@ const struct cmd_entry cmd_list_sessions_entry = {
 	0,
 	NULL,
 	NULL,
-	cmd_list_sessions_exec
+	cmd_list_sessions_exec,
+		 NULL
 };
 
 enum cmd_retval

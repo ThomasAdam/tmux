@@ -33,7 +33,8 @@ const struct cmd_entry cmd_send_prefix_entry = {
 	0,
 	NULL,
 	NULL,
-	cmd_send_prefix_exec
+	cmd_send_prefix_exec,
+		 NULL
 };
 
 enum cmd_retval

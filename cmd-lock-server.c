@@ -37,7 +37,8 @@ const struct cmd_entry cmd_lock_server_entry = {
 	0,
 	NULL,
 	NULL,
-	cmd_lock_server_exec
+	cmd_lock_server_exec,
+		 NULL
 };
 
 const struct cmd_entry cmd_lock_session_entry = {
@@ -47,7 +48,8 @@ const struct cmd_entry cmd_lock_session_entry = {
 	0,
 	NULL,
 	NULL,
-	cmd_lock_server_exec
+	cmd_lock_server_exec,
+		 NULL
 };
 
 const struct cmd_entry cmd_lock_client_entry = {
@@ -57,7 +59,8 @@ const struct cmd_entry cmd_lock_client_entry = {
 	0,
 	NULL,
 	NULL,
-	cmd_lock_server_exec
+	cmd_lock_server_exec,
+		 NULL
 };
 
 /* ARGSUSED */

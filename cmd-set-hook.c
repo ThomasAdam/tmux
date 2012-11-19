@@ -34,7 +34,8 @@ const struct cmd_entry cmd_set_hook_entry = {
 	0,
 	NULL,
 	NULL,
-	cmd_set_hook_exec
+	cmd_set_hook_exec,
+		 NULL
 };
 
 enum cmd_retval

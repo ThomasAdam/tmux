@@ -210,6 +210,22 @@ cmd_free_argv(int argc, char **argv)
 	free(argv);
 }
 
+struct cmd_context *
+cmd_context_create(struct cmd_ctx *ctx)
+{
+	struct cmd_context	*cmd_context;
+
+	cmd_context = xmalloc(sizeof *cmd_context);
+	cmd_context->ctx_client = (ctx->curclient != NULL) ?
+			ctx->curclient : NULL;
+	cmd_context->ctx_session = (ctx->curclient != NULL) ?
+			ctx->curclient->session : NULL;
+	cmd_context->ctx_window = NULL;
+	cmd_context->ctx_window_pane = NULL;
+
+	return (cmd_context);
+}
+
 struct cmd *
 cmd_parse(int argc, char **argv, char **cause)
 {
@@ -264,6 +280,7 @@ cmd_parse(int argc, char **argv, char **cause)
 	cmd = xmalloc(sizeof *cmd);
 	cmd->entry = entry;
 	cmd->args = args;
+
 	return (cmd);
 
 ambiguous:
@@ -296,6 +313,10 @@ run_hook_before(struct hooks *hooks, struct cmd *cmd, struct cmd_ctx *ctx)
 
 	memcpy(&hook_ctx, ctx, sizeof hook_ctx);
 	hook_ctx.cmdclient = NULL;
+	if (hooks != &global_hooks && cmd->context != NULL && cmd->context->ctx_client != NULL) {
+		log_debug("SETTING CLIENT");
+		hook_ctx.curclient = cmd->context->ctx_client;
+	}
 	xasprintf(&hook_name, "before-%s", cmd->entry->name);
 
 	retval = hooks_call(hooks, hook_name, &hook_ctx);
@@ -315,6 +336,8 @@ run_hook_after(struct hooks *hooks, struct cmd *cmd, struct cmd_ctx *ctx)
 
 	memcpy(&hook_ctx, ctx, sizeof hook_ctx);
 	hook_ctx.cmdclient = NULL;
+	if (hooks != &global_hooks && cmd->context != NULL && cmd->context->ctx_client != NULL)
+		hook_ctx.curclient = cmd->context->ctx_client;
 	xasprintf(&hook_name, "after-%s", cmd->entry->name);
 
 	retval = hooks_call(hooks, hook_name, &hook_ctx);
@@ -332,10 +355,28 @@ cmd_exec(struct cmd *cmd, struct cmd_ctx *ctx)
 	struct hooks	*hooks;
 	enum cmd_retval	 retval, hooks_retval;
 
-	if (ctx->curclient != NULL)
-		s = ctx->curclient->session;
+	hooks = &global_hooks;
+	cmd->context = cmd_context_create(ctx);
+	if (cmd->entry->context != NULL) {
+		log_debug("Setting CONTEXT hooks");
+		cmd->entry->context(cmd, ctx);
 
-	hooks = (s == NULL) ? &global_hooks : &s->hooks;
+		/*
+		 * Set the hooks to be the session the hooks will run
+		 * in, which is derived from parsing the command
+		 * flags, and setting the context.
+		 */
+		if (cmd->context != NULL && cmd->context->ctx_session != NULL) {
+			log_debug("HOOKS:  SETTING TO SESSION <<%s>>",
+					cmd->context->ctx_session->name);
+			hooks = &cmd->context->ctx_session->hooks;
+		}
+	}
+	if (hooks == &global_hooks)
+		log_debug("HOOKS:  USING GLOBAL HOOKS");
+	else if (cmd->context != NULL && hooks == &cmd->context->ctx_session->hooks)
+		log_debug("HOOKS:  USING SESSION HOOK");
+
 
 	/* Call any hooks set to run before the intended command. */
 	hooks_retval = run_hook_before(hooks, cmd, ctx);

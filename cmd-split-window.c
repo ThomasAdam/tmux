@@ -27,8 +27,9 @@
  * Split a window (add a new pane).
  */
 
-void		 cmd_split_window_key_binding(struct cmd *, int);
-enum cmd_retval	 cmd_split_window_exec(struct cmd *, struct cmd_ctx *);
+void		cmd_split_window_key_binding(struct cmd *, int);
+void		cmd_split_window_context(struct cmd *, struct cmd_ctx *);
+enum cmd_retval	cmd_split_window_exec(struct cmd *, struct cmd_ctx *);
 
 const struct cmd_entry cmd_split_window_entry = {
 	"split-window", "splitw",
@@ -38,8 +39,24 @@ const struct cmd_entry cmd_split_window_entry = {
 	0,
 	cmd_split_window_key_binding,
 	NULL,
-	cmd_split_window_exec
+	cmd_split_window_exec,
+	cmd_split_window_context
 };
+
+void
+cmd_split_window_context(struct cmd *self, struct cmd_ctx *ctx)
+{
+	struct session		*s;
+	struct window_pane	*wp;
+	struct winlink		*wl;
+	struct args		*args = self->args;
+
+	wl = cmd_find_pane(ctx, args_get(args, 't'), &s, &wp);
+	log_debug("I GOT HERE");
+	self->context->ctx_session = s;
+	self->context->ctx_window_pane = wp;
+	self->context->ctx_wl = wl;
+}
 
 void
 cmd_split_window_key_binding(struct cmd *self, int key)

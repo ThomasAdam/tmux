@@ -33,7 +33,8 @@ const struct cmd_entry cmd_start_server_entry = {
 	CMD_STARTSERVER,
 	NULL,
 	NULL,
-	cmd_start_server_exec
+	cmd_start_server_exec,
+		 NULL
 };
 
 /* ARGSUSED */

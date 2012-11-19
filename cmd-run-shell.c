@@ -42,7 +42,8 @@ const struct cmd_entry cmd_run_shell_entry = {
 	0,
 	NULL,
 	NULL,
-	cmd_run_shell_exec
+	cmd_run_shell_exec,
+		 NULL
 };
 
 struct cmd_run_shell_data {

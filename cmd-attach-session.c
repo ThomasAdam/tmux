@@ -35,7 +35,8 @@ const struct cmd_entry cmd_attach_session_entry = {
 	CMD_CANTNEST|CMD_STARTSERVER|CMD_SENDENVIRON,
 	NULL,
 	NULL,
-	cmd_attach_session_exec
+	cmd_attach_session_exec,
+		 NULL
 };
 
 enum cmd_retval

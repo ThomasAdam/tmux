@@ -36,7 +36,8 @@ const struct cmd_entry cmd_show_environment_entry = {
 	0,
 	NULL,
 	NULL,
-	cmd_show_environment_exec
+	cmd_show_environment_exec,
+		 NULL
 };
 
 enum cmd_retval

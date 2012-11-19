@@ -42,7 +42,8 @@ const struct cmd_entry cmd_list_panes_entry = {
 	0,
 	NULL,
 	NULL,
-	cmd_list_panes_exec
+	cmd_list_panes_exec,
+		 NULL
 };
 
 enum cmd_retval

@@ -43,7 +43,8 @@ const struct cmd_entry cmd_choose_list_entry = {
 	0,
 	NULL,
 	NULL,
-	cmd_choose_list_exec
+	cmd_choose_list_exec,
+		 NULL
 };
 
 enum cmd_retval

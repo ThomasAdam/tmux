@@ -34,7 +34,8 @@ const struct cmd_entry cmd_select_pane_entry = {
 	0,
 	cmd_select_pane_key_binding,
 	NULL,
-	cmd_select_pane_exec
+	cmd_select_pane_exec,
+		 NULL
 };
 
 const struct cmd_entry cmd_last_pane_entry = {
@@ -44,7 +45,8 @@ const struct cmd_entry cmd_last_pane_entry = {
 	0,
 	NULL,
 	NULL,
-	cmd_select_pane_exec
+	cmd_select_pane_exec,
+		 NULL
 };
 
 void

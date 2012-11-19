@@ -37,7 +37,8 @@ const struct cmd_entry cmd_unbind_key_entry = {
 	0,
 	NULL,
 	cmd_unbind_key_check,
-	cmd_unbind_key_exec
+	cmd_unbind_key_exec,
+		 NULL
 };
 
 enum cmd_retval

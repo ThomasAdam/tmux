@@ -39,7 +39,8 @@ const struct cmd_entry cmd_choose_buffer_entry = {
 	0,
 	NULL,
 	NULL,
-	cmd_choose_buffer_exec
+	cmd_choose_buffer_exec,
+		 NULL
 };
 
 enum cmd_retval

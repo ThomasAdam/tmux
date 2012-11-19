@@ -34,7 +34,8 @@ const struct cmd_entry cmd_rotate_window_entry = {
 	0,
 	cmd_rotate_window_key_binding,
 	NULL,
-	cmd_rotate_window_exec
+	cmd_rotate_window_exec,
+		 NULL
 };
 
 void

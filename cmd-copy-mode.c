@@ -34,7 +34,8 @@ const struct cmd_entry cmd_copy_mode_entry = {
 	0,
 	cmd_copy_mode_key_binding,
 	NULL,
-	cmd_copy_mode_exec
+	cmd_copy_mode_exec,
+		 NULL
 };
 
 void

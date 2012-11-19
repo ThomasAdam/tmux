@@ -37,7 +37,8 @@ const struct cmd_entry cmd_switch_client_entry = {
 	CMD_READONLY,
 	cmd_switch_client_key_binding,
 	NULL,
-	cmd_switch_client_exec
+	cmd_switch_client_exec,
+		 NULL
 };
 
 void

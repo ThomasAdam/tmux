@@ -41,7 +41,8 @@ const struct cmd_entry cmd_if_shell_entry = {
 	0,
 	NULL,
 	NULL,
-	cmd_if_shell_exec
+	cmd_if_shell_exec,
+		 NULL
 };
 
 struct cmd_if_shell_data {
