@@ -28,7 +28,7 @@
  */
 
 void		cmd_split_window_key_binding(struct cmd *, int);
-void		cmd_split_window_context(struct cmd *, struct cmd_ctx *);
+void		cmd_split_window_prepare(struct cmd *, struct cmd_ctx *);
 enum cmd_retval	cmd_split_window_exec(struct cmd *, struct cmd_ctx *);
 
 const struct cmd_entry cmd_split_window_entry = {
@@ -40,11 +40,11 @@ const struct cmd_entry cmd_split_window_entry = {
 	cmd_split_window_key_binding,
 	NULL,
 	cmd_split_window_exec,
-	cmd_split_window_context
+	cmd_split_window_prepare
 };
 
 void
-cmd_split_window_context(struct cmd *self, struct cmd_ctx *ctx)
+cmd_split_window_prepare(struct cmd *self, struct cmd_ctx *ctx)
 {
 	struct session		*s;
 	struct window_pane	*wp;
@@ -53,9 +53,9 @@ cmd_split_window_context(struct cmd *self, struct cmd_ctx *ctx)
 
 	wl = cmd_find_pane(ctx, args_get(args, 't'), &s, &wp);
 	log_debug("I GOT HERE");
-	self->context->ctx_session = s;
-	self->context->ctx_window_pane = wp;
-	self->context->ctx_wl = wl;
+	ctx->ctx_s = s;
+	ctx->ctx_wp = wp;
+	ctx->ctx_wl = wl;
 }
 
 void

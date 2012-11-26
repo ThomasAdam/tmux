@@ -27,7 +27,7 @@
  */
 
 enum cmd_retval	cmd_new_window_exec(struct cmd *, struct cmd_ctx *);
-void cmd_new_window_context(struct cmd *, struct cmd_ctx *);
+void cmd_new_window_prepare(struct cmd *, struct cmd_ctx *);
 
 const struct cmd_entry cmd_new_window_entry = {
 	"new-window", "neww",
@@ -38,11 +38,11 @@ const struct cmd_entry cmd_new_window_entry = {
 	NULL,
 	NULL,
 	cmd_new_window_exec,
-	cmd_new_window_context
+	cmd_new_window_prepare
 };
 
 void
-cmd_new_window_context(struct cmd *self, struct cmd_ctx *ctx)
+cmd_new_window_prepare(struct cmd *self, struct cmd_ctx *ctx)
 {
 	struct args	*args = self->args;
 	struct session	*s;
@@ -52,11 +52,11 @@ cmd_new_window_context(struct cmd *self, struct cmd_ctx *ctx)
 	if (args_has(args, 'a')) {
 		wl = cmd_find_window(ctx, args_get(args, 't'), &s);
 
-		self->context->ctx_session = s;
-		self->context->ctx_wl = wl;
+		ctx->ctx_s = s;
+		ctx->ctx_wl = wl;
 	} else {
 		cmd_find_index(ctx, args_get(args, 't'), &s);
-		self->context->ctx_session = s;
+		ctx->ctx_s = s;
 	}
 }
 

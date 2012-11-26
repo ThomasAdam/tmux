@@ -1384,6 +1384,12 @@ struct cmd_ctx {
 	struct client  *curclient;
 	struct client  *cmdclient;
 
+	struct client		*ctx_c;
+	struct session		*ctx_s;
+	struct window		*ctx_w;
+	struct winlink		*ctx_wl;
+	struct window_pane	*ctx_wp;
+
 	struct msg_command_data	*msgdata;
 
 	/* gcc2 doesn't understand attributes on function pointers... */
@@ -1401,7 +1407,6 @@ struct cmd_ctx {
 struct cmd {
 	const struct cmd_entry	*entry;
 	struct args		*args;
-	struct cmd_context	*context;
 
 	TAILQ_ENTRY(cmd)	 qentry;
 };
@@ -1415,14 +1420,6 @@ enum cmd_retval {
 	CMD_RETURN_NORMAL = 0,
 	CMD_RETURN_YIELD,
 	CMD_RETURN_ATTACH
-};
-
-struct cmd_context {
-	struct client		*ctx_client;
-	struct session		*ctx_session;
-	struct window		*ctx_window;
-	struct winlink		*ctx_wl;
-	struct window_pane	*ctx_window_pane;
 };
 
 struct cmd_entry {
@@ -1444,7 +1441,7 @@ struct cmd_entry {
 	void			(*key_binding)(struct cmd *, int);
 	int			(*check)(struct args *);
 	enum cmd_retval		(*exec)(struct cmd *, struct cmd_ctx *);
-	void			(*context)(struct cmd *, struct cmd_ctx *);
+	void			(*prepare)(struct cmd *, struct cmd_ctx *);
 };
 
 /* Key binding. */
@@ -1755,7 +1752,6 @@ int		 cmd_pack_argv(int, char **, char *, size_t);
 int		 cmd_unpack_argv(char *, size_t, int, char ***);
 char	       **cmd_copy_argv(int, char *const *);
 void		 cmd_free_argv(int, char **);
-struct cmd_context *cmd_context_create(struct cmd_ctx *);
 struct cmd	*cmd_parse(int, char **, char **);
 enum cmd_retval	 cmd_exec(struct cmd *, struct cmd_ctx *);
 void		 cmd_free(struct cmd *);
