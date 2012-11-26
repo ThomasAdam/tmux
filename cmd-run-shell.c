@@ -29,6 +29,7 @@
  * Runs a command without a window.
  */
 
+void		 cmd_run_shell_prepare(struct cmd *, struct cmd_ctx *);
 enum cmd_retval	 cmd_run_shell_exec(struct cmd *, struct cmd_ctx *);
 
 void	cmd_run_shell_callback(struct job *);
@@ -43,7 +44,7 @@ const struct cmd_entry cmd_run_shell_entry = {
 	NULL,
 	NULL,
 	cmd_run_shell_exec,
-		 NULL
+	cmd_run_shell_prepare
 };
 
 struct cmd_run_shell_data {
@@ -71,28 +72,66 @@ cmd_run_shell_print(struct job *job, const char *msg)
 		window_copy_add(wp, "%s", msg);
 }
 
+void
+cmd_run_shell_prepare(struct cmd *self, struct cmd_ctx *ctx)
+{
+	struct session	*s;
+	struct client	*c;
+	u_int		 i;
+
+	if (args_has(self->args, 't'))
+		s = cmd_find_session(ctx, args_get(self->args, 't'), 0);
+
+	ctx->ctx_s = s;
+
+	if (s != NULL) {
+		for (i = 0; i < ARRAY_LENGTH(&clients); i++)
+		{
+			c = ARRAY_ITEM(&clients, i);
+			if (c == NULL || c->session != s)
+				continue;
+		}
+		ctx->ctx_c = c;
+		ctx->ctx_wl = s->curw;
+	}
+}
+
 enum cmd_retval
 cmd_run_shell_exec(struct cmd *self, struct cmd_ctx *ctx)
 {
 	struct args			*args = self->args;
 	struct cmd_run_shell_data	*cdata;
-	const char			*shellcmd = args->argv[0];
+	struct format_tree		*ft;
+	const char			*shellcmd;
+	char				*shellcmd_run;
 	struct window_pane		*wp;
 
 	if (cmd_find_pane(ctx, args_get(args, 't'), NULL, &wp) == NULL)
 		return (CMD_RETURN_ERROR);
 
+	ft = format_create();
 	cdata = xmalloc(sizeof *cdata);
-	cdata->cmd = xstrdup(args->argv[0]);
 	cdata->wp_id = wp->id;
 	memcpy(&cdata->ctx, ctx, sizeof cdata->ctx);
+
+	shellcmd = args->argv[0];
 
 	if (ctx->cmdclient != NULL)
 		ctx->cmdclient->references++;
 	if (ctx->curclient != NULL)
 		ctx->curclient->references++;
 
-	job_run(shellcmd, cmd_run_shell_callback, cmd_run_shell_free, cdata);
+	format_session(ft, ctx->ctx_s);
+	format_client(ft, ctx->ctx_c);
+	if (ctx->ctx_wl != NULL)
+		format_winlink(ft, ctx->ctx_s, ctx->ctx_wl);
+
+	shellcmd_run = format_expand(ft, shellcmd);
+
+	cdata->cmd = xstrdup(shellcmd_run);
+	job_run(shellcmd_run, cmd_run_shell_callback, cmd_run_shell_free, cdata);
+
+	format_free(ft);
 
 	return (CMD_RETURN_YIELD);	/* don't let client exit */
 }
