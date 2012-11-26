@@ -53,7 +53,8 @@ cmd_source_file_exec(struct cmd *self, struct cmd_ctx *ctx)
 	 * error condition.  Any errors from parsing a configuration file at
 	 * startup will be handled for us by the server.
 	 */
-	if (ctx->cmdclient == NULL)
+	if (cfg_references > 0 ||
+		(ctx->curclient == NULL && ctx->cmdclient == NULL))
 		return (retval);
 
 	/* We were called from the command-line in which case print the errors
