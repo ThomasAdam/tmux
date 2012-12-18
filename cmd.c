@@ -350,6 +350,7 @@ cmd_exec(struct cmd *cmd, struct cmd_ctx *ctx)
 		ctx->ctx_s = NULL;
 
 	hooks = &global_hooks;
+
 	if (cmd->entry->prepare != NULL) {
 		log_debug("Setting CONTEXT hooks");
 		cmd->entry->prepare(cmd, ctx);
@@ -365,6 +366,7 @@ cmd_exec(struct cmd *cmd, struct cmd_ctx *ctx)
 			hooks = &ctx->ctx_s->hooks;
 		}
 	}
+
 	if (hooks == &global_hooks)
 		log_debug("HOOKS:  USING GLOBAL HOOKS");
 	else if (hooks == &ctx->ctx_s->hooks)

@@ -106,8 +106,9 @@ cmd_run_shell_exec(struct cmd *self, struct cmd_ctx *ctx)
 	char				*shellcmd_run;
 	struct window_pane		*wp;
 
-	if (cmd_find_pane(ctx, args_get(args, 't'), NULL, &wp) == NULL)
-		return (CMD_RETURN_ERROR);
+	if (args_has(args, 't'))
+		if (cmd_find_pane(ctx, args_get(args, 't'), NULL, &wp) == NULL)
+			return (CMD_RETURN_ERROR);
 
 	ft = format_create();
 	cdata = xmalloc(sizeof *cdata);

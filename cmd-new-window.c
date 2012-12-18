@@ -55,8 +55,10 @@ cmd_new_window_prepare(struct cmd *self, struct cmd_ctx *ctx)
 		ctx->ctx_s = s;
 		ctx->ctx_wl = wl;
 	} else {
-		cmd_find_index(ctx, args_get(args, 't'), &s);
-		ctx->ctx_s = s;
+		if (args_has(args, 't')) {
+			cmd_find_index(ctx, args_get(args, 't'), &s);
+			ctx->ctx_s = s;
+		}
 	}
 }
 
