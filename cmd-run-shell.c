@@ -79,10 +79,10 @@ cmd_run_shell_prepare(struct cmd *self, struct cmd_ctx *ctx)
 	struct client	*c;
 	u_int		 i;
 
-	if (args_has(self->args, 't'))
+	if (args_has(self->args, 't')) {
 		s = cmd_find_session(ctx, args_get(self->args, 't'), 0);
-
-	ctx->ctx_s = s;
+		ctx->ctx_s = s;
+	}
 
 	if (s != NULL) {
 		for (i = 0; i < ARRAY_LENGTH(&clients); i++)
@@ -104,7 +104,7 @@ cmd_run_shell_exec(struct cmd *self, struct cmd_ctx *ctx)
 	struct format_tree		*ft;
 	const char			*shellcmd;
 	char				*shellcmd_run;
-	struct window_pane		*wp;
+	struct window_pane		*wp = NULL;
 
 	if (args_has(args, 't'))
 		if (cmd_find_pane(ctx, args_get(args, 't'), NULL, &wp) == NULL)
@@ -112,7 +112,10 @@ cmd_run_shell_exec(struct cmd *self, struct cmd_ctx *ctx)
 
 	ft = format_create();
 	cdata = xmalloc(sizeof *cdata);
-	cdata->wp_id = wp->id;
+
+	/* We can be called outside of any previous context. */
+	if (wp != NULL)
+		cdata->wp_id = wp->id;
 	memcpy(&cdata->ctx, ctx, sizeof cdata->ctx);
 
 	shellcmd = args->argv[0];
@@ -122,9 +125,11 @@ cmd_run_shell_exec(struct cmd *self, struct cmd_ctx *ctx)
 	if (ctx->curclient != NULL)
 		ctx->curclient->references++;
 
-	format_session(ft, ctx->ctx_s);
-	format_client(ft, ctx->ctx_c);
-	if (ctx->ctx_wl != NULL)
+	if (ctx->ctx_s != NULL)
+		format_session(ft, ctx->ctx_s);
+	if (ctx->ctx_c != NULL)
+		format_client(ft, ctx->ctx_c);
+	if (ctx->ctx_wl != NULL && ctx->ctx_s != NULL)
 		format_winlink(ft, ctx->ctx_s, ctx->ctx_wl);
 
 	shellcmd_run = format_expand(ft, shellcmd);

@@ -320,7 +320,7 @@ run_hook_after(struct hooks *hooks, struct cmd *cmd, struct cmd_ctx *ctx)
 
 	memcpy(&hook_ctx, ctx, sizeof hook_ctx);
 	hook_ctx.cmdclient = NULL;
-	if (hooks != &global_hooks) // && ctx->ctx_c != NULL)
+	if (hooks != &global_hooks)
 		hook_ctx.curclient = ctx->curclient;
 	xasprintf(&hook_name, "after-%s", cmd->entry->name);
 
