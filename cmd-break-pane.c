@@ -27,6 +27,7 @@
  */
 
 enum cmd_retval	 cmd_break_pane_exec(struct cmd *, struct cmd_ctx *);
+void		 cmd_break_pane_prepare(struct cmd *, struct cmd_ctx *);
 
 const struct cmd_entry cmd_break_pane_entry = {
 	"break-pane", "breakp",
@@ -36,8 +37,23 @@ const struct cmd_entry cmd_break_pane_entry = {
 	NULL,
 	NULL,
 	cmd_break_pane_exec,
-		 NULL
+	cmd_break_pane_prepare
 };
+
+void
+cmd_break_pane_prepare(struct cmd *self, struct cmd_ctx *ctx)
+{
+	struct session		*s;
+	struct winlink		*wl;
+	struct window_pane	*wp;
+
+	if ((wl = cmd_find_pane(ctx, args_get(self->args, 't'),
+					&s, &wp)) == NULL)
+		return;
+	ctx->ctx_wl = wl;
+	ctx->ctx_s = s;
+	ctx->ctx_wp = wp;
+}
 
 enum cmd_retval
 cmd_break_pane_exec(struct cmd *self, struct cmd_ctx *ctx)
@@ -55,7 +71,11 @@ cmd_break_pane_exec(struct cmd *self, struct cmd_ctx *ctx)
 	const char		*template;
 	char			*cp;
 
-	if ((wl = cmd_find_pane(ctx, args_get(args, 't'), &s, &wp)) == NULL)
+	wl = ctx->ctx_wl;
+	wp = ctx->ctx_wp;
+	s = ctx->ctx_s;
+
+	if (wl == NULL)
 		return (CMD_RETURN_ERROR);
 
 	if (window_count_panes(wl->window) == 1) {
