@@ -75,23 +75,40 @@ cmd_run_shell_exec(struct cmd *self, struct cmd_ctx *ctx)
 {
 	struct args			*args = self->args;
 	struct cmd_run_shell_data	*cdata;
-	const char			*shellcmd = args->argv[0];
+	const char			*shellcmd;
+	char				*shellcmd_run;
 	struct window_pane		*wp;
+	struct format_tree		*ft;
+	struct session			*s;
 
-	if (cmd_find_pane(ctx, args_get(args, 't'), NULL, &wp) == NULL)
+	if (cmd_find_pane(ctx, args_get(args, 't'), &s, &wp) == NULL)
 		return (CMD_RETURN_ERROR);
 
 	cdata = xmalloc(sizeof *cdata);
-	cdata->cmd = xstrdup(args->argv[0]);
 	cdata->wp_id = wp->id;
 	memcpy(&cdata->ctx, ctx, sizeof cdata->ctx);
 
+	shellcmd = args->argv[0];
+	ft = format_create();
+
 	if (ctx->cmdclient != NULL)
 		ctx->cmdclient->references++;
-	if (ctx->curclient != NULL)
+	if (ctx->curclient != NULL) {
 		ctx->curclient->references++;
+		format_client(ft, ctx->curclient);
+	}
 
-	job_run(shellcmd, cmd_run_shell_callback, cmd_run_shell_free, cdata);
+	if (s != NULL)
+		format_session(ft, s);
+
+	format_window_pane(ft, wp);
+
+	shellcmd_run = format_expand(ft, shellcmd);
+
+	cdata->cmd = xstrdup(shellcmd_run);
+	job_run(shellcmd_run, cmd_run_shell_callback, cmd_run_shell_free, cdata);
+
+	format_free(ft);
 
 	return (CMD_RETURN_YIELD);	/* don't let client exit */
 }
