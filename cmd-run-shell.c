@@ -108,6 +108,7 @@ cmd_run_shell_exec(struct cmd *self, struct cmd_ctx *ctx)
 	cdata->cmd = xstrdup(shellcmd_run);
 	job_run(shellcmd_run, cmd_run_shell_callback, cmd_run_shell_free, cdata);
 
+	free(shellcmd_run);
 	format_free(ft);
 
 	return (CMD_RETURN_YIELD);	/* don't let client exit */
