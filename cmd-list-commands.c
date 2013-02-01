@@ -43,7 +43,8 @@ cmd_list_commands_exec(unused struct cmd *self, struct cmd_ctx *ctx)
 	const struct cmd_entry 	      **entryp;
 
 	for (entryp = cmd_table; *entryp != NULL; entryp++)
-		ctx->print(ctx, "%s %s", (*entryp)->name, (*entryp)->usage);
+		ctx->print(ctx, "%s (%s) %s",
+			(*entryp)->name, (*entryp)->alias, (*entryp)->usage);
 
 	return (CMD_RETURN_NORMAL);
 }
