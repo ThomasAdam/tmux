@@ -90,7 +90,7 @@ cmd_choose_buffer_exec(struct cmd *self, struct cmd_ctx *ctx)
 	}
 	free(action);
 
-	window_choose_ready(wl->window->active, 0, NULL, NULL);
+	window_choose_ready(wl->window->active, 0, NULL);
 
 	return (CMD_RETURN_NORMAL);
 }
