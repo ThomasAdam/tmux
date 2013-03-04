@@ -135,10 +135,6 @@ struct session	*cmd_window_session(struct cmd_q *, struct window *,
 struct winlink	*cmd_find_window_offset(const char *, struct session *, int *);
 int		 cmd_find_index_offset(const char *, struct session *, int *);
 struct window_pane *cmd_find_pane_offset(const char *, struct winlink *);
-enum cmd_retval	 run_hook_before(struct hooks *, struct cmd *,
-		    struct cmd_ctx *);
-enum cmd_retval	 run_hook_after(struct hooks *, struct cmd *,
-		    struct cmd_ctx *);
 
 int
 cmd_pack_argv(int argc, char **argv, char *buf, size_t len)
@@ -295,78 +291,39 @@ usage:
 }
 
 enum cmd_retval
-run_hook_before(struct hooks *hooks, struct cmd *cmd, struct cmd_ctx *ctx)
+hooks_run_before(struct hooks *hooks, struct cmd *cmd, struct cmd_q *cmdq)
 {
-	struct cmd_ctx	 hook_ctx;
+	struct cmd_q	 hook_cmdq;
 	char		*hook_name;
 	enum cmd_retval	 retval;
 
-	memcpy(&hook_ctx, ctx, sizeof hook_ctx);
-	hook_ctx.cmdclient = NULL;
+	memcpy(&hook_cmdq, cmdq, sizeof hook_cmdq);
 	xasprintf(&hook_name, "before-%s", cmd->entry->name);
 
-	retval = hooks_call(hooks, hook_name, &hook_ctx);
+	retval = hooks_call(hooks, hook_name, &hook_cmdq);
 	if (retval == CMD_RETURN_ERROR)
 		log_debug("Failed to run cmd hook (before) <<%s>>", hook_name);
 
 	free (hook_name);
-	return (retval);
+	return (CMD_RETURN_WAIT);
 }
 
 enum cmd_retval
-run_hook_after(struct hooks *hooks, struct cmd *cmd, struct cmd_ctx *ctx)
+hooks_run_after(struct hooks *hooks, struct cmd *cmd, struct cmd_q *cmdq)
 {
-	struct cmd_ctx	 hook_ctx;
+	struct cmd_q	 hook_cmdq;
 	char		*hook_name;
 	enum cmd_retval	 retval;
 
-	memcpy(&hook_ctx, ctx, sizeof hook_ctx);
-	hook_ctx.cmdclient = NULL;
+	memcpy(&hook_cmdq, cmdq, sizeof hook_cmdq);
 	xasprintf(&hook_name, "after-%s", cmd->entry->name);
 
-	retval = hooks_call(hooks, hook_name, &hook_ctx);
+	retval = hooks_call(hooks, hook_name, &hook_cmdq);
 	if (retval == CMD_RETURN_ERROR)
 		log_debug("Failed to run cmd hook (after) <<%s>>", hook_name);
 
 	free (hook_name);
-	return (retval);
-}
-
-enum cmd_retval
-cmd_exec(struct cmd *cmd, struct cmd_ctx *ctx)
-{
-	struct session	*s = NULL;
-	struct hooks	*hooks;
-	enum cmd_retval	 retval, hooks_retval;
-
-	if (ctx->curclient != NULL)
-		s = ctx->curclient->session;
-
-	hooks = (s == NULL) ? &global_hooks : &s->hooks;
-
-	/* Call any hooks set to run before the intended command. */
-	hooks_retval = run_hook_before(hooks, cmd, ctx);
-	if (hooks_retval == CMD_RETURN_ERROR)
-		return (hooks_retval);
-
-	/* Call the intended command. */
-	if ((retval = cmd->entry->exec(cmd, ctx)) == CMD_RETURN_ERROR)
-		return (retval);
-
-	/* Call any hooks set to run after the intended command. */
-	hooks_retval = run_hook_after(hooks, cmd, ctx);
-	if (hooks_retval == CMD_RETURN_ERROR)
-		return (hooks_retval);
-
-	/* Return the result of the intended command. */
-	return (retval);
-}
-
-void
-cmd_free(struct cmd *cmd)
-{
-	args_free(cmd->args);
-	free(cmd);
+	return (CMD_RETURN_WAIT);
 }
 
 size_t

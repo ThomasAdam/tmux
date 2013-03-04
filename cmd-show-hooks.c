@@ -25,7 +25,7 @@
 
 #include "tmux.h"
 
-enum cmd_retval cmd_show_hooks_exec(struct cmd *, struct cmd_ctx *);
+enum cmd_retval cmd_show_hooks_exec(struct cmd *, struct cmd_q *);
 
 const struct cmd_entry cmd_show_hooks_entry = {
 	"show-hooks", NULL,
@@ -38,7 +38,7 @@ const struct cmd_entry cmd_show_hooks_entry = {
 };
 
 enum cmd_retval
-cmd_show_hooks_exec(struct cmd *self, struct cmd_ctx *ctx)
+cmd_show_hooks_exec(struct cmd *self, struct cmd_q *cmdq)
 {
 	struct args	*args = self->args;
 	struct session	*s;
@@ -48,7 +48,7 @@ cmd_show_hooks_exec(struct cmd *self, struct cmd_ctx *ctx)
 	char		 tmp[BUFSIZ];
 	size_t		 used;
 
-	if ((s = cmd_find_session(ctx, args_get(args, 't'), 0)) == NULL)
+	if ((s = cmd_find_session(cmdq, args_get(args, 't'), 0)) == NULL)
 		return (CMD_RETURN_ERROR);
 
 	hooks_ent = args_has(args, 'g') ? &global_hooks : &s->hooks;
@@ -56,7 +56,7 @@ cmd_show_hooks_exec(struct cmd *self, struct cmd_ctx *ctx)
 	RB_FOREACH(hook, hooks, hooks_ent) {
 		used = xsnprintf(tmp, sizeof tmp, "%s -> ", hook->name);
 		cmd_list_print(hook->cmdlist, tmp + used, (sizeof tmp) - used);
-		ctx->print(ctx, "%s", tmp);
+		cmdq_print(cmdq, "%s", tmp);
 	}
 	return (CMD_RETURN_NORMAL);
 }

@@ -25,7 +25,7 @@
 
 #include "tmux.h"
 
-enum cmd_retval cmd_set_hook_exec(struct cmd *, struct cmd_ctx *);
+enum cmd_retval cmd_set_hook_exec(struct cmd *, struct cmd_q *);
 
 const struct cmd_entry cmd_set_hook_entry = {
 	"set-hook", NULL,
@@ -38,7 +38,7 @@ const struct cmd_entry cmd_set_hook_entry = {
 };
 
 enum cmd_retval
-cmd_set_hook_exec(struct cmd *self, struct cmd_ctx *ctx)
+cmd_set_hook_exec(struct cmd *self, struct cmd_q *cmdq)
 {
 	struct args	*args = self->args;
 	struct session	*s;
@@ -49,14 +49,14 @@ cmd_set_hook_exec(struct cmd *self, struct cmd_ctx *ctx)
 	const char	*hook_name, *hook_cmd;
 
 	if (args_has(args, 't'))
-		if ((s = cmd_find_session(ctx, args_get(args, 't'), 0)) == NULL)
+		if ((s = cmd_find_session(cmdq, args_get(args, 't'), 0)) == NULL)
 			return (CMD_RETURN_ERROR);
 
-	if (s == NULL && ctx->curclient != NULL)
-		s = ctx->curclient->session;
+	if (s == NULL && cmdq->client != NULL)
+		s = cmdq->client->session;
 
 	if ((hook_name = args_get(args, 'n')) == NULL) {
-		ctx->error(ctx, "No hook name given.");
+		cmdq_error(cmdq, "No hook name given.");
 		return (CMD_RETURN_ERROR);
 	}
 
@@ -69,15 +69,15 @@ cmd_set_hook_exec(struct cmd *self, struct cmd_ctx *ctx)
 	}
 
 	if (args->argc == 0) {
-		ctx->error(ctx, "No command for hook '%s' given.", hook_name);
+		cmdq_error(cmdq, "No command for hook '%s' given.", hook_name);
 		return (CMD_RETURN_ERROR);
 	}
 	hook_cmd = args->argv[0];
 
-	if (cmd_string_parse(hook_cmd, &cmdlist, &cause) != 0) {
+	if (cmd_string_parse(hook_cmd, &cmdlist, NULL, 0, &cause) != 0) {
 		if (cmdlist == NULL || cause != NULL) {
 			log_debug("Hook error: (%s)", cause);
-			ctx->error(ctx,	"Hook error: (%s)", cause);
+			cmdq_error(cmdq, "Hook error: (%s)", cause);
 			return (CMD_RETURN_ERROR);
 		}
 	}

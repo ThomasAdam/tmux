@@ -1,0 +1,12 @@
+set-hook -g -n 'after-new-session' 'run "notify-send new-session #{session_name}"'
+set-hook -g -n 'before-new-window' 'display "new-window... #{window_name}"'
+set-hook -g -n 'after-new-window' 'run -b "notify-send yay"'
+set-hook -g -n 'after-break-pane' 'run -b "notify-send Broken #{window_id}"'
+set-hook -g -n 'before-clear-history' 'display "CLEARING HISTORY!!!!!!!!!"'
+set-hook -g -n 'after-capture-pane' 'run "xclip -o > /tmp/fdd"'
+#
+new -sfoo
+set-hook -tfoo -n 'before-split-window' 'display-message "I split this window!"'
+set-hook -tfoo -n 'after-new-window' 'run "notify-send \"#{session_name} new window #{window_name} \""'
+new-window -d
+new-window -d

@@ -34,21 +34,24 @@ hooks_cmp(struct hook *hook1, struct hook *hook2)
 }
 
 void
-hooks_init(struct hooks *hooks, struct hooks *copy)
+hooks_init(struct hooks *hooks, struct hooks *copy, const char *name)
 {
 	RB_INIT(hooks);
 
 	if (copy != NULL)
-		hooks_copy(copy, hooks);
+		hooks_copy(copy, hooks, name);
 }
 
 void
-hooks_copy(struct hooks *src, struct hooks *dst)
+hooks_copy(struct hooks *src, struct hooks *dst, const char *name)
 {
 	struct hook	*h;
 
-	RB_FOREACH(h, hooks, src)
+	RB_FOREACH(h, hooks, src) {
 		hooks_add(dst, h->name, h->cmdlist);
+		log_debug("HOOKS:  <<%s>>:  Added:  <<%s>>",
+			name == NULL ? "GLOBAL" : name, h->name);
+	}
 }
 
 void
@@ -101,14 +104,14 @@ hooks_find(struct hooks *hooks, const char *name)
 }
 
 enum cmd_retval
-hooks_call(struct hooks *hooks, const char *name, struct cmd_ctx *ctx)
+hooks_call(struct hooks *hooks, const char *name, struct cmd_q *cmdq)
 {
 	struct hook	*hook;
 
 	if ((hook = hooks_find(hooks, name)) != NULL) {
-		log_debug("Running hook '%s'", hook->name);
+		log_debug("HOOK:  Running hook '%s'", hook->name);
 
-		return (cmd_list_exec(hook->cmdlist, ctx));
+		cmdq_run(cmdq, hook->cmdlist);
 	}
 	return (CMD_RETURN_NORMAL);
 }

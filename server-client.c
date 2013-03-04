@@ -933,6 +933,7 @@ server_client_msg_command(struct client *c, struct msg_command_data *data)
 	}
 	cmd_free_argv(argc, argv);
 
+	log_debug("CMD:  Calling...");
 	cmdq_run(c->cmdq, cmdlist);
 	cmd_list_free(cmdlist);
 	return;

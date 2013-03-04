@@ -1561,13 +1561,15 @@ void		 format_paste_buffer(struct format_tree *, struct paste_buffer *);
 /* hooks.c */
 int		 hooks_cmp(struct hook *, struct hook *);
 RB_PROTOTYPE(hooks, hook, entry, hooks_cmp);
-void		 hooks_init(struct hooks *, struct hooks *);
+void		 hooks_init(struct hooks *, struct hooks *, const char *);
 void		 hooks_free(struct hooks *);
 void		 hooks_add(struct hooks *, const char *, struct cmd_list *);
-void		 hooks_copy(struct hooks *, struct hooks *);
+void		 hooks_copy(struct hooks *, struct hooks *, const char *);
 void		 hook_remove(struct hooks *, struct hook *);
 struct hook	*hooks_find(struct hooks *, const char *);
-enum cmd_retval	 hooks_call(struct hooks *, const char *, struct cmd_ctx *);
+enum cmd_retval	 hooks_run_before(struct hooks *, struct cmd *, struct cmd_q *);
+enum cmd_retval	 hooks_run_after(struct hooks *, struct cmd *, struct cmd_q *);
+enum cmd_retval	 hooks_call(struct hooks *, const char *, struct cmd_q *);
 
 /* mode-key.c */
 extern const struct mode_key_table mode_key_tables[];

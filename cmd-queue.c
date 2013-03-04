@@ -21,6 +21,7 @@
 #include <ctype.h>
 #include <stdlib.h>
 #include <time.h>
+#include <string.h>
 
 #include "tmux.h"
 
@@ -173,8 +174,80 @@ cmdq_guard(struct cmd_q *cmdq, const char *guard)
 void
 cmdq_run(struct cmd_q *cmdq, struct cmd_list *cmdlist)
 {
+	struct client		*c;
+	struct cmd_q		*cmdq_hooks;
+	struct cmd_q_item	*item;
+	struct cmd		*cmd;
+	struct hooks		*hooks;
+	struct hook		*hook_before, *hook_after;
+	char			*hook_before_name, *hook_after_name;
+
+	c = cmdq->client != NULL ? cmdq->client : NULL;
+	///hooks = &global_hooks;
+	hooks = (c != NULL && c->session != NULL) ? &c->session->hooks : &global_hooks;
 	cmdq_append(cmdq, cmdlist);
 
+	if (hooks == NULL)
+		goto out;
+
+	log_debug("HOOKS NOT NULL!!!");
+
+	/* Hooks */
+	TAILQ_FOREACH(item, &cmdq->queue, qentry) {
+		TAILQ_FOREACH(cmd, &item->cmdlist->list, qentry) {
+			/* 
+			 * For the given command in this list, look to see if
+			 * this has any hooks.
+			 */
+			xasprintf(&hook_before_name, "before-%s", cmd->entry->name);
+			xasprintf(&hook_after_name, "after-%s", cmd->entry->name);
+			hook_before = hooks_find(hooks, hook_before_name);
+			hook_after = hooks_find(hooks, hook_after_name);
+
+			free(hook_before_name);
+			free(hook_after_name);
+
+			/* No hooks found.  Just use the command passed in. */
+			if (hook_before == NULL && hook_after == NULL) {
+				log_debug("No hooks defined for session:  <<%s>>",
+					(c != NULL && c->session != NULL) ?
+					c->session->name : "(null)");
+				goto out;
+			}
+
+			cmdq_hooks = cmdq_new(c);
+
+			if (hook_before != NULL)
+				cmdq_append(cmdq_hooks, hook_before->cmdlist);
+
+			/* Then the command itself. */
+			cmdq_append(cmdq_hooks, cmdlist);
+
+			if (hook_after != NULL)
+				cmdq_append(cmdq_hooks, hook_after->cmdlist);
+
+			/* 
+			 * We have some hooks in which case, we
+			 * must recreate the cmdq, this time flushing and
+			 * freeing it, and reusing the client from the
+			 * original.
+			 */
+			cmdq_free(cmdq);
+			cmdq = cmdq_hooks;
+
+			/* 
+			 * Assign the cmdq back to the client if it came from
+			 * there originally.
+			 */
+#if 0
+			if (c != NULL) {
+				cmdq_free(c->cmdq);
+				c->cmdq = cmdq_hooks;
+			}
+#endif
+		}
+	}
+out:
 	if (cmdq->item == NULL) {
 		cmdq->cmd = NULL;
 		cmdq_continue(cmdq);
