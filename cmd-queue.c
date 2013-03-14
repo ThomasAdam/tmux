@@ -175,22 +175,27 @@ void
 cmdq_run(struct cmd_q *cmdq, struct cmd_list *cmdlist)
 {
 	struct client		*c;
-	struct cmd_q		*cmdq_hooks;
+	struct cmd_q		*cmdq_hooks, *cmdq_to_use;
 	struct cmd_q_item	*item;
-	struct cmd		*cmd;
-	struct hooks		*hooks;
+	struct cmd		*cmd, *cmd_hooks;
+	struct cmd_list		*cmdlist_new;
+	struct hooks		*hooks = NULL;
 	struct hook		*hook_before, *hook_after;
 	char			*hook_before_name, *hook_after_name;
 
-	c = cmdq->client != NULL ? cmdq->client : NULL;
-	///hooks = &global_hooks;
+	c = cmdq->client;
 	hooks = (c != NULL && c->session != NULL) ? &c->session->hooks : &global_hooks;
 	cmdq_append(cmdq, cmdlist);
+
+	cmdq_to_use = cmdq;
 
 	if (hooks == NULL)
 		goto out;
 
-	log_debug("HOOKS NOT NULL!!!");
+	cmdq_hooks = cmdq_new(c);
+	cmdlist_new = xcalloc(1, sizeof *cmdlist);
+	cmdlist_new->references = 1;
+	TAILQ_INIT(&cmdlist_new->list);
 
 	/* Hooks */
 	TAILQ_FOREACH(item, &cmdq->queue, qentry) {
@@ -209,48 +214,34 @@ cmdq_run(struct cmd_q *cmdq, struct cmd_list *cmdlist)
 
 			/* No hooks found.  Just use the command passed in. */
 			if (hook_before == NULL && hook_after == NULL) {
-				log_debug("No hooks defined for session:  <<%s>>",
-					(c != NULL && c->session != NULL) ?
-					c->session->name : "(null)");
+				log_debug("No hooks for %s", cmd->entry->name);
 				goto out;
 			}
 
-			cmdq_hooks = cmdq_new(c);
-
-			if (hook_before != NULL)
-				cmdq_append(cmdq_hooks, hook_before->cmdlist);
+			if (hook_before != NULL) {
+				TAILQ_FOREACH(cmd_hooks, &hook_before->cmdlist->list, qentry) {
+					TAILQ_INSERT_TAIL(&cmdlist_new->list, cmd_hooks, qentry);
+				}
+			}
 
 			/* Then the command itself. */
-			cmdq_append(cmdq_hooks, cmdlist);
+			TAILQ_INSERT_TAIL(&cmdlist_new->list, cmd, qentry);
 
-			if (hook_after != NULL)
-				cmdq_append(cmdq_hooks, hook_after->cmdlist);
-
-			/* 
-			 * We have some hooks in which case, we
-			 * must recreate the cmdq, this time flushing and
-			 * freeing it, and reusing the client from the
-			 * original.
-			 */
-			cmdq_free(cmdq);
-			cmdq = cmdq_hooks;
-
-			/* 
-			 * Assign the cmdq back to the client if it came from
-			 * there originally.
-			 */
-#if 0
-			if (c != NULL) {
-				cmdq_free(c->cmdq);
-				c->cmdq = cmdq_hooks;
+			if (hook_after != NULL) {
+				TAILQ_FOREACH(cmd_hooks, &hook_after->cmdlist->list, qentry) {
+					TAILQ_INSERT_TAIL(&cmdlist_new->list, cmd_hooks, qentry);
+				}
 			}
-#endif
 		}
 	}
+
+	cmdq_append(cmdq_hooks, cmdlist_new);
+	cmdq_to_use = cmdq_hooks;
+
 out:
-	if (cmdq->item == NULL) {
-		cmdq->cmd = NULL;
-		cmdq_continue(cmdq);
+	if (cmdq_to_use->item == NULL) {
+		cmdq_to_use->cmd = NULL;
+		cmdq_continue(cmdq_to_use);
 	}
 }
 

@@ -71,9 +71,10 @@ hooks_add(struct hooks *hooks, const char *name, struct cmd_list *cmdlist)
 	if ((h = hooks_find(hooks, (char *)name)) != NULL)
 		hook_remove(hooks, h);
 
-	h = xmalloc(sizeof *h);
+	h = xcalloc(1, sizeof *h);
 	h->name = xstrdup(name);
 	h->cmdlist = cmdlist;
+	h->cmdlist->references++;
 
 	RB_INSERT(hooks, hooks, h);
 }
