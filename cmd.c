@@ -290,42 +290,6 @@ usage:
 	return (NULL);
 }
 
-enum cmd_retval
-hooks_run_before(struct hooks *hooks, struct cmd *cmd, struct cmd_q *cmdq)
-{
-	struct cmd_q	 hook_cmdq;
-	char		*hook_name;
-	enum cmd_retval	 retval;
-
-	memcpy(&hook_cmdq, cmdq, sizeof hook_cmdq);
-	xasprintf(&hook_name, "before-%s", cmd->entry->name);
-
-	retval = hooks_call(hooks, hook_name, &hook_cmdq);
-	if (retval == CMD_RETURN_ERROR)
-		log_debug("Failed to run cmd hook (before) <<%s>>", hook_name);
-
-	free (hook_name);
-	return (CMD_RETURN_WAIT);
-}
-
-enum cmd_retval
-hooks_run_after(struct hooks *hooks, struct cmd *cmd, struct cmd_q *cmdq)
-{
-	struct cmd_q	 hook_cmdq;
-	char		*hook_name;
-	enum cmd_retval	 retval;
-
-	memcpy(&hook_cmdq, cmdq, sizeof hook_cmdq);
-	xasprintf(&hook_name, "after-%s", cmd->entry->name);
-
-	retval = hooks_call(hooks, hook_name, &hook_cmdq);
-	if (retval == CMD_RETURN_ERROR)
-		log_debug("Failed to run cmd hook (after) <<%s>>", hook_name);
-
-	free (hook_name);
-	return (CMD_RETURN_WAIT);
-}
-
 size_t
 cmd_print(struct cmd *cmd, char *buf, size_t len)
 {

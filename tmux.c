@@ -322,7 +322,7 @@ main(int argc, char **argv)
 			flags |= IDENTIFY_UTF8;
 	}
 
-	hooks_init(&global_hooks, NULL, NULL);
+	hooks_init(&global_hooks, NULL);
 	environ_init(&global_environ);
 	for (var = environ; *var != NULL; var++)
 		environ_put(&global_environ, *var);

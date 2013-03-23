@@ -34,24 +34,21 @@ hooks_cmp(struct hook *hook1, struct hook *hook2)
 }
 
 void
-hooks_init(struct hooks *hooks, struct hooks *copy, const char *name)
+hooks_init(struct hooks *hooks, struct hooks *copy)
 {
 	RB_INIT(hooks);
 
 	if (copy != NULL)
-		hooks_copy(copy, hooks, name);
+		hooks_copy(copy, hooks);
 }
 
 void
-hooks_copy(struct hooks *src, struct hooks *dst, const char *name)
+hooks_copy(struct hooks *src, struct hooks *dst)
 {
 	struct hook	*h;
 
-	RB_FOREACH(h, hooks, src) {
+	RB_FOREACH(h, hooks, src)
 		hooks_add(dst, h->name, h->cmdlist);
-		log_debug("HOOKS:  <<%s>>:  Added:  <<%s>>",
-			name == NULL ? "GLOBAL" : name, h->name);
-	}
 }
 
 void
@@ -60,7 +57,7 @@ hooks_free(struct hooks *hooks)
 	struct hook	*h, *h2;
 
 	RB_FOREACH_SAFE(h, hooks, hooks, h2)
-		hook_remove(hooks, h);
+		hooks_remove(hooks, h);
 }
 
 void
@@ -69,7 +66,7 @@ hooks_add(struct hooks *hooks, const char *name, struct cmd_list *cmdlist)
 	struct hook	*h;
 
 	if ((h = hooks_find(hooks, (char *)name)) != NULL)
-		hook_remove(hooks, h);
+		hooks_remove(hooks, h);
 
 	h = xcalloc(1, sizeof *h);
 	h->name = xstrdup(name);
@@ -80,7 +77,7 @@ hooks_add(struct hooks *hooks, const char *name, struct cmd_list *cmdlist)
 }
 
 void
-hook_remove(struct hooks *hooks, struct hook *h)
+hooks_remove(struct hooks *hooks, struct hook *h)
 {
 	if (h == NULL)
 		return;
@@ -102,17 +99,4 @@ hooks_find(struct hooks *hooks, const char *name)
 	h.name = (char *)name;
 
 	return (RB_FIND(hooks, hooks, &h));
-}
-
-enum cmd_retval
-hooks_call(struct hooks *hooks, const char *name, struct cmd_q *cmdq)
-{
-	struct hook	*hook;
-
-	if ((hook = hooks_find(hooks, name)) != NULL) {
-		log_debug("HOOK:  Running hook '%s'", hook->name);
-
-		cmdq_run(cmdq, hook->cmdlist);
-	}
-	return (CMD_RETURN_NORMAL);
 }

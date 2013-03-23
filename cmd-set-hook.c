@@ -64,7 +64,7 @@ cmd_set_hook_exec(struct cmd *self, struct cmd_q *cmdq)
 
 	if (s != NULL && args_has(args, 'u')) {
 		hook = hooks_find(hooks_ent, (char *)hook_name);
-		hook_remove(hooks_ent, hook);
+		hooks_remove(hooks_ent, hook);
 		return (CMD_RETURN_NORMAL);
 	}
 

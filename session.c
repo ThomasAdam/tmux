@@ -104,7 +104,7 @@ session_create(const char *name, const char *cmd, const char *cwd,
 	TAILQ_INIT(&s->lastw);
 	RB_INIT(&s->windows);
 
-	//hooks_init(&s->hooks, &global_hooks, s->name);
+	hooks_init(&s->hooks, &global_hooks);
 	options_init(&s->options, &global_s_options);
 	environ_init(&s->environ);
 	if (env != NULL)
@@ -130,7 +130,6 @@ session_create(const char *name, const char *cmd, const char *cwd,
 			xasprintf(&s->name, "%u", s->id);
 		} while (RB_FIND(sessions, &sessions, s) != NULL);
 	}
-	hooks_init(&s->hooks, &global_hooks, s->name);
 	RB_INSERT(sessions, &sessions, s);
 
 	if (cmd != NULL) {
