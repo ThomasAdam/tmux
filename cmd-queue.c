@@ -25,6 +25,8 @@
 
 #include "tmux.h"
 
+void cmdq_include_hooks(struct hook *, struct cmd_list *);
+
 /* Create new command queue. */
 struct cmd_q *
 cmdq_new(struct client *c)
@@ -170,78 +172,30 @@ cmdq_guard(struct cmd_q *cmdq, const char *guard)
 	return 1;
 }
 
+/* Find any hooks associated with command and include them in the cmdlist. */
+void
+cmdq_include_hooks(struct hook *hook, struct cmd_list *cmdlist)
+{
+	struct cmd	*cmd, *cmd1;
+
+	if (hook == NULL)
+		return;
+
+	TAILQ_FOREACH_SAFE(cmd, &hook->cmdlist->list, qentry, cmd1) {
+		TAILQ_INSERT_TAIL(&cmdlist->list, cmd, qentry);
+		break;
+	}
+}
+
 /* Add command list to queue and begin processing if needed. */
 void
 cmdq_run(struct cmd_q *cmdq, struct cmd_list *cmdlist)
 {
-	struct client		*c;
-	struct cmd_q		*cmdq_hooks, *cmdq_to_use;
-	struct cmd_q_item	*item;
-	struct cmd		*cmd, *cmd_hooks;
-	struct cmd_list		*cmdlist_new;
-	struct hooks		*hooks = NULL;
-	struct hook		*hook_before, *hook_after;
-	char			*hook_before_name, *hook_after_name;
-
-	c = cmdq->client;
-	hooks = (c != NULL && c->session != NULL) ? &c->session->hooks : &global_hooks;
 	cmdq_append(cmdq, cmdlist);
 
-	cmdq_to_use = cmdq;
-
-	if (hooks == NULL)
-		goto out;
-
-	cmdq_hooks = cmdq_new(c);
-	cmdlist_new = xcalloc(1, sizeof *cmdlist);
-	cmdlist_new->references = 1;
-	TAILQ_INIT(&cmdlist_new->list);
-
-	/* Hooks */
-	TAILQ_FOREACH(item, &cmdq->queue, qentry) {
-		TAILQ_FOREACH(cmd, &item->cmdlist->list, qentry) {
-			/* 
-			 * For the given command in this list, look to see if
-			 * this has any hooks.
-			 */
-			xasprintf(&hook_before_name, "before-%s", cmd->entry->name);
-			xasprintf(&hook_after_name, "after-%s", cmd->entry->name);
-			hook_before = hooks_find(hooks, hook_before_name);
-			hook_after = hooks_find(hooks, hook_after_name);
-
-			free(hook_before_name);
-			free(hook_after_name);
-
-			/* No hooks found.  Just use the command passed in. */
-			if (hook_before == NULL && hook_after == NULL) {
-				log_debug("No hooks for %s", cmd->entry->name);
-				goto out;
-			}
-
-			if (hook_before != NULL) {
-				TAILQ_FOREACH(cmd_hooks, &hook_before->cmdlist->list, qentry) {
-					TAILQ_INSERT_TAIL(&cmdlist_new->list, cmd_hooks, qentry);
-				}
-			}
-
-			/* Then the command itself. */
-			TAILQ_INSERT_TAIL(&cmdlist_new->list, cmd, qentry);
-
-			if (hook_after != NULL) {
-				TAILQ_FOREACH(cmd_hooks, &hook_after->cmdlist->list, qentry) {
-					TAILQ_INSERT_TAIL(&cmdlist_new->list, cmd_hooks, qentry);
-				}
-			}
-		}
-	}
-
-	cmdq_append(cmdq_hooks, cmdlist_new);
-	cmdq_to_use = cmdq_hooks;
-
-out:
-	if (cmdq_to_use->item == NULL) {
-		cmdq_to_use->cmd = NULL;
-		cmdq_continue(cmdq_to_use);
+	if (cmdq->item == NULL) {
+		cmdq->cmd = NULL;
+		cmdq_continue(cmdq);
 	}
 }
 
@@ -250,10 +204,59 @@ void
 cmdq_append(struct cmd_q *cmdq, struct cmd_list *cmdlist)
 {
 	struct cmd_q_item	*item;
+	struct cmd_list		*cmdlist_hooks;
+	struct cmd		*cmd;
+	struct client		*c;
+	struct hooks		*hooks;
+	struct hook		*hook_before, *hook_after;
+	char			*hook_before_name, *hook_after_name;
 
 	item = xcalloc(1, sizeof *item);
-	item->cmdlist = cmdlist;
+	c = cmdq->client;
+
+	if ((hooks = (c != NULL && c->session != NULL) ?
+		&c->session->hooks : &global_hooks) == NULL)
+		goto out;
+
+	cmdlist_hooks = cmd_list_new();
+
+	/* Hooks */
+	TAILQ_FOREACH(cmd, &cmdlist->list, qentry) {
+		/*
+		 * For the given command in this list, look to see if
+		 * this has any hooks.
+		 */
+		xasprintf(&hook_before_name, "before-%s", cmd->entry->name);
+		xasprintf(&hook_after_name, "after-%s", cmd->entry->name);
+		hook_before = hooks_find(hooks, hook_before_name);
+		hook_after = hooks_find(hooks, hook_after_name);
+
+		free(hook_before_name);
+		free(hook_after_name);
+
+		if (hook_before == NULL && hook_after == NULL)
+			continue;
+
+		/* Hooks to run before the command. */
+		cmdq_include_hooks(hook_before, cmdlist_hooks);
+
+		/* Then the command itself. */
+		TAILQ_INSERT_TAIL(&cmdlist_hooks->list, cmd, qentry);
+
+		/* Hooks to run after the command. */
+		cmdq_include_hooks(hook_after, cmdlist_hooks);
+	}
+
+out:
+	if (!TAILQ_EMPTY(&cmdlist_hooks->list))
+		item->cmdlist = cmdlist_hooks;
+	else {
+		item->cmdlist = cmdlist;
+		cmd_list_free(cmdlist_hooks);
+	}
+
 	TAILQ_INSERT_TAIL(&cmdq->queue, item, qentry);
+	item->cmdlist->references++;
 	cmdlist->references++;
 }
 
