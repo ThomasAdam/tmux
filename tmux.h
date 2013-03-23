@@ -1866,6 +1866,7 @@ extern const struct cmd_entry cmd_wait_for_entry;
 enum cmd_retval	 cmd_attach_session(struct cmd_q *, const char*, int, int);
 
 /* cmd-list.c */
+struct cmd_list	*cmd_list_new(void);
 struct cmd_list	*cmd_list_parse(int, char **, const char *, u_int, char **);
 void		 cmd_list_free(struct cmd_list *);
 size_t		 cmd_list_print(struct cmd_list *, char *, size_t);
