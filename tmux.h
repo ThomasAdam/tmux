@@ -1418,6 +1418,7 @@ struct cmd_q {
 	struct cmd_q_items	 queue;
 	struct cmd_q_item	*item;
 	struct cmd		*cmd;
+	struct cmd_context	*cmd_ctx;
 
 	time_t			 time;
 	u_int			 number;
@@ -1428,6 +1429,15 @@ struct cmd_q {
 	struct msg_command_data	*msgdata;
 
 	TAILQ_ENTRY(cmd_q)       waitentry;
+};
+
+/* Context for the running command. */
+struct cmd_context {
+	struct client		*client;
+	struct session		*session;
+	struct window		*window;
+	struct window_pane	*wp;
+	struct winlink		*wl;
 };
 
 /* Command definition. */
@@ -1450,6 +1460,7 @@ struct cmd_entry {
 	void		 (*key_binding)(struct cmd *, int);
 	int		 (*check)(struct args *);
 	enum cmd_retval	 (*exec)(struct cmd *, struct cmd_q *);
+	void		 (*prepare)(struct cmd *, struct cmd_q *);
 };
 
 /* Key binding. */
@@ -1753,24 +1764,25 @@ long long	 args_strtonum(
 		    struct args *, u_char, long long, long long, char **);
 
 /* cmd.c */
-int		 cmd_pack_argv(int, char **, char *, size_t);
-int		 cmd_unpack_argv(char *, size_t, int, char ***);
-char	       **cmd_copy_argv(int, char *const *);
-void		 cmd_free_argv(int, char **);
-struct cmd	*cmd_parse(int, char **, const char *, u_int, char **);
-size_t		 cmd_print(struct cmd *, char *, size_t);
-struct session	*cmd_current_session(struct cmd_q *, int);
-struct client	*cmd_current_client(struct cmd_q *);
-struct client	*cmd_find_client(struct cmd_q *, const char *, int);
-struct session	*cmd_find_session(struct cmd_q *, const char *, int);
-struct winlink	*cmd_find_window(struct cmd_q *, const char *,
-		     struct session **);
-int		 cmd_find_index(struct cmd_q *, const char *,
-		     struct session **);
-struct winlink	*cmd_find_pane(struct cmd_q *, const char *, struct session **,
-		     struct window_pane **);
-char		*cmd_template_replace(const char *, const char *, int);
-const char     	*cmd_get_default_path(struct cmd_q *, const char *);
+int			 cmd_pack_argv(int, char **, char *, size_t);
+int			 cmd_unpack_argv(char *, size_t, int, char ***);
+char			**cmd_copy_argv(int, char *const *);
+void			 cmd_free_argv(int, char **);
+struct cmd		*cmd_parse(int, char **, const char *, u_int, char **);
+size_t			 cmd_print(struct cmd *, char *, size_t);
+struct session		*cmd_current_session(struct cmd_q *, int);
+struct client		*cmd_current_client(struct cmd_q *);
+struct client		*cmd_find_client(struct cmd_q *, const char *, int);
+struct session		*cmd_find_session(struct cmd_q *, const char *, int);
+struct winlink		*cmd_find_window(struct cmd_q *, const char *,
+				struct session **);
+int		 	 cmd_find_index(struct cmd_q *, const char *,
+				struct session **);
+struct winlink		*cmd_find_pane(struct cmd_q *, const char *, struct session **,
+				struct window_pane **);
+char			*cmd_template_replace(const char *, const char *, int);
+const char     		*cmd_get_default_path(struct cmd_q *, const char *);
+struct cmd_context	*cmd_create_context(struct cmd_q *);
 extern const struct cmd_entry *cmd_table[];
 extern const struct cmd_entry cmd_attach_session_entry;
 extern const struct cmd_entry cmd_bind_key_entry;

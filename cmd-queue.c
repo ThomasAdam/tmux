@@ -43,6 +43,7 @@ cmdq_new(struct client *c)
 	TAILQ_INIT(&cmdq->queue);
 	cmdq->item = NULL;
 	cmdq->cmd = NULL;
+	cmdq->cmd_ctx = NULL;
 
 	return (cmdq);
 }
@@ -213,6 +214,7 @@ cmdq_append(struct cmd_q *cmdq, struct cmd_list *cmdlist)
 
 	item = xcalloc(1, sizeof *item);
 	c = cmdq->client;
+	cmdq->cmd_ctx = cmd_create_context(cmdq);
 
 	if ((hooks = (c != NULL && c->session != NULL) ?
 		&c->session->hooks : &global_hooks) == NULL)

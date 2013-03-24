@@ -290,6 +290,21 @@ usage:
 	return (NULL);
 }
 
+struct cmd_context *
+cmd_create_context(struct cmd_q *cmdq)
+{
+	struct cmd_context	*cmd_ctx;
+
+	cmd_ctx = xmalloc(sizeof *cmd_ctx);
+	cmd_ctx->client = cmdq->client;
+	cmd_ctx->session = cmdq->client != NULL ? cmdq->client->session : NULL;
+	cmd_ctx->window = NULL;
+	cmd_ctx->wl = NULL;
+	cmd_ctx->wp = NULL;
+
+	return (cmd_ctx);
+}
+
 size_t
 cmd_print(struct cmd *cmd, char *buf, size_t len)
 {
