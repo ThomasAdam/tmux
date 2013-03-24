@@ -36,7 +36,8 @@ const struct cmd_entry cmd_select_window_entry = {
 	0,
 	cmd_select_window_key_binding,
 	NULL,
-	cmd_select_window_exec
+	cmd_select_window_exec,
+	NULL
 };
 
 const struct cmd_entry cmd_next_window_entry = {
@@ -46,7 +47,8 @@ const struct cmd_entry cmd_next_window_entry = {
 	0,
 	cmd_select_window_key_binding,
 	NULL,
-	cmd_select_window_exec
+	cmd_select_window_exec,
+	NULL
 };
 
 const struct cmd_entry cmd_previous_window_entry = {
@@ -56,7 +58,8 @@ const struct cmd_entry cmd_previous_window_entry = {
 	0,
 	cmd_select_window_key_binding,
 	NULL,
-	cmd_select_window_exec
+	cmd_select_window_exec,
+	NULL
 };
 
 const struct cmd_entry cmd_last_window_entry = {
@@ -66,7 +69,8 @@ const struct cmd_entry cmd_last_window_entry = {
 	0,
 	NULL,
 	NULL,
-	cmd_select_window_exec
+	cmd_select_window_exec,
+	NULL
 };
 
 void

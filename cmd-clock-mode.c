@@ -33,7 +33,8 @@ const struct cmd_entry cmd_clock_mode_entry = {
 	0,
 	NULL,
 	NULL,
-	cmd_clock_mode_exec
+	cmd_clock_mode_exec,
+	NULL
 };
 
 enum cmd_retval

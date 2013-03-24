@@ -33,7 +33,8 @@ const struct cmd_entry cmd_refresh_client_entry = {
 	0,
 	NULL,
 	NULL,
-	cmd_refresh_client_exec
+	cmd_refresh_client_exec,
+	NULL
 };
 
 enum cmd_retval

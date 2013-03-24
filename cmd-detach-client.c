@@ -33,7 +33,8 @@ const struct cmd_entry cmd_detach_client_entry = {
 	CMD_READONLY,
 	NULL,
 	NULL,
-	cmd_detach_client_exec
+	cmd_detach_client_exec,
+	NULL
 };
 
 enum cmd_retval

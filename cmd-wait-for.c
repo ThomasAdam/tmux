@@ -37,7 +37,8 @@ const struct cmd_entry cmd_wait_for_entry = {
 	0,
 	NULL,
 	NULL,
-	cmd_wait_for_exec
+	cmd_wait_for_exec,
+	NULL
 };
 
 struct wait_channel {

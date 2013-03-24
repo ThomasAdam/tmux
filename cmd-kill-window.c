@@ -33,7 +33,8 @@ const struct cmd_entry cmd_kill_window_entry = {
 	0,
 	NULL,
 	NULL,
-	cmd_kill_window_exec
+	cmd_kill_window_exec,
+	NULL
 };
 
 enum cmd_retval

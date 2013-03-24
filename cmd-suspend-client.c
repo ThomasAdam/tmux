@@ -36,7 +36,8 @@ const struct cmd_entry cmd_suspend_client_entry = {
 	0,
 	NULL,
 	NULL,
-	cmd_suspend_client_exec
+	cmd_suspend_client_exec,
+	NULL
 };
 
 enum cmd_retval

@@ -295,6 +295,9 @@ cmdq_continue(struct cmd_q *cmdq)
 			cmdq->number++;
 
 			guard = cmdq_guard(cmdq, "begin");
+			if (cmdq->cmd->entry->prepare != NULL)
+				cmdq->cmd->entry->prepare(cmdq->cmd, cmdq);
+
 			retval = cmdq->cmd->entry->exec(cmdq->cmd, cmdq);
 			if (guard) {
 				if (retval == CMD_RETURN_ERROR)

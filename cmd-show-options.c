@@ -41,7 +41,8 @@ const struct cmd_entry cmd_show_options_entry = {
 	0,
 	NULL,
 	NULL,
-	cmd_show_options_exec
+	cmd_show_options_exec,
+	NULL
 };
 
 const struct cmd_entry cmd_show_window_options_entry = {
@@ -51,7 +52,8 @@ const struct cmd_entry cmd_show_window_options_entry = {
 	0,
 	NULL,
 	NULL,
-	cmd_show_options_exec
+	cmd_show_options_exec,
+	NULL
 };
 
 enum cmd_retval

@@ -36,7 +36,8 @@ const struct cmd_entry cmd_new_window_entry = {
 	0,
 	NULL,
 	NULL,
-	cmd_new_window_exec
+	cmd_new_window_exec,
+	NULL
 };
 
 enum cmd_retval

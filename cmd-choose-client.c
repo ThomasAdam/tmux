@@ -38,7 +38,8 @@ const struct cmd_entry cmd_choose_client_entry = {
 	0,
 	NULL,
 	NULL,
-	cmd_choose_client_exec
+	cmd_choose_client_exec,
+	NULL
 };
 
 struct cmd_choose_client_data {

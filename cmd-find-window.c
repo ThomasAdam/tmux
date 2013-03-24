@@ -49,7 +49,8 @@ const struct cmd_entry cmd_find_window_entry = {
 	0,
 	NULL,
 	NULL,
-	cmd_find_window_exec
+	cmd_find_window_exec,
+	NULL
 };
 
 struct cmd_find_window_data {

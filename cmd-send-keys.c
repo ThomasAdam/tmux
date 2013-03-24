@@ -36,7 +36,8 @@ const struct cmd_entry cmd_send_keys_entry = {
 	0,
 	NULL,
 	NULL,
-	cmd_send_keys_exec
+	cmd_send_keys_exec,
+	NULL
 };
 
 const struct cmd_entry cmd_send_prefix_entry = {
@@ -46,7 +47,8 @@ const struct cmd_entry cmd_send_prefix_entry = {
 	0,
 	NULL,
 	NULL,
-	cmd_send_keys_exec
+	cmd_send_keys_exec,
+	NULL
 };
 
 enum cmd_retval

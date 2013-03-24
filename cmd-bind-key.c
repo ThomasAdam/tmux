@@ -39,7 +39,8 @@ const struct cmd_entry cmd_bind_key_entry = {
 	0,
 	NULL,
 	cmd_bind_key_check,
-	cmd_bind_key_exec
+	cmd_bind_key_exec,
+	NULL
 };
 
 enum cmd_retval

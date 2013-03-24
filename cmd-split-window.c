@@ -38,7 +38,8 @@ const struct cmd_entry cmd_split_window_entry = {
 	0,
 	cmd_split_window_key_binding,
 	NULL,
-	cmd_split_window_exec
+	cmd_split_window_exec,
+	NULL
 };
 
 void

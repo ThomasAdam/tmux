@@ -43,7 +43,8 @@ const struct cmd_entry cmd_capture_pane_entry = {
 	0,
 	NULL,
 	NULL,
-	cmd_capture_pane_exec
+	cmd_capture_pane_exec,
+	NULL
 };
 
 char *

@@ -42,7 +42,8 @@ const struct cmd_entry cmd_choose_tree_entry = {
 	0,
 	NULL,
 	NULL,
-	cmd_choose_tree_exec
+	cmd_choose_tree_exec,
+	NULL
 };
 
 const struct cmd_entry cmd_choose_session_entry = {
@@ -52,7 +53,8 @@ const struct cmd_entry cmd_choose_session_entry = {
 	0,
 	NULL,
 	NULL,
-	cmd_choose_tree_exec
+	cmd_choose_tree_exec,
+	NULL
 };
 
 const struct cmd_entry cmd_choose_window_entry = {
@@ -62,7 +64,8 @@ const struct cmd_entry cmd_choose_window_entry = {
 	0,
 	NULL,
 	NULL,
-	cmd_choose_tree_exec
+	cmd_choose_tree_exec,
+	NULL
 };
 
 enum cmd_retval

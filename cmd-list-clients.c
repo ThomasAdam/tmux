@@ -37,7 +37,8 @@ const struct cmd_entry cmd_list_clients_entry = {
 	CMD_READONLY,
 	NULL,
 	NULL,
-	cmd_list_clients_exec
+	cmd_list_clients_exec,
+	NULL
 };
 
 enum cmd_retval
