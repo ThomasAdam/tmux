@@ -31,6 +31,7 @@
 
 enum cmd_retval	 cmd_run_shell_exec(struct cmd *, struct cmd_q *);
 
+void	cmd_run_shell_prepare(struct cmd *, struct cmd_q *);
 void	cmd_run_shell_callback(struct job *);
 void	cmd_run_shell_free(void *);
 void	cmd_run_shell_print(struct job *, const char *);
@@ -43,7 +44,7 @@ const struct cmd_entry cmd_run_shell_entry = {
 	NULL,
 	NULL,
 	cmd_run_shell_exec,
-	NULL
+	cmd_run_shell_prepare
 };
 
 struct cmd_run_shell_data {
@@ -72,6 +73,16 @@ cmd_run_shell_print(struct job *job, const char *msg)
 		window_copy_add(wp, "%s", msg);
 }
 
+void
+cmd_run_shell_prepare(struct cmd *self, struct cmd_q *cmdq)
+{
+	struct args		*args = self->args;
+	struct cmd_context	*cmd_ctx = cmdq->cmd_ctx;
+
+	if (args_has(args, 't'))
+		cmd_ctx->wl = cmd_find_pane(cmdq, args_get(args, 't'),
+				&cmd_ctx->session, &cmd_ctx->wp);
+}
 enum cmd_retval
 cmd_run_shell_exec(struct cmd *self, struct cmd_q *cmdq)
 {
@@ -94,6 +105,9 @@ cmd_run_shell_exec(struct cmd *self, struct cmd_q *cmdq)
 			wp = wl->window->active;
 		}
 	}
+	s = cmdq->cmd_ctx->session;
+	wl = cmdq->cmd_ctx->wl;
+	wp = cmdq->cmd_ctx->wp;
 
 	ft = format_create();
 	if (s != NULL)
