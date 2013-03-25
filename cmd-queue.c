@@ -215,15 +215,25 @@ cmdq_append(struct cmd_q *cmdq, struct cmd_list *cmdlist)
 	item = xcalloc(1, sizeof *item);
 	c = cmdq->client;
 	cmdq->cmd_ctx = cmd_create_context(cmdq);
-
-	if ((hooks = (c != NULL && c->session != NULL) ?
-		&c->session->hooks : &global_hooks) == NULL)
-		goto out;
-
 	cmdlist_hooks = cmd_list_new();
 
-	/* Hooks */
 	TAILQ_FOREACH(cmd, &cmdlist->list, qentry) {
+
+		/*
+		 * If the command has prepare() defined, call it since it will
+		 * set up the execution context of commands---including hooks.
+		 */
+		if (cmd->entry->prepare != NULL)
+			cmd->entry->prepare(cmd, cmdq);
+
+		/*
+		 * If we set no session via this---or the prepare() function
+		 * wasn't defined, then use the global hooks, otherwise used
+		 * the intended session's hooks when running the command.
+		 */
+		hooks = (cmdq->cmd_ctx->session != NULL) ?
+			&cmdq->cmd_ctx->session->hooks : &global_hooks;
+
 		/*
 		 * For the given command in this list, look to see if
 		 * this has any hooks.
@@ -249,7 +259,6 @@ cmdq_append(struct cmd_q *cmdq, struct cmd_list *cmdlist)
 		cmdq_include_hooks(hook_after, cmdlist_hooks);
 	}
 
-out:
 	if (!TAILQ_EMPTY(&cmdlist_hooks->list))
 		item->cmdlist = cmdlist_hooks;
 	else {
@@ -295,9 +304,6 @@ cmdq_continue(struct cmd_q *cmdq)
 			cmdq->number++;
 
 			guard = cmdq_guard(cmdq, "begin");
-			if (cmdq->cmd->entry->prepare != NULL)
-				cmdq->cmd->entry->prepare(cmdq->cmd, cmdq);
-
 			retval = cmdq->cmd->entry->exec(cmdq->cmd, cmdq);
 			if (guard) {
 				if (retval == CMD_RETURN_ERROR)
