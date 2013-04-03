@@ -25,8 +25,6 @@
 
 #include "tmux.h"
 
-void cmdq_include_hooks(struct hook *, struct cmd_list *);
-
 /* Create new command queue. */
 struct cmd_q *
 cmdq_new(struct client *c)
@@ -173,21 +171,6 @@ cmdq_guard(struct cmd_q *cmdq, const char *guard)
 	return 1;
 }
 
-/* Find any hooks associated with command and include them in the cmdlist. */
-void
-cmdq_include_hooks(struct hook *hook, struct cmd_list *cmdlist)
-{
-	struct cmd	*cmd, *cmd1;
-
-	if (hook == NULL)
-		return;
-
-	TAILQ_FOREACH_SAFE(cmd, &hook->cmdlist->list, qentry, cmd1) {
-		TAILQ_INSERT_TAIL(&cmdlist->list, cmd, qentry);
-		break;
-	}
-}
-
 /* Add command list to queue and begin processing if needed. */
 void
 cmdq_run(struct cmd_q *cmdq, struct cmd_list *cmdlist)
@@ -205,69 +188,10 @@ void
 cmdq_append(struct cmd_q *cmdq, struct cmd_list *cmdlist)
 {
 	struct cmd_q_item	*item;
-	struct cmd_list		*cmdlist_hooks;
-	struct cmd		*cmd;
-	struct client		*c;
-	struct hooks		*hooks;
-	struct hook		*hook_before, *hook_after;
-	char			*hook_before_name, *hook_after_name;
 
 	item = xcalloc(1, sizeof *item);
-	c = cmdq->client;
-	cmdq->cmd_ctx = cmd_create_context(cmdq);
-	cmdlist_hooks = cmd_list_new();
-
-	TAILQ_FOREACH(cmd, &cmdlist->list, qentry) {
-
-		/*
-		 * If the command has prepare() defined, call it since it will
-		 * set up the execution context of commands---including hooks.
-		 */
-		if (cmd->entry->prepare != NULL)
-			cmd->entry->prepare(cmd, cmdq);
-
-		/*
-		 * If we set no session via this---or the prepare() function
-		 * wasn't defined, then use the global hooks, otherwise used
-		 * the intended session's hooks when running the command.
-		 */
-		hooks = (cmdq->cmd_ctx->session != NULL) ?
-			&cmdq->cmd_ctx->session->hooks : &global_hooks;
-
-		/*
-		 * For the given command in this list, look to see if
-		 * this has any hooks.
-		 */
-		xasprintf(&hook_before_name, "before-%s", cmd->entry->name);
-		xasprintf(&hook_after_name, "after-%s", cmd->entry->name);
-		hook_before = hooks_find(hooks, hook_before_name);
-		hook_after = hooks_find(hooks, hook_after_name);
-
-		free(hook_before_name);
-		free(hook_after_name);
-
-		if (hook_before == NULL && hook_after == NULL)
-			continue;
-
-		/* Hooks to run before the command. */
-		cmdq_include_hooks(hook_before, cmdlist_hooks);
-
-		/* Then the command itself. */
-		TAILQ_INSERT_TAIL(&cmdlist_hooks->list, cmd, qentry);
-
-		/* Hooks to run after the command. */
-		cmdq_include_hooks(hook_after, cmdlist_hooks);
-	}
-
-	if (!TAILQ_EMPTY(&cmdlist_hooks->list))
-		item->cmdlist = cmdlist_hooks;
-	else {
-		item->cmdlist = cmdlist;
-		cmd_list_free(cmdlist_hooks);
-	}
-
+	item->cmdlist = cmdlist;
 	TAILQ_INSERT_TAIL(&cmdq->queue, item, qentry);
-	item->cmdlist->references++;
 	cmdlist->references++;
 }
 
@@ -276,11 +200,17 @@ int
 cmdq_continue(struct cmd_q *cmdq)
 {
 	struct cmd_q_item	*next;
+	struct cmd_list		*cmdlist_hooks;
+	struct hooks		*hooks;
+	struct hook		*hook_before, *hook_after;
 	enum cmd_retval		 retval;
 	int			 empty, guard;
+	char			*hook_before_name, *hook_after_name;
 	char			 s[1024];
 
 	notify_disable();
+
+	cmdq->cmd_ctx = cmd_create_context(cmdq);
 
 	empty = TAILQ_EMPTY(&cmdq->queue);
 	if (empty)
@@ -296,15 +226,52 @@ cmdq_continue(struct cmd_q *cmdq)
 		next = TAILQ_NEXT(cmdq->item, qentry);
 
 		while (cmdq->cmd != NULL) {
+			/*
+			 * If the command has prepare() defined, call it since it will
+			 * set up the execution context of commands---including hooks.
+			 */
+			if (cmdq->cmd->entry->prepare != NULL)
+				cmdq->cmd->entry->prepare(cmdq->cmd, cmdq);
+
+			/*
+			 * If we set no session via this---or the prepare() function
+			 * wasn't defined, then use the global hooks, otherwise used
+			 * the intended session's hooks when running the command.
+			 */
+			hooks = (cmdq->cmd_ctx->session != NULL) ?
+				&cmdq->cmd_ctx->session->hooks : &global_hooks;
+
+			/*
+			 * For the given command in this list, look to see if
+			 * this has any hooks.
+			 */
+			xasprintf(&hook_before_name, "before-%s", cmdq->cmd->entry->name);
+			xasprintf(&hook_after_name, "after-%s", cmdq->cmd->entry->name);
+			hook_before = hooks_find(hooks, hook_before_name);
+			hook_after = hooks_find(hooks, hook_after_name);
+
+			free(hook_before_name);
+			free(hook_after_name);
+
 			cmd_print(cmdq->cmd, s, sizeof s);
 			log_debug("cmdq %p: %s (client %d)", cmdq, s,
-			    cmdq->client != NULL ? cmdq->client->ibuf.fd : -1);
+					cmdq->client != NULL ? cmdq->client->ibuf.fd : -1);
 
 			cmdq->time = time(NULL);
 			cmdq->number++;
 
 			guard = cmdq_guard(cmdq, "begin");
+
+			/* Run hooks before the command, the command itself,
+			 * and then any hooks after it.  At the moment, hooks
+			 * do not incur return value checking, and hence do
+			 * not invalidate the actual command from running
+			 * should a hook fail to do so.
+			 */
+			hooks_run(hook_before, cmdq);
 			retval = cmdq->cmd->entry->exec(cmdq->cmd, cmdq);
+			hooks_run(hook_after, cmdq);
+
 			if (guard) {
 				if (retval == CMD_RETURN_ERROR)
 				    cmdq_guard(cmdq, "error");

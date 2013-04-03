@@ -64,6 +64,7 @@ void
 hooks_add(struct hooks *hooks, const char *name, struct cmd_list *cmdlist)
 {
 	struct hook	*h;
+	struct cmd	*cmd;
 
 	if ((h = hooks_find(hooks, (char *)name)) != NULL)
 		hooks_remove(hooks, h);
@@ -74,6 +75,10 @@ hooks_add(struct hooks *hooks, const char *name, struct cmd_list *cmdlist)
 	h->cmdlist->references++;
 
 	RB_INSERT(hooks, hooks, h);
+
+	log_debug("HOOKS:  Added a hook:  %s", name);
+	TAILQ_FOREACH(cmd, &cmdlist->list, qentry)
+		log_debug("   ---> %s", cmd->entry->name);
 }
 
 void
@@ -99,4 +104,16 @@ hooks_find(struct hooks *hooks, const char *name)
 	h.name = (char *)name;
 
 	return (RB_FIND(hooks, hooks, &h));
+}
+
+void
+hooks_run(struct hook *hook, struct cmd_q *cmdq)
+{
+	struct cmd	*cmd;
+
+	if (hook == NULL)
+		return;
+
+	TAILQ_FOREACH(cmd, &hook->cmdlist->list, qentry)
+		cmd->entry->exec(cmd, cmdq);
 }

@@ -1577,6 +1577,7 @@ void		 hooks_free(struct hooks *);
 void		 hooks_add(struct hooks *, const char *, struct cmd_list *);
 void		 hooks_copy(struct hooks *, struct hooks *);
 void		 hooks_remove(struct hooks *, struct hook *);
+void		 hooks_run(struct hook *, struct cmd_q *);
 struct hook	*hooks_find(struct hooks *, const char *);
 
 /* mode-key.c */
