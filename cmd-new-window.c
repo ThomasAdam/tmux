@@ -26,8 +26,8 @@
  * Create a new window.
  */
 
-enum cmd_retval	cmd_new_window_exec(struct cmd *, struct cmd_q *);
-void cmd_new_window_prepare(struct cmd *, struct cmd_q *);
+enum cmd_retval	 cmd_new_window_exec(struct cmd *, struct cmd_q *);
+void		 cmd_new_window_prepare(struct cmd *, struct cmd_q *);
 
 const struct cmd_entry cmd_new_window_entry = {
 	"new-window", "neww",
@@ -50,7 +50,8 @@ cmd_new_window_prepare(struct cmd *self, struct cmd_q *cmdq)
 	if (args_has(args, 'a')) {
 		cmd_ctx->wl = cmd_find_window(cmdq, args_get(args, 't'),
 				&cmd_ctx->session);
-	}
+	} else
+		cmd_find_index(cmdq, args_get(args, 't'), &cmd_ctx->session);
 }
 
 enum cmd_retval
