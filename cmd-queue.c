@@ -200,7 +200,6 @@ int
 cmdq_continue(struct cmd_q *cmdq)
 {
 	struct cmd_q_item	*next;
-	struct cmd_list		*cmdlist_hooks;
 	struct hooks		*hooks;
 	struct hook		*hook_before, *hook_after;
 	enum cmd_retval		 retval;

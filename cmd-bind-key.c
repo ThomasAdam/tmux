@@ -29,6 +29,7 @@
 
 enum cmd_retval	 cmd_bind_key_check(struct args *);
 enum cmd_retval	 cmd_bind_key_exec(struct cmd *, struct cmd_q *);
+void		 cmd_bind_key_prepare(struct cmd *, struct cmd_q *);
 
 enum cmd_retval	 cmd_bind_key_table(struct cmd *, struct cmd_q *, int);
 
@@ -40,8 +41,14 @@ const struct cmd_entry cmd_bind_key_entry = {
 	NULL,
 	cmd_bind_key_check,
 	cmd_bind_key_exec,
-	NULL
+	cmd_bind_key_prepare
 };
+
+void
+cmd_bind_key_prepare(unused struct cmd *self, unused struct cmd_q *cmdq)
+{
+	return;
+}
 
 enum cmd_retval
 cmd_bind_key_check(struct args *args)
