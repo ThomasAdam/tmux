@@ -28,6 +28,7 @@
  */
 
 enum cmd_retval	 cmd_display_message_exec(struct cmd *, struct cmd_q *);
+void		 cmd_display_message_prepare(struct cmd *, struct cmd_q *);
 
 const struct cmd_entry cmd_display_message_entry = {
 	"display-message", "display",
@@ -38,8 +39,28 @@ const struct cmd_entry cmd_display_message_entry = {
 	NULL,
 	NULL,
 	cmd_display_message_exec,
-	NULL
+	cmd_display_message_prepare
 };
+
+void
+cmd_display_message_prepare(struct cmd *self, struct cmd_q *cmdq)
+{
+	struct args		*args = self->args;
+	struct cmd_context	*cmd_ctx = cmdq->cmd_ctx;
+
+	if (args_has(args, 't'))
+		cmd_ctx->wl = cmd_find_pane(cmdq, args_get(args, 't'),
+				&cmd_ctx->session, &cmd_ctx->wp);
+	else
+		cmd_ctx->wl = cmd_find_pane(cmdq, NULL, &cmd_ctx->session,
+				&cmd_ctx->wp);
+
+	if (args_has(args, 'c'))
+		cmd_ctx->client = cmd_find_client(cmdq,
+				args_get(args, 'c'), 0);
+	else
+		cmd_ctx->client = cmd_current_client(cmdq);
+}
 
 enum cmd_retval
 cmd_display_message_exec(struct cmd *self, struct cmd_q *cmdq)
@@ -56,27 +77,19 @@ cmd_display_message_exec(struct cmd *self, struct cmd_q *cmdq)
 	time_t			 t;
 	size_t			 len;
 
-	if (args_has(args, 't')) {
-		wl = cmd_find_pane(cmdq, args_get(args, 't'), &s, &wp);
-		if (wl == NULL)
-			return (CMD_RETURN_ERROR);
-	} else {
-		wl = cmd_find_pane(cmdq, NULL, &s, &wp);
-		if (wl == NULL)
-			return (CMD_RETURN_ERROR);
-	}
+	if ((wl = cmdq->cmd_ctx->wl) == NULL)
+		return (CMD_RETURN_ERROR);
 
 	if (args_has(args, 'F') && args->argc != 0) {
 		cmdq_error(cmdq, "only one of -F or argument must be given");
 		return (CMD_RETURN_ERROR);
 	}
 
+	c = cmdq->cmd_ctx->client;
 	if (args_has(args, 'c')) {
-	    c = cmd_find_client(cmdq, args_get(args, 'c'), 0);
 	    if (c == NULL)
 		return (CMD_RETURN_ERROR);
 	} else {
-		c = cmd_current_client(cmdq);
 		if (c == NULL && !args_has(self->args, 'p')) {
 			cmdq_error(cmdq, "no client available");
 			return (CMD_RETURN_ERROR);

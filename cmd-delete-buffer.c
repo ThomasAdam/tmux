@@ -27,6 +27,7 @@
  */
 
 enum cmd_retval	 cmd_delete_buffer_exec(struct cmd *, struct cmd_q *);
+void		 cmd_delete_buffer_prepare(struct cmd *, struct cmd_q *);
 
 const struct cmd_entry cmd_delete_buffer_entry = {
 	"delete-buffer", "deleteb",
@@ -38,6 +39,12 @@ const struct cmd_entry cmd_delete_buffer_entry = {
 	cmd_delete_buffer_exec,
 	NULL
 };
+
+void
+cmd_delete_buffer_prepare(unused struct cmd *self, unused struct cmd_q *cmdq)
+{
+	return;
+}
 
 enum cmd_retval
 cmd_delete_buffer_exec(struct cmd *self, struct cmd_q *cmdq)

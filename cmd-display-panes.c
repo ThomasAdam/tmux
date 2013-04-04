@@ -25,6 +25,7 @@
  */
 
 enum cmd_retval	 cmd_display_panes_exec(struct cmd *, struct cmd_q *);
+void		 cmd_display_panes_prepare(struct cmd *, struct cmd_q *);
 
 const struct cmd_entry cmd_display_panes_entry = {
 	"display-panes", "displayp",
@@ -34,16 +35,24 @@ const struct cmd_entry cmd_display_panes_entry = {
 	NULL,
 	NULL,
 	cmd_display_panes_exec,
-	NULL
+	cmd_display_panes_prepare
 };
+
+void
+cmd_display_panes_prepare(struct cmd *self, struct cmd_q *cmdq)
+{
+	struct args		*args = self->args;
+	struct cmd_context	*cmd_ctx = cmdq->cmd_ctx;
+
+	cmd_ctx->client = cmd_find_client(cmdq, args_get(args, 't'), 0);
+}
 
 enum cmd_retval
 cmd_display_panes_exec(struct cmd *self, struct cmd_q *cmdq)
 {
-	struct args	*args = self->args;
 	struct client	*c;
 
-	if ((c = cmd_find_client(cmdq, args_get(args, 't'), 0)) == NULL)
+	if ((c = cmdq->cmd_ctx->client) == NULL)
 		return (CMD_RETURN_ERROR);
 
 	server_set_identify(c);
