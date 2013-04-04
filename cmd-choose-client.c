@@ -28,6 +28,7 @@
  */
 
 enum cmd_retval	 cmd_choose_client_exec(struct cmd *, struct cmd_q *);
+void		 cmd_choose_client_prepare(struct cmd *, struct cmd_q *);
 
 void	cmd_choose_client_callback(struct window_choose_data *);
 
@@ -39,12 +40,22 @@ const struct cmd_entry cmd_choose_client_entry = {
 	NULL,
 	NULL,
 	cmd_choose_client_exec,
-	NULL
+	cmd_choose_client_prepare
 };
 
 struct cmd_choose_client_data {
 	struct client	*client;
 };
+
+void
+cmd_choose_client_prepare(struct cmd *self, struct cmd_q *cmdq)
+{
+	struct args		*args = self->args;
+	struct cmd_context	*cmd_ctx = cmdq->cmd_ctx;
+
+	cmd_ctx->client = cmd_current_client(cmdq);
+	cmd_ctx->wl = cmd_find_window(cmdq, args_get(args, 't'), NULL);
+}
 
 enum cmd_retval
 cmd_choose_client_exec(struct cmd *self, struct cmd_q *cmdq)
@@ -58,12 +69,12 @@ cmd_choose_client_exec(struct cmd *self, struct cmd_q *cmdq)
 	char				*action;
 	u_int			 	 i, idx, cur;
 
-	if ((c = cmd_current_client(cmdq)) == NULL) {
+	if ((c = cmdq->cmd_ctx->client) == NULL) {
 		cmdq_error(cmdq, "no client available");
 		return (CMD_RETURN_ERROR);
 	}
 
-	if ((wl = cmd_find_window(cmdq, args_get(args, 't'), NULL)) == NULL)
+	if ((wl = cmdq->cmd_ctx->wl) == NULL)
 		return (CMD_RETURN_ERROR);
 
 	if (window_pane_set_mode(wl->window->active, &window_choose_mode) != 0)
