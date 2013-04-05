@@ -30,6 +30,7 @@
 
 void		 cmd_join_pane_key_binding(struct cmd *, int);
 enum cmd_retval	 cmd_join_pane_exec(struct cmd *, struct cmd_q *);
+void		 cmd_join_pane_prepare(struct cmd *, struct cmd_q *);
 
 enum cmd_retval	 join_pane(struct cmd *, struct cmd_q *, int);
 
@@ -52,8 +53,20 @@ const struct cmd_entry cmd_move_pane_entry = {
 	NULL,
 	NULL,
 	cmd_join_pane_exec,
-	NULL
+	cmd_join_pane_prepare
 };
+
+void
+cmd_join_pane_prepare(struct cmd *self, struct cmd_q *cmdq)
+{
+	struct args		*args = self->args;
+	struct cmd_context	*cmd_ctx = cmdq->cmd_ctx;
+
+	cmd_ctx->wl = cmd_find_pane(cmdq, args_get(args, 't'),
+			&cmd_ctx->session, &cmd_ctx->wp);
+	cmd_ctx->wl2 = cmd_find_pane(cmdq, args_get(args, 's'), NULL,
+			&cmd_ctx->wp2);
+}
 
 void
 cmd_join_pane_key_binding(struct cmd *self, int key)
@@ -88,16 +101,17 @@ join_pane(struct cmd *self, struct cmd_q *cmdq, int not_same_window)
 	enum layout_type	 type;
 	struct layout_cell	*lc;
 
-	dst_wl = cmd_find_pane(cmdq, args_get(args, 't'), &dst_s, &dst_wp);
-	if (dst_wl == NULL)
+	if ((dst_wl = cmdq->cmd_ctx->wl) == NULL)
 		return (CMD_RETURN_ERROR);
+	dst_s =  cmdq->cmd_ctx->session;
+	dst_wp = cmdq->cmd_ctx->wp;
 	dst_w = dst_wl->window;
 	dst_idx = dst_wl->idx;
 	server_unzoom_window(dst_w);
 
-	src_wl = cmd_find_pane(cmdq, args_get(args, 's'), NULL, &src_wp);
-	if (src_wl == NULL)
+	if ((src_wl = cmdq->cmd_ctx->wl2) == NULL)
 		return (CMD_RETURN_ERROR);
+	src_wp = cmdq->cmd_ctx->wp2;
 	src_w = src_wl->window;
 	server_unzoom_window(src_w);
 

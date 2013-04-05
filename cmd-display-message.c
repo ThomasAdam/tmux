@@ -80,6 +80,9 @@ cmd_display_message_exec(struct cmd *self, struct cmd_q *cmdq)
 	if ((wl = cmdq->cmd_ctx->wl) == NULL)
 		return (CMD_RETURN_ERROR);
 
+	wp = cmdq->cmd_ctx->wp;
+	s = cmdq->cmd_ctx->session;
+
 	if (args_has(args, 'F') && args->argc != 0) {
 		cmdq_error(cmdq, "only one of -F or argument must be given");
 		return (CMD_RETURN_ERROR);

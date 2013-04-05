@@ -45,7 +45,6 @@ cmd_show_hooks_exec(struct cmd *self, struct cmd_q *cmdq)
 	struct session	*s;
 	struct hook	*hook;
 	struct hooks	*hooks_ent;
-	struct cmd	*cmd;
 	char		 tmp[BUFSIZ];
 	size_t		 used;
 

@@ -28,6 +28,7 @@
  */
 
 enum cmd_retval	 cmd_kill_server_exec(struct cmd *, struct cmd_q *);
+void		 cmd_kill_server_prepare(struct cmd *, struct cmd_q *);
 
 const struct cmd_entry cmd_kill_server_entry = {
 	"kill-server", NULL,
@@ -37,8 +38,14 @@ const struct cmd_entry cmd_kill_server_entry = {
 	NULL,
 	NULL,
 	cmd_kill_server_exec,
-	NULL
+	cmd_kill_server_prepare
 };
+
+void
+cmd_kill_server_prepare(unused struct cmd *self, unused struct cmd_q *cmd)
+{
+	return;
+}
 
 enum cmd_retval
 cmd_kill_server_exec(unused struct cmd *self, unused struct cmd_q *cmdq)

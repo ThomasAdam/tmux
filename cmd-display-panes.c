@@ -48,7 +48,7 @@ cmd_display_panes_prepare(struct cmd *self, struct cmd_q *cmdq)
 }
 
 enum cmd_retval
-cmd_display_panes_exec(struct cmd *self, struct cmd_q *cmdq)
+cmd_display_panes_exec(unused struct cmd *self, struct cmd_q *cmdq)
 {
 	struct client	*c;
 
