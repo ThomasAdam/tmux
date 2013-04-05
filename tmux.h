@@ -1434,10 +1434,11 @@ struct cmd_q {
 /* Context for the running command. */
 struct cmd_context {
 	struct client		*client;
-	struct session		*session;
-	struct window		*window;
-	struct window_pane	*wp;
-	struct winlink		*wl;
+	struct session		*session, *session2;
+	struct window		*window, *window2;
+	struct window_pane	*wp, *wp2;
+	struct winlink		*wl, *wl2;
+	int			 idx;
 };
 
 /* Command definition. */
