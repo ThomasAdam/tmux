@@ -28,6 +28,7 @@
 
 enum cmd_retval	 cmd_list_keys_exec(struct cmd *, struct cmd_q *);
 enum cmd_retval	 cmd_list_keys_table(struct cmd *, struct cmd_q *);
+void		 cmd_list_keys_prepare(struct cmd *, struct cmd_q *);
 
 const struct cmd_entry cmd_list_keys_entry = {
 	"list-keys", "lsk",
@@ -39,6 +40,12 @@ const struct cmd_entry cmd_list_keys_entry = {
 	cmd_list_keys_exec,
 	NULL
 };
+
+void
+cmd_list_keys_prepare(unused struct cmd *self, unused struct cmd_q *cmdq)
+{
+	return;
+}
 
 enum cmd_retval
 cmd_list_keys_exec(struct cmd *self, struct cmd_q *cmdq)

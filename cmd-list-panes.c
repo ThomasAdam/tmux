@@ -28,6 +28,7 @@
  */
 
 enum cmd_retval	 cmd_list_panes_exec(struct cmd *, struct cmd_q *);
+void		 cmd_list_panes_prepare(struct cmd *, struct cmd_q *);
 
 void	cmd_list_panes_server(struct cmd *, struct cmd_q *);
 void	cmd_list_panes_session(
@@ -43,8 +44,22 @@ const struct cmd_entry cmd_list_panes_entry = {
 	NULL,
 	NULL,
 	cmd_list_panes_exec,
-	NULL
+	cmd_list_panes_prepare
 };
+
+void
+cmd_list_panes_prepare(struct cmd *self, struct cmd_q *cmdq)
+{
+	struct args		*args = self->args;
+	struct cmd_context	*cmd_ctx = cmdq->cmd_ctx;
+
+	if (args_has(args, 's'))
+		cmd_ctx->session = cmd_find_session(cmdq,
+				args_get(args, 't'), 0);
+	else if (args_has(args, 't'))
+		cmd_ctx->wl = cmd_find_window(cmdq, args_get(args, 't'),
+				&cmd_ctx->session);
+}
 
 enum cmd_retval
 cmd_list_panes_exec(struct cmd *self, struct cmd_q *cmdq)
@@ -53,16 +68,16 @@ cmd_list_panes_exec(struct cmd *self, struct cmd_q *cmdq)
 	struct session	*s;
 	struct winlink	*wl;
 
+	s = cmdq->cmd_ctx->session;
+
 	if (args_has(args, 'a'))
 		cmd_list_panes_server(self, cmdq);
 	else if (args_has(args, 's')) {
-		s = cmd_find_session(cmdq, args_get(args, 't'), 0);
 		if (s == NULL)
 			return (CMD_RETURN_ERROR);
 		cmd_list_panes_session(self, s, cmdq, 1);
 	} else {
-		wl = cmd_find_window(cmdq, args_get(args, 't'), &s);
-		if (wl == NULL)
+		if ((wl = cmdq->cmd_ctx->wl) == NULL)
 			return (CMD_RETURN_ERROR);
 		cmd_list_panes_window(self, s, wl, cmdq, 0);
 	}

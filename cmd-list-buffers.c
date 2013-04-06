@@ -28,6 +28,7 @@
  */
 
 enum cmd_retval	 cmd_list_buffers_exec(struct cmd *, struct cmd_q *);
+void		 cmd_list_buffers_prepare(struct cmd *, struct cmd_q *);
 
 const struct cmd_entry cmd_list_buffers_entry = {
 	"list-buffers", "lsb",
@@ -37,8 +38,14 @@ const struct cmd_entry cmd_list_buffers_entry = {
 	NULL,
 	NULL,
 	cmd_list_buffers_exec,
-	NULL
+	cmd_list_buffers_prepare
 };
+
+void
+cmd_list_buffers_prepare(unused struct cmd *self, unused struct cmd_q *cmdq)
+{
+	return;
+}
 
 enum cmd_retval
 cmd_list_buffers_exec(unused struct cmd *self, struct cmd_q *cmdq)

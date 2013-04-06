@@ -29,6 +29,7 @@
  */
 
 enum cmd_retval	 cmd_list_sessions_exec(struct cmd *, struct cmd_q *);
+void		 cmd_list_sessions_prepare(struct cmd *, struct cmd_q *);
 
 const struct cmd_entry cmd_list_sessions_entry = {
 	"list-sessions", "ls",
@@ -38,8 +39,14 @@ const struct cmd_entry cmd_list_sessions_entry = {
 	NULL,
 	NULL,
 	cmd_list_sessions_exec,
-	NULL
+	cmd_list_sessions_prepare
 };
+
+void
+cmd_list_sessions_prepare(unused struct cmd *self, unused struct cmd_q *cmdq)
+{
+	return;
+}
 
 enum cmd_retval
 cmd_list_sessions_exec(struct cmd *self, struct cmd_q *cmdq)

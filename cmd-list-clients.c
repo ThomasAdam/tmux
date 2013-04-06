@@ -29,6 +29,7 @@
  */
 
 enum cmd_retval	cmd_list_clients_exec(struct cmd *, struct cmd_q *);
+void		cmd_list_clients_prepare(struct cmd *, struct cmd_q *);
 
 const struct cmd_entry cmd_list_clients_entry = {
 	"list-clients", "lsc",
@@ -38,8 +39,17 @@ const struct cmd_entry cmd_list_clients_entry = {
 	NULL,
 	NULL,
 	cmd_list_clients_exec,
-	NULL
+	cmd_list_clients_prepare
 };
+
+void
+cmd_list_clients_prepare(struct cmd *self, struct cmd_q *cmdq)
+{
+	struct args		*args = self->args;
+	struct cmd_context	*cmd_ctx = cmdq->cmd_ctx;
+
+	cmd_ctx->session = cmd_find_session(cmdq, args_get(args, 't'), 0);
+}
 
 enum cmd_retval
 cmd_list_clients_exec(struct cmd *self, struct cmd_q *cmdq)
@@ -52,12 +62,9 @@ cmd_list_clients_exec(struct cmd *self, struct cmd_q *cmdq)
 	u_int			 i;
 	char			*line;
 
-	if (args_has(args, 't')) {
-		s = cmd_find_session(cmdq, args_get(args, 't'), 0);
-		if (s == NULL)
-			return (CMD_RETURN_ERROR);
-	} else
-		s = NULL;
+	s = cmdq->cmd_ctx->session;
+	if (args_has(args, 't') && s == NULL)
+		return (CMD_RETURN_ERROR);
 
 	if ((template = args_get(args, 'F')) == NULL)
 		template = LIST_CLIENTS_TEMPLATE;
