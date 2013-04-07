@@ -28,6 +28,7 @@
  */
 
 enum cmd_retval	 cmd_show_environment_exec(struct cmd *, struct cmd_q *);
+void		 cmd_show_environment_prepare(struct cmd *, struct cmd_q *);
 
 const struct cmd_entry cmd_show_environment_entry = {
 	"show-environment", "showenv",
@@ -37,8 +38,17 @@ const struct cmd_entry cmd_show_environment_entry = {
 	NULL,
 	NULL,
 	cmd_show_environment_exec,
-	NULL
+	cmd_show_environment_prepare
 };
+
+void
+cmd_show_environment_prepare(struct cmd *self, struct cmd_q *cmdq)
+{
+	struct args		*args = self->args;
+	struct cmd_context	*cmd_ctx = cmdq->cmd_ctx;
+
+	cmd_ctx->session = cmd_find_session(cmdq, args_get(args, 't'), 0);
+}
 
 enum cmd_retval
 cmd_show_environment_exec(struct cmd *self, struct cmd_q *cmdq)
@@ -51,7 +61,7 @@ cmd_show_environment_exec(struct cmd *self, struct cmd_q *cmdq)
 	if (args_has(self->args, 'g'))
 		env = &global_environ;
 	else {
-		if ((s = cmd_find_session(cmdq, args_get(args, 't'), 0)) == NULL)
+		if ((s = cmdq->cmd_ctx->session) == NULL)
 			return (CMD_RETURN_ERROR);
 		env = &s->environ;
 	}

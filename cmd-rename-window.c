@@ -27,6 +27,7 @@
  */
 
 enum cmd_retval	 cmd_rename_window_exec(struct cmd *, struct cmd_q *);
+void		 cmd_rename_window_prepare(struct cmd *, struct cmd_q *);
 
 const struct cmd_entry cmd_rename_window_entry = {
 	"rename-window", "renamew",
@@ -36,17 +37,26 @@ const struct cmd_entry cmd_rename_window_entry = {
 	NULL,
 	NULL,
 	cmd_rename_window_exec,
-	NULL
+	cmd_rename_window_prepare
 };
+
+void
+cmd_rename_window_prepare(struct cmd *self, struct cmd_q *cmdq)
+{
+	struct args		*args = self->args;
+	struct cmd_context	*cmd_ctx = cmdq->cmd_ctx;
+
+	cmd_ctx->wl = cmd_find_window(cmdq, args_get(args, 't'),
+			&cmd_ctx->session);
+}
 
 enum cmd_retval
 cmd_rename_window_exec(struct cmd *self, struct cmd_q *cmdq)
 {
 	struct args	*args = self->args;
-	struct session	*s;
 	struct winlink	*wl;
 
-	if ((wl = cmd_find_window(cmdq, args_get(args, 't'), &s)) == NULL)
+	if ((wl = cmdq->cmd_ctx->wl) == NULL)
 		return (CMD_RETURN_ERROR);
 
 	window_set_name(wl->window, args->argv[0]);

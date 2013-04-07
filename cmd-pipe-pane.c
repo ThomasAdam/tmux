@@ -32,6 +32,7 @@
  */
 
 enum cmd_retval	 cmd_pipe_pane_exec(struct cmd *, struct cmd_q *);
+void		 cmd_pipe_pane_prepare(struct cmd *, struct cmd_q *);
 
 void	cmd_pipe_pane_error_callback(struct bufferevent *, short, void *);
 
@@ -43,8 +44,18 @@ const struct cmd_entry cmd_pipe_pane_entry = {
 	NULL,
 	NULL,
 	cmd_pipe_pane_exec,
-	NULL
+	cmd_pipe_pane_prepare
 };
+
+void
+cmd_pipe_pane_prepare(struct cmd *self, struct cmd_q *cmdq)
+{
+	struct args		*args = self->args;
+	struct cmd_context	*cmd_ctx = cmdq->cmd_ctx;
+
+	cmd_ctx->wl = cmd_find_pane(cmdq, args_get(args, 't'), NULL,
+			&cmd_ctx->wp);
+}
 
 enum cmd_retval
 cmd_pipe_pane_exec(struct cmd *self, struct cmd_q *cmdq)
@@ -55,8 +66,9 @@ cmd_pipe_pane_exec(struct cmd *self, struct cmd_q *cmdq)
 	char			*command;
 	int			 old_fd, pipe_fd[2], null_fd;
 
-	if (cmd_find_pane(cmdq, args_get(args, 't'), NULL, &wp) == NULL)
+	if (cmdq->cmd_ctx->wl == NULL)
 		return (CMD_RETURN_ERROR);
+	wp = cmdq->cmd_ctx->wp;
 	c = cmd_find_client(cmdq, NULL, 1);
 
 	/* Destroy the old pipe. */

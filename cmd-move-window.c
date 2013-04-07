@@ -27,6 +27,7 @@
  */
 
 enum cmd_retval	 cmd_move_window_exec(struct cmd *, struct cmd_q *);
+void		 cmd_move_window_prepare(struct cmd *, struct cmd_q *);
 
 const struct cmd_entry cmd_move_window_entry = {
 	"move-window", "movew",
@@ -36,8 +37,21 @@ const struct cmd_entry cmd_move_window_entry = {
 	NULL,
 	NULL,
 	cmd_move_window_exec,
-	NULL
+	cmd_move_window_prepare
 };
+
+void
+cmd_move_window_prepare(struct cmd *self, struct cmd_q *cmdq)
+{
+	struct args		*args = self->args;
+	struct cmd_context	*cmd_ctx = cmdq->cmd_ctx;
+
+	cmd_ctx->session = cmd_find_session(cmdq, args_get(args, 't'), 0);
+	cmd_ctx->wl = cmd_find_window(cmdq, args_get(args, 's'),
+			&cmd_ctx->session);
+	cmd_ctx->idx = cmd_find_index(cmdq, args_get(args, 't'),
+			&cmd_ctx->session2);
+}
 
 enum cmd_retval
 cmd_move_window_exec(struct cmd *self, struct cmd_q *cmdq)
@@ -49,7 +63,7 @@ cmd_move_window_exec(struct cmd *self, struct cmd_q *cmdq)
 	int		 idx, kflag, dflag;
 
 	if (args_has(args, 'r')) {
-		if ((s = cmd_find_session(cmdq, args_get(args, 't'), 0)) == NULL)
+		if ((s = cmdq->cmd_ctx->session) == NULL)
 			return (CMD_RETURN_ERROR);
 
 		session_renumber_windows(s);
@@ -57,10 +71,12 @@ cmd_move_window_exec(struct cmd *self, struct cmd_q *cmdq)
 
 		return (CMD_RETURN_NORMAL);
 	}
+	src = cmdq->cmd_ctx->session;
+	dst = cmdq->cmd_ctx->session2;
 
-	if ((wl = cmd_find_window(cmdq, args_get(args, 's'), &src)) == NULL)
+	if ((wl = cmdq->cmd_ctx->wl) == NULL)
 		return (CMD_RETURN_ERROR);
-	if ((idx = cmd_find_index(cmdq, args_get(args, 't'), &dst)) == -2)
+	if ((idx = cmdq->cmd_ctx->idx) == -2)
 		return (CMD_RETURN_ERROR);
 
 	kflag = args_has(self->args, 'k');

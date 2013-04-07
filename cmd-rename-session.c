@@ -27,6 +27,7 @@
  */
 
 enum cmd_retval	 cmd_rename_session_exec(struct cmd *, struct cmd_q *);
+void		 cmd_rename_session_prepare(struct cmd *, struct cmd_q *);
 
 const struct cmd_entry cmd_rename_session_entry = {
 	"rename-session", "rename",
@@ -36,8 +37,17 @@ const struct cmd_entry cmd_rename_session_entry = {
 	NULL,
 	NULL,
 	cmd_rename_session_exec,
-	NULL
+	cmd_rename_session_prepare
 };
+
+void
+cmd_rename_session_prepare(struct cmd *self, struct cmd_q *cmdq)
+{
+	struct args		*args = self->args;
+	struct cmd_context	*cmd_ctx = cmdq->cmd_ctx;
+
+	cmd_ctx->session = cmd_find_session(cmdq, args_get(args, 't'), 0);
+}
 
 enum cmd_retval
 cmd_rename_session_exec(struct cmd *self, struct cmd_q *cmdq)
@@ -56,7 +66,7 @@ cmd_rename_session_exec(struct cmd *self, struct cmd_q *cmdq)
 		return (CMD_RETURN_ERROR);
 	}
 
-	if ((s = cmd_find_session(cmdq, args_get(args, 't'), 0)) == NULL)
+	if ((s = cmdq->cmd_ctx->session) == NULL)
 		return (CMD_RETURN_ERROR);
 
 	RB_REMOVE(sessions, &sessions, s);

@@ -28,6 +28,7 @@
 
 void		 cmd_resize_pane_key_binding(struct cmd *, int);
 enum cmd_retval	 cmd_resize_pane_exec(struct cmd *, struct cmd_q *);
+void		 cmd_resize_pane_prepare(struct cmd *, struct cmd_q *);
 
 const struct cmd_entry cmd_resize_pane_entry = {
 	"resize-pane", "resizep",
@@ -37,7 +38,7 @@ const struct cmd_entry cmd_resize_pane_entry = {
 	cmd_resize_pane_key_binding,
 	NULL,
 	cmd_resize_pane_exec,
-	NULL
+	cmd_resize_pane_prepare
 };
 
 void
@@ -86,6 +87,16 @@ cmd_resize_pane_key_binding(struct cmd *self, int key)
 	}
 }
 
+void
+cmd_resize_pane_prepare(struct cmd *self, struct cmd_q *cmdq)
+{
+	struct args		*args = self->args;
+	struct cmd_context	*cmd_ctx = cmdq->cmd_ctx;
+
+	cmd_ctx->wl = cmd_find_pane(cmdq, args_get(args, 't'), NULL,
+			&cmd_ctx->wp);
+}
+
 enum cmd_retval
 cmd_resize_pane_exec(struct cmd *self, struct cmd_q *cmdq)
 {
@@ -98,9 +109,10 @@ cmd_resize_pane_exec(struct cmd *self, struct cmd_q *cmdq)
 	u_int			 adjust;
 	int			 x, y;
 
-	if ((wl = cmd_find_pane(cmdq, args_get(args, 't'), NULL, &wp)) == NULL)
+	if ((wl = cmdq->cmd_ctx->wl) == NULL)
 		return (CMD_RETURN_ERROR);
 	w = wl->window;
+	wp = cmdq->cmd_ctx->wp;
 
 	if (args_has(args, 'Z')) {
 		if (w->flags & WINDOW_ZOOMED)

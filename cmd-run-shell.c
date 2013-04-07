@@ -96,7 +96,7 @@ cmd_run_shell_exec(struct cmd *self, struct cmd_q *cmdq)
 	struct format_tree		*ft;
 
 	if (args_has(args, 't'))
-		wl = cmd_find_pane(cmdq, args_get(args, 't'), &s, &wp);
+		wl = cmdq->cmd_ctx->wl;
 	else {
 		c = cmd_find_client(cmdq, NULL, 1);
 		if (c != NULL && c->session != NULL) {

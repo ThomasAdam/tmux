@@ -29,6 +29,7 @@
  */
 
 enum cmd_retval	 cmd_lock_server_exec(struct cmd *, struct cmd_q *);
+void		 cmd_lock_server_prepare(struct cmd *, struct cmd_q *);
 
 const struct cmd_entry cmd_lock_server_entry = {
 	"lock-server", "lock",
@@ -38,7 +39,7 @@ const struct cmd_entry cmd_lock_server_entry = {
 	NULL,
 	NULL,
 	cmd_lock_server_exec,
-	NULL
+	cmd_lock_server_prepare,
 };
 
 const struct cmd_entry cmd_lock_session_entry = {
@@ -49,7 +50,7 @@ const struct cmd_entry cmd_lock_session_entry = {
 	NULL,
 	NULL,
 	cmd_lock_server_exec,
-	NULL
+	cmd_lock_server_prepare
 };
 
 const struct cmd_entry cmd_lock_client_entry = {
@@ -60,8 +61,18 @@ const struct cmd_entry cmd_lock_client_entry = {
 	NULL,
 	NULL,
 	cmd_lock_server_exec,
-	NULL
+	cmd_lock_server_prepare
 };
+
+void
+cmd_lock_server_prepare(struct cmd *self, struct cmd_q *cmdq)
+{
+	struct args		*args = self->args;
+	struct cmd_context	*cmd_ctx = cmdq->cmd_ctx;
+
+	cmd_ctx->session = cmd_find_session(cmdq, args_get(args, 't'), 0);
+	cmd_ctx->client = cmd_find_client(cmdq, args_get(args, 't'), 0);
+}
 
 enum cmd_retval
 cmd_lock_server_exec(struct cmd *self, unused struct cmd_q *cmdq)
@@ -73,13 +84,11 @@ cmd_lock_server_exec(struct cmd *self, unused struct cmd_q *cmdq)
 	if (self->entry == &cmd_lock_server_entry)
 		server_lock();
 	else if (self->entry == &cmd_lock_session_entry) {
-		s = cmd_find_session(cmdq, args_get(args, 't'), 0);
-		if (s == NULL)
+		if ((s = cmdq->cmd_ctx->session) == NULL)
 			return (CMD_RETURN_ERROR);
 		server_lock_session(s);
 	} else {
-		c = cmd_find_client(cmdq, args_get(args, 't'), 0);
-		if (c == NULL)
+		if ((c = cmdq->cmd_ctx->client) == NULL)
 			return (CMD_RETURN_ERROR);
 		server_lock_client(c);
 	}
