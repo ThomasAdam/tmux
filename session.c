@@ -104,6 +104,7 @@ session_create(const char *name, const char *cmd, const char *cwd,
 	TAILQ_INIT(&s->lastw);
 	RB_INIT(&s->windows);
 
+	hooks_init(&s->hooks, &global_hooks);
 	options_init(&s->options, &global_s_options);
 	environ_init(&s->environ);
 	if (env != NULL)
@@ -161,6 +162,7 @@ session_destroy(struct session *s)
 	session_group_remove(s);
 	environ_free(&s->environ);
 	options_free(&s->options);
+	hooks_free(&s->hooks);
 
 	while (!TAILQ_EMPTY(&s->lastw))
 		winlink_stack_remove(&s->lastw, TAILQ_FIRST(&s->lastw));
