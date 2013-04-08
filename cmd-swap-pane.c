@@ -28,6 +28,7 @@
 
 void		 cmd_swap_pane_key_binding(struct cmd *, int);
 enum cmd_retval	 cmd_swap_pane_exec(struct cmd *, struct cmd_q *);
+void		 cmd_swap_pane_prepare(struct cmd *, struct cmd_q *);
 
 const struct cmd_entry cmd_swap_pane_entry = {
 	"swap-pane", "swapp",
@@ -37,7 +38,7 @@ const struct cmd_entry cmd_swap_pane_entry = {
 	cmd_swap_pane_key_binding,
 	NULL,
 	cmd_swap_pane_exec,
-	NULL
+	cmd_swap_pane_prepare
 };
 
 void
@@ -50,6 +51,16 @@ cmd_swap_pane_key_binding(struct cmd *self, int key)
 		args_set(self->args, 'D', NULL);
 }
 
+void
+cmd_swap_pane_prepare(struct cmd *self, struct cmd_q *cmdq)
+{
+	struct args		*args = self->args;
+	struct cmd_context	*cmd_ctx = cmdq->cmd_ctx;
+
+	cmd_ctx->wl = cmd_find_pane(cmdq, args_get(args, 't'), NULL,
+			&cmd_ctx->wp);
+}
+
 enum cmd_retval
 cmd_swap_pane_exec(struct cmd *self, struct cmd_q *cmdq)
 {
@@ -60,10 +71,10 @@ cmd_swap_pane_exec(struct cmd *self, struct cmd_q *cmdq)
 	struct layout_cell	*src_lc, *dst_lc;
 	u_int			 sx, sy, xoff, yoff;
 
-	dst_wl = cmd_find_pane(cmdq, args_get(args, 't'), NULL, &dst_wp);
-	if (dst_wl == NULL)
+	if ((dst_wl = cmdq->cmd_ctx->wl) == NULL)
 		return (CMD_RETURN_ERROR);
 	dst_w = dst_wl->window;
+	dst_wp = cmdq->cmd_ctx->wp;
 	server_unzoom_window(dst_w);
 
 	if (!args_has(args, 's')) {

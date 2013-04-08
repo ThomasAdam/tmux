@@ -29,6 +29,7 @@
  */
 
 enum cmd_retval cmd_wait_for_exec(struct cmd *, struct cmd_q *);
+void		cmd_wait_for_prepare(struct cmd *, struct cmd_q *);
 
 const struct cmd_entry cmd_wait_for_entry = {
 	"wait-for", "wait",
@@ -38,7 +39,7 @@ const struct cmd_entry cmd_wait_for_entry = {
 	NULL,
 	NULL,
 	cmd_wait_for_exec,
-	NULL
+	cmd_wait_for_prepare
 };
 
 struct wait_channel {
@@ -71,6 +72,12 @@ enum cmd_retval	cmd_wait_for_lock(struct cmd_q *, const char *,
 		    struct wait_channel *);
 enum cmd_retval	cmd_wait_for_unlock(struct cmd_q *, const char *,
 		    struct wait_channel *);
+
+void
+cmd_wait_for_prepare(unused struct cmd *self, unused struct cmd_q *cmdq)
+{
+	return;
+}
 
 enum cmd_retval
 cmd_wait_for_exec(struct cmd *self, struct cmd_q *cmdq)

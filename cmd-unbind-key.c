@@ -29,6 +29,7 @@
 enum cmd_retval	 cmd_unbind_key_check(struct args *);
 enum cmd_retval	 cmd_unbind_key_exec(struct cmd *, struct cmd_q *);
 enum cmd_retval	 cmd_unbind_key_table(struct cmd *, struct cmd_q *, int);
+void		 cmd_unbind_key_prepare(struct cmd *, struct cmd_q *);
 
 const struct cmd_entry cmd_unbind_key_entry = {
 	"unbind-key", "unbind",
@@ -38,7 +39,7 @@ const struct cmd_entry cmd_unbind_key_entry = {
 	NULL,
 	cmd_unbind_key_check,
 	cmd_unbind_key_exec,
-	NULL
+	cmd_unbind_key_prepare
 };
 
 enum cmd_retval
@@ -49,6 +50,12 @@ cmd_unbind_key_check(struct args *args)
 	if (!args_has(args, 'a') && args->argc != 1)
 		return (CMD_RETURN_ERROR);
 	return (CMD_RETURN_NORMAL);
+}
+
+void
+cmd_unbind_key_prepare(unused struct cmd *self, unused struct cmd_q *cmdq)
+{
+	return;
 }
 
 enum cmd_retval

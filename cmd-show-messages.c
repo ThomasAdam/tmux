@@ -28,6 +28,7 @@
  */
 
 enum cmd_retval	 cmd_show_messages_exec(struct cmd *, struct cmd_q *);
+void		 cmd_show_messages_prepare(struct cmd *, struct cmd_q *);
 
 const struct cmd_entry cmd_show_messages_entry = {
 	"show-messages", "showmsgs",
@@ -37,19 +38,27 @@ const struct cmd_entry cmd_show_messages_entry = {
 	NULL,
 	NULL,
 	cmd_show_messages_exec,
-	NULL
+	cmd_show_messages_prepare
 };
 
-enum cmd_retval
-cmd_show_messages_exec(struct cmd *self, struct cmd_q *cmdq)
+void
+cmd_show_messages_prepare(struct cmd *self, struct cmd_q *cmdq)
 {
 	struct args		*args = self->args;
+	struct cmd_context	*cmd_ctx = cmdq->cmd_ctx;
+
+	cmd_ctx->client = cmd_find_client(cmdq, args_get(args, 't'), 0);
+}
+
+enum cmd_retval
+cmd_show_messages_exec(unused struct cmd *self, struct cmd_q *cmdq)
+{
 	struct client		*c;
 	struct message_entry	*msg;
 	char			*tim;
 	u_int			 i;
 
-	if ((c = cmd_find_client(cmdq, args_get(args, 't'), 0)) == NULL)
+	if ((c = cmdq->cmd_ctx->client) == NULL)
 		return (CMD_RETURN_ERROR);
 
 	for (i = 0; i < ARRAY_LENGTH(&c->message_log); i++) {

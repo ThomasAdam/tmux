@@ -77,7 +77,6 @@ cmd_lock_server_prepare(struct cmd *self, struct cmd_q *cmdq)
 enum cmd_retval
 cmd_lock_server_exec(struct cmd *self, unused struct cmd_q *cmdq)
 {
-	struct args	*args = self->args;
 	struct client	*c;
 	struct session	*s;
 

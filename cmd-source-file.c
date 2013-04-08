@@ -27,6 +27,7 @@
  */
 
 enum cmd_retval	cmd_source_file_exec(struct cmd *, struct cmd_q *);
+void		cmd_source_file_prepare(struct cmd *, struct cmd_q *);
 
 void		cmd_source_file_show(struct cmd_q *);
 void		cmd_source_file_done(struct cmd_q *);
@@ -39,8 +40,14 @@ const struct cmd_entry cmd_source_file_entry = {
 	NULL,
 	NULL,
 	cmd_source_file_exec,
-	NULL
+	cmd_source_file_prepare
 };
+
+void
+cmd_source_file_prepare(unused struct cmd *self, unused struct cmd_q *cmdq)
+{
+	return;
+}
 
 enum cmd_retval
 cmd_source_file_exec(struct cmd *self, struct cmd_q *cmdq)
