@@ -3719,6 +3719,85 @@ The window with ID
 was renamed to
 .Ar name .
 .El
+.Sh HOOKS
+.Nm
+support running hooks before and after a given command.
+A valid hook for binding to
+.Nm
+commands must start with one of two prefixes.
+The
+.Ar before-
+prefix indicates that a command has hooks to run before the command.
+The
+.Ar after-
+prefix indicates that a command has to run after the command.
+Note that only one hook per command for each prefix may be defined.
+It is expected that if a hook is to invoke more than one command that the
+commands are chained together.
+See
+.Sx command sequence
+under
+.Sx COMMANDS
+for more information about this.  For example:
+.Bd -literal -offset indent
+set-hook -g -n before-new-session 'run "notify-send Time for a new session"'
+set-hook -g -n after-new-session 'run notify-send Created #{session_name}"'
+.Ed
+.Pp
+The following commands are available to define hooks:
+.Bl -tag -width Ds
+.It Xo Ic set-hook
+.Op Fl g
+.Op Fl n Ar hook-name
+.Op Fl t Ar target-session
+.Op Fl u Ar hook-name
+.Ar command
+Defines a hook.  With
+.Fl g
+assumes the hook will be added to the global hooks.
+If
+.Fl t
+is given then the named hook can be defined against the named session.
+If neither
+.Fl t
+nor
+.Fl g
+is given then it assumed the hook will be added to the current session.
+.Fl n
+accepts a
+.Ar hook-name
+beginning with either
+.Ic before-
+or
+.Ic after-
+The rest of the
+.Ar hook-name
+should be the full name of the
+.Nm
+command to bind the hook to.
+Note that if
+.Ar hook-name
+already exists then it is deleted and the new hook defined in its place.
+If
+.Fl u
+is given then the
+.Ar hook-name
+is deleted.
+.Ar command
+can be any valid
+.Nm
+command.
+.Xc
+.It Xo Ic show-hooks
+.Op Fl g
+.Op Fl t Ar target-session
+.Xc
+Display the hooks for
+.Ar target-session
+or the global hooks if
+.Fl g
+is used.
+.El
 .Sh FILES
 .Bl -tag -width "@SYSCONFDIR@/tmux.confXXX" -compact
 .It Pa ~/.tmux.conf
