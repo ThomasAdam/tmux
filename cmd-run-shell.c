@@ -31,6 +31,7 @@
 
 enum cmd_retval	 cmd_run_shell_exec(struct cmd *, struct cmd_q *);
 
+void	cmd_run_shell_prepare(struct cmd *, struct cmd_q *);
 void	cmd_run_shell_callback(struct job *);
 void	cmd_run_shell_free(void *);
 void	cmd_run_shell_print(struct job *, const char *);
@@ -40,8 +41,10 @@ const struct cmd_entry cmd_run_shell_entry = {
 	"bt:", 1, 1,
 	"[-b] " CMD_TARGET_PANE_USAGE " shell-command",
 	0,
+	CMD_PREPARE_PANE,
 	NULL,
-	cmd_run_shell_exec
+	cmd_run_shell_exec,
+	NULL
 };
 
 struct cmd_run_shell_data {
@@ -83,7 +86,7 @@ cmd_run_shell_exec(struct cmd *self, struct cmd_q *cmdq)
 	struct format_tree		*ft;
 
 	if (args_has(args, 't'))
-		wl = cmd_find_pane(cmdq, args_get(args, 't'), &s, &wp);
+		wl = cmdq->cmd_ctx.wl;
 	else {
 		c = cmd_find_client(cmdq, NULL, 1);
 		if (c != NULL && c->session != NULL) {
@@ -92,6 +95,9 @@ cmd_run_shell_exec(struct cmd *self, struct cmd_q *cmdq)
 			wp = wl->window->active;
 		}
 	}
+	s = cmdq->cmd_ctx.s;
+	wl = cmdq->cmd_ctx.wl;
+	wp = cmdq->cmd_ctx.wp;
 
 	ft = format_create();
 	if (s != NULL)

@@ -31,8 +31,10 @@ const struct cmd_entry cmd_start_server_entry = {
 	"", 0, 0,
 	"",
 	CMD_STARTSERVER,
+	0,
 	NULL,
-	cmd_start_server_exec
+	cmd_start_server_exec,
+	NULL
 };
 
 enum cmd_retval

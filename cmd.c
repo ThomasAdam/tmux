@@ -96,9 +96,11 @@ const struct cmd_entry *cmd_table[] = {
 	&cmd_server_info_entry,
 	&cmd_set_buffer_entry,
 	&cmd_set_environment_entry,
+	&cmd_set_hook_entry,
 	&cmd_set_option_entry,
 	&cmd_set_window_option_entry,
 	&cmd_show_buffer_entry,
+	&cmd_show_hooks_entry,
 	&cmd_show_environment_entry,
 	&cmd_show_messages_entry,
 	&cmd_show_options_entry,
@@ -284,6 +286,54 @@ usage:
 		args_free(args);
 	xasprintf(cause, "usage: %s %s", entry->name, entry->usage);
 	return (NULL);
+}
+
+void
+cmd_set_context(struct cmd_q *cmdq)
+{
+	memset(&cmdq->cmd_ctx, 0, sizeof(struct cmd_ctx));
+
+	cmdq->cmd_ctx.c = cmdq->client;
+	cmdq->cmd_ctx.s = cmdq->client != NULL ? cmdq->client->session : NULL;
+	cmdq->cmd_ctx.s2 = NULL;
+	cmdq->cmd_ctx.w = NULL;
+	cmdq->cmd_ctx.wl = NULL;
+	cmdq->cmd_ctx.wp = NULL;
+}
+
+void
+cmd_prepare(struct cmd *cmd, struct cmd_q * cmdq)
+{
+	struct args	*args = cmd->args;
+	int		 flag = cmd->entry->prepare_flag;
+
+	cmdq->cmd_ctx.c = cmd_current_client(cmdq);
+
+	if (flag & CMD_PREPARE_SESSION) {
+		cmdq->cmd_ctx.s = cmd_find_session(
+		    cmdq, args_get(args, 't'), 1);
+	}
+	if (flag & CMD_PREPARE_WINDOW) {
+		cmdq->cmd_ctx.wl = cmd_find_window(
+		    cmdq, args_get(args, 't'), NULL);
+	}
+	if (flag & CMD_PREPARE_PANE) {
+		cmdq->cmd_ctx.wl = cmd_find_pane(
+		    cmdq, args_get(args, 't'), &cmdq->cmd_ctx.s,
+		    &cmdq->cmd_ctx.wp);
+	}
+	if (flag & CMD_PREPARE_CLIENT) {
+		cmdq->cmd_ctx.c = cmd_find_client(
+		    cmdq, args_get(args, 't'), 0);
+	}
+
+	/* If a command has its own prepare() function, call that here.  Note
+	 * that a command might also have set prepare_flag has well; hence it
+	 * might be using state already set above, before this function is
+	 * called.
+	 */
+	if (cmd->entry->prepare != NULL)
+		cmd->entry->prepare(cmd, cmdq);
 }
 
 size_t

@@ -26,14 +26,17 @@
 
 void		 cmd_select_pane_key_binding(struct cmd *, int);
 enum cmd_retval	 cmd_select_pane_exec(struct cmd *, struct cmd_q *);
+void		 cmd_select_pane_prepare(struct cmd *, struct cmd_q *);
 
 const struct cmd_entry cmd_select_pane_entry = {
 	"select-pane", "selectp",
 	"lDLRt:U", 0, 0,
 	"[-lDLRU] " CMD_TARGET_PANE_USAGE,
 	0,
+	0,
 	cmd_select_pane_key_binding,
-	cmd_select_pane_exec
+	cmd_select_pane_exec,
+	cmd_select_pane_prepare
 };
 
 const struct cmd_entry cmd_last_pane_entry = {
@@ -41,8 +44,10 @@ const struct cmd_entry cmd_last_pane_entry = {
 	"t:", 0, 0,
 	CMD_TARGET_WINDOW_USAGE,
 	0,
+	0,
 	NULL,
-	cmd_select_pane_exec
+	cmd_select_pane_exec,
+	cmd_select_pane_prepare
 };
 
 void
@@ -61,6 +66,20 @@ cmd_select_pane_key_binding(struct cmd *self, int key)
 		args_set(self->args, 't', ":.+");
 }
 
+void
+cmd_select_pane_prepare(struct cmd *self, struct cmd_q *cmdq)
+{
+	struct args	*args = self->args;
+
+	if (self->entry == &cmd_last_pane_entry || args_has(args, 'l')) {
+		cmdq->cmd_ctx.wl = cmd_find_window(cmdq,
+				args_get(args, 't'), NULL);
+	} else {
+		cmdq->cmd_ctx.wl = cmd_find_pane(cmdq, args_get(args, 't'),
+				NULL, &cmdq->cmd_ctx.wp);
+	}
+}
+
 enum cmd_retval
 cmd_select_pane_exec(struct cmd *self, struct cmd_q *cmdq)
 {
@@ -69,8 +88,7 @@ cmd_select_pane_exec(struct cmd *self, struct cmd_q *cmdq)
 	struct window_pane	*wp;
 
 	if (self->entry == &cmd_last_pane_entry || args_has(args, 'l')) {
-		wl = cmd_find_window(cmdq, args_get(args, 't'), NULL);
-		if (wl == NULL)
+		if ((wl = cmdq->cmd_ctx.wl) == NULL)
 			return (CMD_RETURN_ERROR);
 
 		if (wl->window->last == NULL) {
@@ -86,8 +104,10 @@ cmd_select_pane_exec(struct cmd *self, struct cmd_q *cmdq)
 		return (CMD_RETURN_NORMAL);
 	}
 
-	if ((wl = cmd_find_pane(cmdq, args_get(args, 't'), NULL, &wp)) == NULL)
+	if ((wl = cmdq->cmd_ctx.wl) == NULL)
 		return (CMD_RETURN_ERROR);
+
+	wp = cmdq->cmd_ctx.wp;
 
 	server_unzoom_window(wp->window);
 	if (!window_pane_visible(wp)) {

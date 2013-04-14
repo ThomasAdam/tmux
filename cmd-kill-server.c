@@ -34,8 +34,10 @@ const struct cmd_entry cmd_kill_server_entry = {
 	"", 0, 0,
 	"",
 	0,
+	0,
 	NULL,
-	cmd_kill_server_exec
+	cmd_kill_server_exec,
+	NULL
 };
 
 enum cmd_retval

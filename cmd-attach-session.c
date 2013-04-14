@@ -27,18 +27,21 @@
  */
 
 enum cmd_retval	cmd_attach_session_exec(struct cmd *, struct cmd_q *);
+void		cmd_attach_session_prepare(struct cmd *, struct cmd_q *);
 
 const struct cmd_entry cmd_attach_session_entry = {
 	"attach-session", "attach",
 	"drt:", 0, 0,
 	"[-dr] " CMD_TARGET_SESSION_USAGE,
 	CMD_CANTNEST|CMD_STARTSERVER|CMD_SENDENVIRON,
+	CMD_PREPARE_SESSION,
 	NULL,
-	cmd_attach_session_exec
+	cmd_attach_session_exec,
+	NULL
 };
 
 enum cmd_retval
-cmd_attach_session(struct cmd_q *cmdq, const char* tflag, int dflag, int rflag)
+cmd_attach_session(struct cmd_q *cmdq, int dflag, int rflag)
 {
 	struct session	*s;
 	struct client	*c;
@@ -51,7 +54,7 @@ cmd_attach_session(struct cmd_q *cmdq, const char* tflag, int dflag, int rflag)
 		return (CMD_RETURN_ERROR);
 	}
 
-	if ((s = cmd_find_session(cmdq, tflag, 1)) == NULL)
+	if ((s = cmdq->cmd_ctx.s) == NULL)
 		return (CMD_RETURN_ERROR);
 
 	if (cmdq->client == NULL)
@@ -114,6 +117,6 @@ cmd_attach_session_exec(struct cmd *self, struct cmd_q *cmdq)
 {
 	struct args	*args = self->args;
 
-	return (cmd_attach_session(cmdq, args_get(args, 't'),
-	    args_has(args, 'd'), args_has(args, 'r')));
+	return (cmd_attach_session(cmdq, args_has(args, 'd'),
+	    args_has(args, 'r')));
 }

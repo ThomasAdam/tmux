@@ -28,6 +28,7 @@
  */
 
 enum cmd_retval	 cmd_list_windows_exec(struct cmd *, struct cmd_q *);
+void		 cmd_list_windows_prepare(struct cmd *, struct cmd_q *);
 
 void	cmd_list_windows_server(struct cmd *, struct cmd_q *);
 void	cmd_list_windows_session(
@@ -38,9 +39,22 @@ const struct cmd_entry cmd_list_windows_entry = {
 	"F:at:", 0, 0,
 	"[-a] [-F format] " CMD_TARGET_SESSION_USAGE,
 	0,
+	0,
 	NULL,
-	cmd_list_windows_exec
+	cmd_list_windows_exec,
+	cmd_list_windows_prepare
 };
+
+void
+cmd_list_windows_prepare(struct cmd *self, struct cmd_q *cmdq)
+{
+	struct args	*args = self->args;
+
+	if (!args_has(args, 'a')) {
+		cmdq->cmd_ctx.s = cmd_find_session(cmdq,
+				args_get(args, 't'), 0);
+	}
+}
 
 enum cmd_retval
 cmd_list_windows_exec(struct cmd *self, struct cmd_q *cmdq)
@@ -51,8 +65,7 @@ cmd_list_windows_exec(struct cmd *self, struct cmd_q *cmdq)
 	if (args_has(args, 'a'))
 		cmd_list_windows_server(self, cmdq);
 	else {
-		s = cmd_find_session(cmdq, args_get(args, 't'), 0);
-		if (s == NULL)
+		if ((s = cmdq->cmd_ctx.s) == NULL)
 			return (CMD_RETURN_ERROR);
 		cmd_list_windows_session(self, s, cmdq, 0);
 	}

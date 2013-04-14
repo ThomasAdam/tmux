@@ -28,6 +28,7 @@
  */
 
 enum cmd_retval	 cmd_paste_buffer_exec(struct cmd *, struct cmd_q *);
+void		 cmd_paste_buffer_prepare(struct cmd *, struct cmd_q *);
 
 void	cmd_paste_buffer_filter(struct window_pane *,
 	    const char *, size_t, const char *, int);
@@ -37,8 +38,10 @@ const struct cmd_entry cmd_paste_buffer_entry = {
 	"db:prs:t:", 0, 0,
 	"[-dpr] [-s separator] [-b buffer-index] " CMD_TARGET_PANE_USAGE,
 	0,
+	CMD_PREPARE_PANE,
 	NULL,
-	cmd_paste_buffer_exec
+	cmd_paste_buffer_exec,
+	NULL
 };
 
 enum cmd_retval
@@ -46,15 +49,16 @@ cmd_paste_buffer_exec(struct cmd *self, struct cmd_q *cmdq)
 {
 	struct args		*args = self->args;
 	struct window_pane	*wp;
-	struct session		*s;
 	struct paste_buffer	*pb;
 	const char		*sepstr;
 	char			*cause;
 	int			 buffer;
 	int			 pflag;
 
-	if (cmd_find_pane(cmdq, args_get(args, 't'), &s, &wp) == NULL)
+	if (cmdq->cmd_ctx.wl == NULL)
 		return (CMD_RETURN_ERROR);
+
+	wp = cmdq->cmd_ctx.wp;
 
 	if (!args_has(args, 'b'))
 		buffer = -1;

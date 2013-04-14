@@ -25,6 +25,7 @@
  */
 
 void		 cmd_copy_mode_key_binding(struct cmd *, int);
+void		 cmd_copy_mode_prepare(struct cmd *, struct cmd_q *);
 enum cmd_retval	 cmd_copy_mode_exec(struct cmd *, struct cmd_q *);
 
 const struct cmd_entry cmd_copy_mode_entry = {
@@ -32,8 +33,10 @@ const struct cmd_entry cmd_copy_mode_entry = {
 	"t:u", 0, 0,
 	"[-u] " CMD_TARGET_PANE_USAGE,
 	0,
+	CMD_PREPARE_PANE,
 	cmd_copy_mode_key_binding,
-	cmd_copy_mode_exec
+	cmd_copy_mode_exec,
+	NULL
 };
 
 void
@@ -47,10 +50,9 @@ cmd_copy_mode_key_binding(struct cmd *self, int key)
 enum cmd_retval
 cmd_copy_mode_exec(struct cmd *self, struct cmd_q *cmdq)
 {
-	struct args		*args = self->args;
 	struct window_pane	*wp;
 
-	if (cmd_find_pane(cmdq, args_get(args, 't'), NULL, &wp) == NULL)
+	if ((wp = cmdq->cmd_ctx.wp) == NULL)
 		return (CMD_RETURN_ERROR);
 
 	if (wp->mode != &window_copy_mode) {

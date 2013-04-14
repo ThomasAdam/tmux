@@ -31,19 +31,11 @@ const struct cmd_entry cmd_show_hooks_entry = {
 	"gt:", 0, 1,
 	"[-g] " CMD_TARGET_SESSION_USAGE,
 	0,
-	NULL,
+	CMD_PREPARE_SESSION,
 	NULL,
 	cmd_show_hooks_exec,
-	cmd_show_hooks_prepare
+	NULL
 };
-
-void
-cmd_show_hooks_prepare(struct cmd *self, struct cmd_q *cmdq)
-{
-	struct args	*args = self->args;
-
-	cmdq->cmd_ctx.s = cmd_find_session(cmdq, args_get(args, 't'), 0);
-}
 
 enum cmd_retval
 cmd_show_hooks_exec(struct cmd *self, struct cmd_q *cmdq)

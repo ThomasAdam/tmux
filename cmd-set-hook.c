@@ -31,19 +31,11 @@ const struct cmd_entry cmd_set_hook_entry = {
 	"gn:t:u", 0, 1,
 	"[-n hook-name] [-g]" CMD_TARGET_SESSION_USAGE " [-u hook-name] [command]",
 	0,
-	NULL,
+	CMD_PREPARE_SESSION,
 	NULL,
 	cmd_set_hook_exec,
-	cmd_set_hook_prepare
+	NULL
 };
-
-void
-cmd_set_hook_prepare(struct cmd *self, struct cmd_q *cmdq)
-{
-	struct args	*args = self->args;
-
-	cmdq->cmd_ctx.s = cmd_find_session(cmdq, args_get(args, 't'), 0);
-}
 
 enum cmd_retval
 cmd_set_hook_exec(struct cmd *self, struct cmd_q *cmdq)
