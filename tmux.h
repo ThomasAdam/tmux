@@ -895,6 +895,9 @@ struct window_choose_data {
 
 	u_int			 idx;
 	int			 type;
+	int			 chain_mode;
+	int			 selected;
+	int			 completed;
 #define TREE_OTHER 0x0
 #define TREE_WINDOW 0x1
 #define TREE_SESSION 0x2
@@ -915,6 +918,7 @@ struct window_choose_mode_item {
 	char				*name;
 	int				 pos;
 	int				 state;
+	int				 chain_mode_selected;
 #define TREE_EXPANDED 0x1
 };
 
@@ -2245,10 +2249,10 @@ void	window_choose_data_free(struct window_choose_data *);
 void	window_choose_data_run(struct window_choose_data *);
 struct window_choose_data	*window_choose_add_window(struct window_pane *,
 			struct client *, struct session *, struct winlink *,
-			const char *, const char *, u_int);
+			const char *, const char *, u_int, u_int);
 struct window_choose_data	*window_choose_add_session(struct window_pane *,
 			struct client *, struct session *, const char *,
-			const char *, u_int);
+			const char *, u_int, u_int);
 struct window_choose_data	*window_choose_add_item(struct window_pane *,
 			struct client *, struct winlink *, const char *,
 			const char *, u_int);

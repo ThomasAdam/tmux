@@ -97,6 +97,7 @@ window_choose_add(struct window_pane *wp, struct window_choose_data *wcd)
 	item->wcd = wcd;
 	item->pos = ARRAY_LENGTH(&data->list) - 1;
 	item->state = 0;
+	item->chain_mode_selected = 0;
 
 	data->width = xsnprintf (tmp, sizeof tmp , "%u", item->pos);
 }
@@ -177,6 +178,8 @@ window_choose_data_create(int type, struct client *c, struct session *s)
 	wcd->start_client->references++;
 	wcd->start_session = s;
 	wcd->start_session->references++;
+	wcd->type = 0;
+	wcd->completed = 0;
 
 	return (wcd);
 }
@@ -477,11 +480,15 @@ window_choose_key(struct window_pane *wp, unused struct session *sess, int key)
 	struct screen			*s = &data->screen;
 	struct screen_write_ctx		 ctx;
 	struct window_choose_mode_item	*item;
+	struct grid_cell		*gc;
 	size_t				 input_len;
 	u_int				 items, n;
 	int				 idx;
+	static int			 selection_count;
 
 	items = ARRAY_LENGTH(&data->list);
+
+	memcpy(&gc, &grid_default_cell, sizeof gc);
 
 	if (data->input_type == WINDOW_CHOOSE_GOTO_ITEM) {
 		switch (mode_key_lookup(&data->mdata, key, NULL)) {
@@ -521,6 +528,20 @@ window_choose_key(struct window_pane *wp, unused struct session *sess, int key)
 		break;
 	case MODEKEYCHOICE_CHOOSE:
 		item = &ARRAY_ITEM(&data->list, data->selected);
+
+		log_debug("ITEM CM: %d -> ITEM CMC: %d",
+			item->wcd->chain_mode, selection_count);
+		if (item->wcd->chain_mode && !item->wcd->completed) {
+			if (selection_count == 0) {
+				item->chain_mode_selected = selection_count++;
+				window_choose_redraw_screen(wp);
+				break;
+			} else {
+				item->wcd->completed = 1;
+				selection_count = 0;
+			}
+
+		}
 		window_choose_fire_callback(wp, item->wcd);
 		break;
 	case MODEKEYCHOICE_TREE_TOGGLE:
@@ -729,6 +750,9 @@ window_choose_write_line(
 		    item->wcd->wl->flags & WINLINK_ALERTFLAGS)
 			gc.attr |= GRID_ATTR_BRIGHT;
 
+		if (item->wcd->chain_mode && item->chain_mode_selected)
+			gc.attr |= GRID_ATTR_BRIGHT;
+
 		key = window_choose_key_index(data, data->top + py);
 		if (key != -1)
 			xsnprintf (label, sizeof label, "(%c)", key);
@@ -854,7 +878,8 @@ window_choose_scroll_down(struct window_pane *wp)
 
 struct window_choose_data *
 window_choose_add_session(struct window_pane *wp, struct client *c,
-    struct session *s, const char *template, const char *action, u_int idx)
+    struct session *s, const char *template, const char *action,
+    u_int chain_mode, u_int idx)
 {
 	struct window_choose_data	*wcd;
 
@@ -864,6 +889,10 @@ window_choose_add_session(struct window_pane *wp, struct client *c,
 	wcd->tree_session = s;
 	wcd->tree_session->references++;
 
+	wcd->chain_mode = chain_mode;
+	log_debug("SESSION CHAIN MODE:  %u", chain_mode);
+	wcd->type = TREE_SESSION;
+	wcd->command = cmd_template_replace(action, s->name, 1);
 	wcd->ft_template = xstrdup(template);
 	format_add(wcd->ft, "line", "%u", idx);
 	format_session(wcd->ft, s);
@@ -908,7 +937,7 @@ window_choose_add_item(struct window_pane *wp, struct client *c,
 struct window_choose_data *
 window_choose_add_window(struct window_pane *wp, struct client *c,
     struct session *s, struct winlink *wl, const char *template,
-    const char *action, u_int idx)
+    const char *action, u_int chain_mode, u_int idx)
 {
 	struct window_choose_data	*wcd;
 	char				*expanded;
@@ -921,6 +950,9 @@ window_choose_add_window(struct window_pane *wp, struct client *c,
 	wcd->tree_session = s;
 	wcd->tree_session->references++;
 
+	wcd->chain_mode = chain_mode;
+	log_debug("WINDOW CHAIN MODE:  %u", chain_mode);
+	wcd->type = TREE_WINDOW;
 	wcd->ft_template = xstrdup(template);
 	format_add(wcd->ft, "line", "%u", idx);
 	format_session(wcd->ft, s);

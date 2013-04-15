@@ -36,8 +36,8 @@ enum cmd_retval	cmd_choose_tree_exec(struct cmd *, struct cmd_q *);
 
 const struct cmd_entry cmd_choose_tree_entry = {
 	"choose-tree", NULL,
-	"S:W:swub:c:t:", 0, 1,
-	"[-suw] [-b session-template] [-c window template] [-S format] " \
+	"2S:W:swub:c:t:", 0, 1,
+	"[-2swu] [-b session-template] [-c window template] [-S format] " \
 	"[-W format] " CMD_TARGET_WINDOW_USAGE,
 	0,
 	NULL,
@@ -79,7 +79,7 @@ cmd_choose_tree_exec(struct cmd *self, struct cmd_q *cmdq)
 	char				*final_win_template_last;
 	const char			*ses_action, *win_action;
 	u_int				 cur_win, idx_ses, win_ses, win_max;
-	u_int				 wflag, sflag;
+	u_int				 wflag, sflag, chain_flag;
 
 	ses_template = win_template = NULL;
 	ses_action = win_action = NULL;
@@ -99,7 +99,7 @@ cmd_choose_tree_exec(struct cmd *self, struct cmd_q *cmdq)
 		return (CMD_RETURN_NORMAL);
 
 	/* Sort out which command this is. */
-	wflag = sflag = 0;
+	wflag = sflag = chain_flag = 0;
 	if (self->entry == &cmd_choose_session_entry) {
 		sflag = 1;
 		if ((ses_template = args_get(args, 'F')) == NULL)
@@ -121,6 +121,10 @@ cmd_choose_tree_exec(struct cmd *self, struct cmd_q *cmdq)
 	} else {
 		wflag = args_has(args, 'w');
 		sflag = args_has(args, 's');
+		if (args_has(args, '2'))
+			log_debug("I GOT 2!!!");
+		chain_flag = 1;
+		log_debug("SET CHAIN_FLAG TO %u", chain_flag);
 
 		if ((ses_action = args_get(args, 'b')) == NULL)
 			ses_action = CMD_CHOOSE_TREE_SESSION_ACTION;
@@ -174,7 +178,8 @@ cmd_choose_tree_exec(struct cmd *self, struct cmd_q *cmdq)
 		}
 
 		wcd = window_choose_add_session(wl->window->active,
-		    c, s2, ses_template, ses_action, idx_ses);
+		    c, s2, ses_template, (char *)ses_action, chain_flag,
+		    idx_ses);
 
 		/* If we're just choosing sessions, skip choosing windows. */
 		if (sflag && !wflag) {
@@ -214,7 +219,7 @@ windows_only:
 
 			window_choose_add_window(wl->window->active,
 			    c, s2, wm, cur_win_template,
-			    final_win_action,
+			    final_win_action, chain_flag,
 			    (wflag && !sflag) ? win_ses : idx_ses);
 
 			free(final_win_action);
