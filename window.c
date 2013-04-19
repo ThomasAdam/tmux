@@ -1043,7 +1043,7 @@ window_pane_key(struct window_pane *wp, struct session *sess, int key)
 		TAILQ_FOREACH(wp2, &wp->window->panes, entry) {
 			if (wp2 == wp || wp2->mode != NULL)
 				continue;
-			if (wp2->fd != -1 && window_pane_visible(wp2))
+			if (wp2->fd != -1)
 				input_key(wp2, key);
 		}
 	}
