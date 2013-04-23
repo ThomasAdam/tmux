@@ -73,6 +73,7 @@ cmd_choose_tree_exec(struct cmd *self, struct cmd_q *cmdq)
 	struct session			*s, *s2;
 	struct client			*c;
 	struct window_choose_data	*wcd = NULL;
+	struct window_choose_render	 wcr;
 	const char			*ses_template, *win_template;
 	char				*final_win_action, *cur_win_template;
 	char				*final_win_template_middle;
@@ -227,7 +228,11 @@ windows_only:
 	free(final_win_template_middle);
 	free(final_win_template_last);
 
-	window_choose_ready(wl->window->active, cur_win, NULL);
+	memcpy(&wcr, &default_window_choose_render, sizeof wcr);
+	wcr.wp = wl->window->active;
+	wcr.cur = cur_win;
+
+	window_choose_ready(wcr);
 	window_choose_collapse_all(wl->window->active);
 
 	if (args_has(args, 'u')) {

@@ -2235,10 +2235,20 @@ void		 window_copy_pageup(struct window_pane *);
 
 /* window-choose.c */
 extern const struct window_mode window_choose_mode;
+struct window_choose_render {
+	struct window_pane	*wp;
+#define WINDOW_CHOOSE_RENDER_NORMAL 0x1
+#define WINDOW_CHOOSE_RENDER_CHOICE 0x2
+	int			 type;
+	u_int			 cur;
+	void 			(*callbackfn)(struct window_choose_data *);
+};
+
+extern const struct	 window_choose_render default_window_choose_render;
+
 void		 window_choose_add(struct window_pane *,
 			 struct window_choose_data *);
-void		 window_choose_ready(struct window_pane *,
-		     u_int, void (*)(struct window_choose_data *));
+void		 window_choose_ready(struct window_choose_render);
 struct window_choose_data	*window_choose_data_create (int,
 		     struct client *, struct session *);
 void	window_choose_data_free(struct window_choose_data *);

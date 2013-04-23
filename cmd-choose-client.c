@@ -20,6 +20,7 @@
 
 #include <ctype.h>
 #include <stdlib.h>
+#include <string.h>
 
 #include "tmux.h"
 
@@ -52,6 +53,7 @@ cmd_choose_client_exec(struct cmd *self, struct cmd_q *cmdq)
 	struct client			*c;
 	struct client			*c1;
 	struct window_choose_data	*cdata;
+	struct window_choose_render	 wcr;
 	struct winlink			*wl;
 	const char			*template;
 	char				*action;
@@ -99,8 +101,12 @@ cmd_choose_client_exec(struct cmd *self, struct cmd_q *cmdq)
 	}
 	free(action);
 
-	window_choose_ready(wl->window->active, cur,
-	    cmd_choose_client_callback);
+	memcpy(&wcr, &default_window_choose_render, sizeof wcr);
+	wcr.wp = wl->window->active;
+	wcr.cur = cur;
+	wcr.callbackfn = cmd_choose_client_callback;
+
+	window_choose_ready(wcr);
 
 	return (CMD_RETURN_NORMAL);
 }

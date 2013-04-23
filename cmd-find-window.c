@@ -135,6 +135,7 @@ cmd_find_window_exec(struct cmd *self, struct cmd_q *cmdq)
 	struct session			*s;
 	struct winlink			*wl, *wm;
 	struct cmd_find_window_data_list find_list;
+	struct window_choose_render	 wcr;
 	char				*str, *searchstr;
 	const char			*template;
 	u_int				 i, match_flags;
@@ -197,7 +198,10 @@ cmd_find_window_exec(struct cmd *self, struct cmd_q *cmdq)
 		window_choose_add(wl->window->active, cdata);
 	}
 
-	window_choose_ready(wl->window->active, 0, cmd_find_window_callback);
+	memcpy(&wcr, &default_window_choose_render, sizeof wcr);
+	wcr.wp = wl->window->active;
+	wcr.callbackfn = cmd_find_window_callback;
+	window_choose_ready(wcr);
 
 out:
 	ARRAY_FREE(&find_list);

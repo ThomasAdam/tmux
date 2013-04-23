@@ -59,6 +59,13 @@ const struct window_mode window_choose_mode = {
 	NULL,
 };
 
+const struct window_choose_render default_window_choose_render = {
+	NULL,
+	WINDOW_CHOOSE_RENDER_NORMAL,
+	0,
+	NULL
+};
+
 struct window_choose_mode_data {
 	struct screen	        screen;
 
@@ -114,18 +121,18 @@ window_choose_set_current(struct window_pane *wp, u_int cur)
 }
 
 void
-window_choose_ready(struct window_pane *wp, u_int cur,
-    void (*callbackfn)(struct window_choose_data *))
+window_choose_ready(struct window_choose_render wcr)
 {
+	struct window_pane		*wp = wcr.wp;
 	struct window_choose_mode_data	*data = wp->modedata;
 
-	data->callbackfn = callbackfn;
+	data->callbackfn = wcr.callbackfn;
 	if (data->callbackfn == NULL)
 		data->callbackfn = window_choose_default_callback;
 
 	ARRAY_CONCAT(&data->old_list, &data->list);
 
-	window_choose_set_current(wp, cur);
+	window_choose_set_current(wp, wcr.cur);
 	window_choose_collapse_all(wp);
 }
 

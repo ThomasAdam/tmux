@@ -49,6 +49,7 @@ cmd_choose_list_exec(struct cmd *self, struct cmd_q *cmdq)
 	struct args			*args = self->args;
 	struct client			*c;
 	struct winlink			*wl;
+	struct window_choose_render	 wcr;
 	const char			*list1;
 	char				*template, *item, *copy, *list;
 	u_int				 idx;
@@ -90,7 +91,10 @@ cmd_choose_list_exec(struct cmd *self, struct cmd_q *cmdq)
 		return (CMD_RETURN_ERROR);
 	}
 
-	window_choose_ready(wl->window->active, 0, NULL);
+	memcpy(&wcr, &default_window_choose_render, sizeof wcr);
+	wcr.wp = wl->window->active;
+
+	window_choose_ready(wcr);
 
 	free(template);
 
