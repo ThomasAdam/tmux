@@ -150,8 +150,8 @@ int
 format_replace(struct format_tree *ft,
     const char *key, size_t keylen, char **buf, size_t *len, size_t *off)
 {
-	char		*copy, *ptr;
 	const char	*value;
+	char		*copy, *ptr;
 	size_t		 valuelen;
 
 	/* Make a copy of the key. */
@@ -182,6 +182,7 @@ format_replace(struct format_tree *ft,
 				goto fail;
 			value = ptr + 1;
 		}
+		value = format_expand(ft, value);
 	} else {
 		value = format_find(ft, copy);
 		if (value == NULL)
@@ -232,7 +233,11 @@ format_expand(struct format_tree *ft, const char *fmt)
 		ch = (u_char) *fmt++;
 		switch (ch) {
 		case '{':
-			ptr = strchr(fmt, '}');
+			if (*fmt++ == '?')
+				ptr = strrchr(--fmt, '}');
+			else
+				ptr = strchr(--fmt, '}');
+
 			if (ptr == NULL)
 				break;
 			n = ptr - fmt;
