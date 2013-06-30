@@ -396,5 +396,45 @@ configuration file:
 Or the default window options:
 
         $ tmux -Lfoo -f/dev/null start\; show -gw
+
+* How do I copy a selection from tmux to the system's clipboard?
+
+tmux has no direct way to have selections made within it, to put that
+contents on to the system's clipboard.  For one, that would require linking
+against X which isn't something that's desired, and secondly, since tmux
+runs on systems such as MacOS, that handles copying to the clipboard
+differently as well.
+
+What tmux does have is direct support for XTerm and syncing selections made
+in tmux to copy that to the clipboard.  However, this relies on escape
+sequences which the terminal understands to put the selection in tmux in the
+clipboard; and since not everyone uses XTerm as their client, this probably
+won't work very well (turning on the set-clipboard option will often mess
+with tmux in the case where the client isn't XTerm).  More on this method is
+in the man page.
+
+For those users using rxvt-unicode (urxvt), there is an unofficial Perl
+extension plugin which can be used to mimick the auto-selection within tmux
+to the system's clipboard---which uses the same OSC sequences as XTerm would
+do.  This also requires the tweaking of tmux's 'terminal-overrides'
+settings.  All of this can be found here:
+
+        http://anti.teamidiot.de/static/nei/*/Code/urxvt/
+
+For other clients which aren't XTerm, and are running on *BSD/Linux then the
+general principle is to have a binding which puts the saved contents from a
+tmux selection to the clipboard using xclip(1) as in:
+
+        bind c-y run -b "tmux save-buffer - | xclip -i"
+
+For MacOS users, then the reattach-to-usernamespace method allows for
+pbcopy/pbpaste to be used.  More information how to do this can be found
+here:
+
+        https://github.com/ChrisJohnsen/tmux-MacOSX-pasteboard
+
+An example binding for this might be:
+
+        bind y run-shell "reattach-to-user-namespace -l zsh -c 'tmux show-buffer | pbcopy'"
  
 $Id$
