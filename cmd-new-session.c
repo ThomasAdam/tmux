@@ -35,8 +35,9 @@ enum cmd_retval	 cmd_new_session_exec(struct cmd *, struct cmd_q *);
 
 const struct cmd_entry cmd_new_session_entry = {
 	"new-session", "new",
-	"AdDF:n:Ps:t:x:y:", 0, 1,
-	"[-AdDP] [-F format] [-n window-name] [-s session-name] "
+	"Ac:dDF:n:Ps:t:x:y:", 0, 1,
+	"[-AdDP] [-F format] [-c start-directory] [-n window-name] "
+	"[-s session-name] "
 	CMD_TARGET_SESSION_USAGE " [-x width] [-y height] [command]",
 	CMD_STARTSERVER|CMD_CANTNEST|CMD_SENDENVIRON,
 	NULL,
@@ -139,6 +140,14 @@ cmd_new_session_exec(struct cmd *self, struct cmd_q *cmdq)
 		else
 			cwd = "/";
 	}
+
+	/* The user-specified path always overrides anything else.  Note that
+	 * we take it verbatim since the special options that neww would
+	 * usually use for default-path can't be used here since we haven't
+	 * created the session yet.
+	 */
+	if (args_has(args, 'c'))
+		cwd = args_get(args, 'c');
 
 	/* Find new session size. */
 	if (c != NULL) {

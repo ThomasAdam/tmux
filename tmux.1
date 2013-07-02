@@ -674,6 +674,7 @@ Lock all clients attached to
 .It Xo Ic new-session
 .Op Fl AdDP
 .Op Fl F Ar format
+.Op Fl c Ar start-directory
 .Op Fl n Ar window-name
 .Op Fl s Ar session-name
 .Op Fl t Ar target-session
@@ -688,6 +689,8 @@ Create a new session with name
 The new session is attached to the current terminal unless
 .Fl d
 is given.
+.Fl c
+specifies the starting directory the session will use.
 .Ar window-name
 and
 .Ar shell-command
