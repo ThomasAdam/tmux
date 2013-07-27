@@ -450,9 +450,10 @@ server_destroy_session(struct session *s)
 			notify_attached_session_changed(c);
 			session_update_activity(s_new);
 			server_redraw_client(c);
+
+			recalculate_sizes();
 		}
 	}
-	recalculate_sizes();
 }
 
 void
