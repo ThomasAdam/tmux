@@ -110,13 +110,32 @@ AC_MSG_RESULT($found_glibc)
 # Look for clock_gettime. Must come before event_init.
 AC_SEARCH_LIBS(clock_gettime, rt)
 
+# Allow for --with-libevent to be specified, in case libevent is not in the
+# system path.
+AC_ARG_WITH(libevent,
+			[ --with-libevent=DIR	libevent install directory],
+			[
+				if test -f "$withval/include/event.h"; then
+					CPPFLAGS="$CPPFLAGS -I$withval/include"
+					LIBS="$LIBS -L$withval/lib"
+					found_libevent=yes
+				else
+					found_libevent=no
+				fi
+			]
+)
+
 # Look for libevent.
+if test "x$found_libevent" = xno; then
+	AC_MSG_ERROR("libevent not found")
+fi
+
 PKG_CHECK_MODULES(
 	LIBEVENT,
 	libevent,
 	[
-		CPPFLAGS="$LIBEVENT_CFLAGS $CPPFLAGS"
-		LIBS="$LIBEVENT_LIBS $LIBS"
+		CPPFLAGS="$CPPFLAGS $LIBEVENT_CFLAGS"
+		LIBS="$LIBS $LIBEVENT_LIBS"
 		found_libevent=yes
 	],
 	[
