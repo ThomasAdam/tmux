@@ -34,9 +34,10 @@
  * string.
  */
 
-int	format_replace(struct format_tree *, const char *, size_t, char **,
-	    size_t *, size_t *);
-void	format_window_pane_tabs(struct format_tree *, struct window_pane *);
+int	 format_replace(struct format_tree *, const char *, size_t, char **,
+	     size_t *, size_t *);
+char	*format_get_command(struct window_pane *);
+void	 format_window_pane_tabs(struct format_tree *, struct window_pane *);
 
 /* Format key-value replacement entry. */
 RB_GENERATE(format_tree, format_entry, entry, format_cmp);
@@ -193,7 +194,7 @@ int
 format_replace(struct format_tree *ft, const char *key, size_t keylen,
     char **buf, size_t *len, size_t *off)
 {
-	char		*copy, *copy0, *endptr, *ptr;
+	char		*copy, *copy0, *endptr, *ptr, *saved;
 	const char	*value;
 	size_t		 valuelen;
 	u_long		 limit = ULONG_MAX;
@@ -247,10 +248,13 @@ format_replace(struct format_tree *ft, const char *key, size_t keylen,
 				goto fail;
 			value = ptr + 1;
 		}
+		saved = format_expand(ft, value);
+		value = saved;
 	} else {
 		value = format_find(ft, copy);
 		if (value == NULL)
 			value = "";
+		saved = NULL;
 	}
 	valuelen = strlen(value);
 
@@ -266,6 +270,7 @@ format_replace(struct format_tree *ft, const char *key, size_t keylen,
 	memcpy(*buf + *off, value, valuelen);
 	*off += valuelen;
 
+	free(saved);
 	free(copy0);
 	return (0);
 
@@ -278,10 +283,10 @@ fail:
 char *
 format_expand(struct format_tree *ft, const char *fmt)
 {
-	char		*buf, *ptr;
-	const char	*s;
+	char		*buf;
+	const char	*ptr, *s;
 	size_t		 off, len, n;
-	int     	 ch;
+	int     	 ch, brackets;
 
 	len = 64;
 	buf = xmalloc(len);
@@ -299,11 +304,16 @@ format_expand(struct format_tree *ft, const char *fmt)
 		fmt++;
 
 		ch = (u_char) *fmt++;
-
 		switch (ch) {
 		case '{':
-			ptr = strchr(fmt, '}');
-			if (ptr == NULL)
+			brackets = 1;
+			for (ptr = fmt; *ptr != '\0'; ptr++) {
+				if (*ptr == '{')
+					brackets++;
+				if (*ptr == '}' && --brackets == 0)
+					break;
+			}
+			if (*ptr != '}' || brackets != 0)
 				break;
 			n = ptr - fmt;
 
@@ -337,6 +347,21 @@ format_expand(struct format_tree *ft, const char *fmt)
 	buf[off] = '\0';
 
 	return (buf);
+}
+
+/* Get command name for format. */
+char *
+format_get_command(struct window_pane *wp)
+{
+	char	*cmd;
+
+	cmd = osdep_get_name(wp->fd, wp->tty);
+	if (cmd == NULL || *cmd == '\0') {
+		cmd = wp->cmd;
+		if (cmd == NULL || *cmd == '\0')
+			cmd = wp->shell;
+	}
+	return (parse_window_name(cmd));
 }
 
 /* Set default format keys for a session. */
@@ -418,25 +443,38 @@ format_client(struct format_tree *ft, struct client *c)
 		format_add(ft, "client_last_session", "%s", s->name);
 }
 
+/* Set default format keys for a window. */
+void
+format_window(struct format_tree *ft, struct window *w)
+{
+	char	*layout;
+
+	layout = layout_dump(w);
+
+	format_add(ft, "window_id", "@%u", w->id);
+	format_add(ft, "window_name", "%s", w->name);
+	format_add(ft, "window_width", "%u", w->sx);
+	format_add(ft, "window_height", "%u", w->sy);
+	format_add(ft, "window_layout", "%s", layout);
+	format_add(ft, "window_panes", "%u", window_count_panes(w));
+
+	free(layout);
+}
+
 /* Set default format keys for a winlink. */
 void
 format_winlink(struct format_tree *ft, struct session *s, struct winlink *wl)
 {
 	struct window	*w = wl->window;
-	char		*layout, *flags;
+	char		*flags;
 
-	layout = layout_dump(w);
 	flags = window_printable_flags(s, wl);
 
-	format_add(ft, "window_id", "@%u", w->id);
+	format_window(ft, w);
+
 	format_add(ft, "window_index", "%d", wl->idx);
-	format_add(ft, "window_name", "%s", w->name);
-	format_add(ft, "window_width", "%u", w->sx);
-	format_add(ft, "window_height", "%u", w->sy);
 	format_add(ft, "window_flags", "%s", flags);
-	format_add(ft, "window_layout", "%s", layout);
 	format_add(ft, "window_active", "%d", wl == s->curw);
-	format_add(ft, "window_panes", "%u", window_count_panes(w));
 
 	format_add(ft, "window_bell_flag", "%u",
 	    !!(wl->flags & WINLINK_BELL));
@@ -447,8 +485,8 @@ format_winlink(struct format_tree *ft, struct session *s, struct winlink *wl)
 	format_add(ft, "window_silence_flag", "%u",
 	    !!(wl->flags & WINLINK_SILENCE));
 
+
 	free(flags);
-	free(layout);
 }
 
 /* Add window pane tabs. */
@@ -518,7 +556,7 @@ format_window_pane(struct format_tree *ft, struct window_pane *wp)
 		format_add(ft, "pane_start_path", "%s", wp->cwd);
 	if ((cwd = osdep_get_cwd(wp->fd)) != NULL)
 		format_add(ft, "pane_current_path", "%s", cwd);
-	if ((cmd = osdep_get_name(wp->fd, wp->tty)) != NULL) {
+	if ((cmd = format_get_command(wp)) != NULL) {
 		format_add(ft, "pane_current_command", "%s", cmd);
 		free(cmd);
 	}
