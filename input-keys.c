@@ -237,10 +237,16 @@ input_mouse(struct window_pane *wp, struct session *s, struct mouse_event *m)
 		return;
 	}
 
+	//m->event |= MOUSE_EVENT_CLICK;
+
+	log_debug("P: A mouse button was pressed: (m->button: %d, m->event: %d, mode-mouse: %d\n",
+		m->button, m->event, options_get_number(&wp->window->options, "mode-mouse"));
 	if (m->button == 1 && (m->event & MOUSE_EVENT_CLICK) &&
 	    options_get_number(&wp->window->options, "mode-mouse") == 1) {
+		log_debug("P: Recognise trying to paste...\n");
 		pb = paste_get_top(&global_buffers);
 		if (pb != NULL) {
+			log_debug("P: Calling paste_send_pane...\n");
 			paste_send_pane(pb, wp, "\r",
 			    wp->screen->mode & MODE_BRACKETPASTE);
 		}

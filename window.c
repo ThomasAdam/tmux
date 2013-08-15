@@ -1060,6 +1060,7 @@ window_pane_mouse(
 		return;
 	if (m->y < wp->yoff || m->y >= wp->yoff + wp->sy)
 		return;
+	log_debug("P: continuing....\n");
 	m->x -= wp->xoff;
 	m->y -= wp->yoff;
 

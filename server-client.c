@@ -293,6 +293,9 @@ server_client_check_mouse(struct client *c, struct window_pane *wp)
 
 	statusat = status_at_line(c);
 
+	log_debug("P:  PRESSING BUTTON!!! %d\n", statusat);
+	log_debug("P:  m->y: %d\n", m->y);
+
 	/* Is this a window selection click on the status line? */
 	if (statusat != -1 && m->y == (u_int)statusat &&
 	    options_get_number(oo, "mouse-select-window")) {
@@ -314,10 +317,15 @@ server_client_check_mouse(struct client *c, struct window_pane *wp)
 	 * top and limit if at the bottom. From here on a struct mouse
 	 * represents the offset onto the window itself.
 	 */
-	if (statusat == 0 && m->y > 0)
+	log_debug("P: Adjusting m->y...\n");
+	if (statusat == 0 && m->y > 0) {
 		m->y--;
-	else if (statusat > 0 && m->y >= (u_int)statusat)
+		log_debug("P:    m->y--:  %d\n", m->y);
+	}
+	else if (statusat > 0 && m->y >= (u_int)statusat) {
 		m->y = statusat - 1;
+		log_debug("P:    m->y = statusat - 1: %d\n", m->y);
+	}
 
 	/* Is this a pane selection? Allow down only in copy mode. */
 	if (options_get_number(oo, "mouse-select-pane") &&

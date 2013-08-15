@@ -609,8 +609,18 @@ tty_keys_mouse(struct tty *tty, const char *buf, size_t len, size_t *size)
 {
 	struct mouse_event	*m = &tty->mouse;
 	struct utf8_data	 utf8data;
+	struct options		*oo;
 	u_int			 i, value, x, y, b, sgr, sgr_b, sgr_rel;
 	unsigned char		 c;
+	int			 status_top = 0;
+
+	oo = &tty->client->session->options;
+
+	if (options_get_number(oo, "status") == 1 &&
+	    options_get_number(oo, "status-position") == 0)
+	{
+		status_top = 1;
+	}
 
 	/*
 	 * Standard mouse sequences are \033[M followed by three characters
@@ -681,6 +691,13 @@ tty_keys_mouse(struct tty *tty, const char *buf, size_t len, size_t *size)
 		b -= 32;
 		x -= 33;
 		y -= 33;
+
+		if (status_top) {
+			x--;
+			y--;
+		}
+
+		log_debug ("x -= 33: %d, y -= 33: %d\n", x, y);
 	} else if (buf[2] == '<') {
 		/* Read the three inputs. */
 		*size = 3;
@@ -740,6 +757,10 @@ tty_keys_mouse(struct tty *tty, const char *buf, size_t len, size_t *size)
 	m->sgr = sgr;
 	m->sgr_xb = sgr_b;
 	m->sgr_rel = sgr_rel;
+
+	log_debug("P:  X: %d, Y: %d, m->x: %d, m->y: %d\n",
+		x, y, m->x, m->y);
+
 	if (b & 64) { /* wheel button */
 		b &= 3;
 		if (b == 0)
@@ -769,6 +790,9 @@ tty_keys_mouse(struct tty *tty, const char *buf, size_t len, size_t *size)
 	}
 	m->x = x;
 	m->y = y;
+
+	log_debug("P: Mouse: button: %d, x: %d, y: %d, event: %d\n",
+		m->button, m->x, m->y, m->event);
 
 	return (0);
 }
