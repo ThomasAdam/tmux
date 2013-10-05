@@ -53,8 +53,8 @@ int		client_attached;
 int		client_get_lock(char *);
 int		client_connect(char *, int);
 void		client_send_identify(int);
-void		client_send_environ(void);
-void		client_write_server(enum msgtype, void *, size_t);
+void		client_do_send(enum msgtype, int, const void *, size_t);
+void		client_write_server(enum msgtype, const void *, size_t);
 void		client_update_event(void);
 void		client_signal(int, short, void *);
 void		client_stdin_callback(int, short, void *);
@@ -238,7 +238,7 @@ client_main(int argc, char **argv, int flags)
 	setblocking(STDIN_FILENO, 0);
 	event_set(&client_stdin, STDIN_FILENO, EV_READ|EV_PERSIST,
 	    client_stdin_callback, NULL);
-	if (flags & IDENTIFY_TERMIOS) {
+	if (flags & CLIENT_CONTROLCONTROL) {
 		if (tcgetattr(STDIN_FILENO, &saved_tio) != 0) {
 			fprintf(stderr, "tcgetattr failed: %s\n",
 			    strerror(errno));
@@ -261,9 +261,7 @@ client_main(int argc, char **argv, int flags)
 	/* Establish signal handlers. */
 	set_signals(client_signal);
 
-	/* Send initial environment. */
-	if (cmdflags & CMD_SENDENVIRON)
-		client_send_environ();
+	/* Send identify messages. */
 	client_send_identify(flags);
 
 	/* Send first command. */
@@ -296,69 +294,65 @@ client_main(int argc, char **argv, int flags)
 		ppid = getppid();
 		if (client_exittype == MSG_DETACHKILL && ppid > 1)
 			kill(ppid, SIGHUP);
-	} else if (flags & IDENTIFY_TERMIOS) {
-		if (flags & IDENTIFY_CONTROL) {
-			if (client_exitreason != CLIENT_EXIT_NONE)
-			    printf("%%exit %s\n", client_exit_message());
-			else
-			    printf("%%exit\n");
-			printf("\033\\");
-		}
+	} else if (flags & CLIENT_CONTROLCONTROL) {
+		if (client_exitreason != CLIENT_EXIT_NONE)
+			printf("%%exit %s\n", client_exit_message());
+		else
+			printf("%%exit\n");
+		printf("\033\\");
 		tcsetattr(STDOUT_FILENO, TCSAFLUSH, &saved_tio);
 	}
 	setblocking(STDIN_FILENO, 1);
 	return (client_exitval);
 }
 
-/* Send identify message to server with the file descriptors. */
+/* Send identify messages to server. */
 void
 client_send_identify(int flags)
 {
-	struct msg_identify_data	data;
-	char			       *term;
-	int				fd;
+	const char	*s;
+	char		**ss;
+	int		 fd;
 
-	data.flags = flags;
+	client_do_send(MSG_IDENTIFY_FLAGS, -1, &flags, sizeof flags);
 
-	if (getcwd(data.cwd, sizeof data.cwd) == NULL)
-		*data.cwd = '\0';
+	if ((s = getenv("TERM")) == NULL)
+		s = "";
+	client_do_send(MSG_IDENTIFY_TERM, -1, s, strlen(s) + 1);
 
-	term = getenv("TERM");
-	if (term == NULL ||
-	    strlcpy(data.term, term, sizeof data.term) >= sizeof data.term)
-		*data.term = '\0';
+	if ((s = ttyname(STDIN_FILENO)) == NULL)
+		s = "";
+	client_do_send(MSG_IDENTIFY_TTYNAME, -1, s, strlen(s) + 1);
 
-#ifdef __CYGWIN__
-	snprintf(&data.ttyname, sizeof data.ttyname, "%s",
-	    ttyname(STDIN_FILENO));
-#else
+	if ((fd = open(".", O_RDONLY)) == -1)
+		fd = open("/", O_RDONLY);
+	client_do_send(MSG_IDENTIFY_CWD, fd, NULL, 0);
+
 	if ((fd = dup(STDIN_FILENO)) == -1)
 		fatal("dup failed");
-#endif
-	imsg_compose(&client_ibuf,
-	    MSG_IDENTIFY, PROTOCOL_VERSION, -1, fd, &data, sizeof data);
+	client_do_send(MSG_IDENTIFY_STDIN, fd, NULL, 0);
+
+	for (ss = environ; *ss != NULL; ss++)
+		client_do_send(MSG_IDENTIFY_ENVIRON, -1, *ss, strlen(*ss) + 1);
+
+	client_do_send(MSG_IDENTIFY_DONE, -1, NULL, 0);
+
 	client_update_event();
 }
 
-/* Forward entire environment to server. */
+/* Helper to send one message. */
 void
-client_send_environ(void)
+client_do_send(enum msgtype type, int fd, const void *buf, size_t len)
 {
-	struct msg_environ_data	data;
-	char		      **var;
-
-	for (var = environ; *var != NULL; var++) {
-		if (strlcpy(data.var, *var, sizeof data.var) >= sizeof data.var)
-			continue;
-		client_write_server(MSG_ENVIRON, &data, sizeof data);
-	}
+	imsg_compose(&client_ibuf, type, PROTOCOL_VERSION, -1, fd, (void*)buf,
+	    len);
 }
 
 /* Write a message to the server without a file descriptor. */
 void
-client_write_server(enum msgtype type, void *buf, size_t len)
+client_write_server(enum msgtype type, const void *buf, size_t len)
 {
-	imsg_compose(&client_ibuf, type, PROTOCOL_VERSION, -1, -1, buf, len);
+	client_do_send(type, -1, buf, len);
 	client_update_event();
 }
 

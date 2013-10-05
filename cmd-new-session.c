@@ -18,6 +18,8 @@
 
 #include <sys/types.h>
 
+#include <errno.h>
+#include <fcntl.h>
 #include <pwd.h>
 #include <stdlib.h>
 #include <string.h>
@@ -47,18 +49,15 @@ enum cmd_retval
 cmd_new_session_exec(struct cmd *self, struct cmd_q *cmdq)
 {
 	struct args		*args = self->args;
-	struct client		*c = cmdq->client;
+	struct client		*c = cmdq->client, *c0;
 	struct session		*s, *groupwith;
 	struct window		*w;
 	struct environ		 env;
 	struct termios		 tio, *tiop;
-	struct passwd		*pw;
-	const char		*newname, *target, *update, *base, *cwd;
-	const char		*errstr, *template;
+	const char		*newname, *target, *update, *errstr, *template;
 	char			*cmd, *cause, *cp;
-	int			 detached, idx;
+	int			 detached, already_attached, idx, cwd;
 	u_int			 sx, sy;
-	int			 already_attached;
 	struct format_tree	*ft;
 
 	if (args_has(args, 't') && (args->argc != 0 || args_has(args, 'n'))) {
@@ -100,6 +99,21 @@ cmd_new_session_exec(struct cmd *self, struct cmd_q *cmdq)
 	if (c != NULL && c->session != NULL)
 		already_attached = 1;
 
+	/* Get the new session working directory. */
+	if (args_has(args, 'c')) {
+		cwd = open(args_get(args, 'c'), O_RDONLY|O_DIRECTORY); //XXX leak
+		if (cwd == -1) {
+			cmdq_error(cmdq, "bad working directory: %s",
+			    strerror(errno));
+			return (CMD_RETURN_ERROR);
+		}
+	} else if (c->session == NULL)
+		cwd = c->cwd;
+	else if ((c0 = cmd_current_client(cmdq)) != NULL)
+		cwd = c0->session->cwd;
+	else
+		cwd = open(".", O_RDONLY);
+
 	/*
 	 * Save the termios settings, part of which is used for new windows in
 	 * this session.
@@ -124,22 +138,6 @@ cmd_new_session_exec(struct cmd *self, struct cmd_q *cmdq)
 			return (CMD_RETURN_ERROR);
 		}
 	}
-
-	/* Get the new session working directory. */
-	if (c != NULL && c->cwd != NULL)
-		base = c->cwd;
-	else {
-		pw = getpwuid(getuid());
-		if (pw->pw_dir != NULL && *pw->pw_dir != '\0')
-			base = pw->pw_dir;
-		else
-			base = "/";
-	}
-	if (args_has(args, 'c'))
-		cwd = args_get(args, 'c');
-	else
-		cwd = options_get_string(&global_s_options, "default-path");
-	cwd = cmd_default_path(base, base, cwd);
 
 	/* Find new session size. */
 	if (c != NULL) {

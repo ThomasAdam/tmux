@@ -60,27 +60,6 @@ osdep_get_name(int fd, unused char *tty)
 	return (buf);
 }
 
-char *
-osdep_get_cwd(int fd)
-{
-	static char	 target[MAXPATHLEN + 1];
-	char		*path;
-	pid_t		 pgrp;
-	ssize_t		 n;
-
-	if ((pgrp = tcgetpgrp(fd)) == -1)
-		return (NULL);
-
-	xasprintf(&path, "/proc/%lld/cwd", (long long) pgrp);
-	n = readlink(path, target, MAXPATHLEN);
-	free(path);
-	if (n > 0) {
-		target[n] = '\0';
-		return (target);
-	}
-	return (NULL);
-}
-
 struct event_base *
 osdep_event_init(void)
 {

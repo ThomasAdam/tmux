@@ -1513,13 +1513,6 @@ is not specified, the value of the
 option is used.
 .Fl c
 specifies the working directory in which the new window is created.
-It may have an absolute path or one of the following values (or a subdirectory):
-.Bl -column "XXXXXXXXXXXX" "XXXXXXXXXXXXXXXXXXXXXXXX" -offset indent
-.It Li "Empty string" Ta "Current pane's directory"
-.It Li "~" Ta "User's home directory"
-.It Li "-" Ta "Where session was started"
-.It Li "." Ta "Where server was started"
-.El
 .Pp
 When the shell command completes, the window closes.
 See the
@@ -2179,15 +2172,6 @@ The default is an empty string, which instructs
 to create a login shell using the value of the
 .Ic default-shell
 option.
-.It Ic default-path Ar path
-Set the default working directory for new panes.
-If empty (the default), the working directory is determined from the process
-running in the active pane, from the command line environment or from the
-working directory where the session was created.
-Otherwise the same options are available as for the
-.Fl c
-flag to
-.Ic new-window .
 .It Ic default-shell Ar path
 Specify the default shell.
 This is used as the login shell for new windows when the
@@ -3084,7 +3068,6 @@ The following variables are available, where appropriate:
 .It Li "mouse_utf8_flag" Ta "" Ta "Pane mouse UTF-8 flag"
 .It Li "pane_active" Ta "" Ta "1 if active pane"
 .It Li "pane_current_command" Ta "" Ta "Current command if available"
-.It Li "pane_current_path" Ta "" Ta "Current path if available"
 .It Li "pane_dead" Ta "" Ta "1 if pane is dead"
 .It Li "pane_height" Ta "" Ta "Height of pane"
 .It Li "pane_id" Ta "#D" Ta "Unique pane ID"

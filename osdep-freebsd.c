@@ -132,32 +132,6 @@ error:
 	return (NULL);
 }
 
-char *
-osdep_get_cwd(int fd)
-{
-	static char		 wd[PATH_MAX];
-	struct kinfo_file	*info = NULL;
-	pid_t			 pgrp;
-	int			 nrecords, i;
-
-	if ((pgrp = tcgetpgrp(fd)) == -1)
-		return (NULL);
-
-	if ((info = kinfo_getfile(pgrp, &nrecords)) == NULL)
-		return (NULL);
-
-	for (i = 0; i < nrecords; i++) {
-		if (info[i].kf_fd == KF_FD_TYPE_CWD) {
-			strlcpy(wd, info[i].kf_path, sizeof wd);
-			free(info);
-			return (wd);
-		}
-	}
-
-	free(info);
-	return (NULL);
-}
-
 struct event_base *
 osdep_event_init(void)
 {

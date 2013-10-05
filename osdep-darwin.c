@@ -47,26 +47,6 @@ osdep_get_name(int fd, unused char *tty)
 	return (NULL);
 }
 
-char *
-osdep_get_cwd(int fd)
-{
-	static char			wd[PATH_MAX];
-	struct proc_vnodepathinfo	pathinfo;
-	pid_t				pgrp;
-	int				ret;
-
-	if ((pgrp = tcgetpgrp(fd)) == -1)
-		return (NULL);
-
-	ret = proc_pidinfo(pgrp, PROC_PIDVNODEPATHINFO, 0,
-	    &pathinfo, sizeof pathinfo);
-	if (ret == sizeof pathinfo) {
-		strlcpy(wd, pathinfo.pvi_cdir.vip_path, sizeof wd);
-		return (wd);
-	}
-	return (NULL);
-}
-
 struct event_base *
 osdep_event_init(void)
 {

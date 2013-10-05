@@ -28,12 +28,6 @@ osdep_get_name(unused int fd, unused char *tty)
 	return (NULL);
 }
 
-char *
-osdep_get_cwd(int fd)
-{
-	return (NULL);
-}
-
 struct event_base *
 osdep_event_init(void)
 {

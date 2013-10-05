@@ -49,11 +49,11 @@ cmd_load_buffer_exec(struct cmd *self, struct cmd_q *cmdq)
 	struct client	*c = cmdq->client;
 	struct session  *s;
 	FILE		*f;
-	const char	*path, *newpath, *wd;
+	const char	*path;
 	char		*pdata, *new_pdata, *cause;
 	size_t		 psize;
 	u_int		 limit;
-	int		 ch, error, buffer, *buffer_ptr;
+	int		 ch, error, buffer, *buffer_ptr, cwd;
 
 	if (!args_has(args, 'b'))
 		buffer = -1;
@@ -82,18 +82,13 @@ cmd_load_buffer_exec(struct cmd *self, struct cmd_q *cmdq)
 	}
 
 	if (c != NULL)
-		wd = c->cwd;
-	else if ((s = cmd_current_session(cmdq, 0)) != NULL) {
-		wd = options_get_string(&s->options, "default-path");
-		if (*wd == '\0')
-			wd = s->cwd;
-	} else
-		wd = NULL;
-	if (wd != NULL && *wd != '\0') {
-		newpath = get_full_path(wd, path);
-		if (newpath != NULL)
-			path = newpath;
-	}
+		cwd = c->cwd;
+	else if ((s = cmd_current_session(cmdq, 0)) != NULL)
+		cwd = s->cwd;
+	else
+		cwd = -1;
+	//XXX fchdir
+
 	if ((f = fopen(path, "rb")) == NULL) {
 		cmdq_error(cmdq, "%s: %s", path, strerror(errno));
 		return (CMD_RETURN_ERROR);

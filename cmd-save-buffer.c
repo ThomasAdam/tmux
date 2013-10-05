@@ -53,17 +53,15 @@ enum cmd_retval
 cmd_save_buffer_exec(struct cmd *self, struct cmd_q *cmdq)
 {
 	struct args		*args = self->args;
-	struct client		*c;
+	struct client		*c = cmdq->client;
 	struct session          *s;
 	struct paste_buffer	*pb;
-	const char		*path, *newpath, *wd;
-	char			*cause, *start, *end;
-	size_t			 size, used;
-	int			 buffer;
+	const char		*path;
+	char			*cause, *start, *end, *msg;
+	size_t			 size, used, msglen;
+	int			 cwd, buffer;
 	mode_t			 mask;
 	FILE			*f;
-	char			*msg;
-	size_t			 msglen;
 
 	if (!args_has(args, 'b')) {
 		if ((pb = paste_get_top(&global_buffers)) == NULL) {
@@ -90,7 +88,6 @@ cmd_save_buffer_exec(struct cmd *self, struct cmd_q *cmdq)
 	else
 		path = args->argv[0];
 	if (strcmp(path, "-") == 0) {
-		c = cmdq->client;
 		if (c == NULL) {
 			cmdq_error(cmdq, "can't write to stdout");
 			return (CMD_RETURN_ERROR);
@@ -100,20 +97,13 @@ cmd_save_buffer_exec(struct cmd *self, struct cmd_q *cmdq)
 		goto do_print;
 	}
 
-	c = cmdq->client;
 	if (c != NULL)
-		wd = c->cwd;
-	else if ((s = cmd_current_session(cmdq, 0)) != NULL) {
-		wd = options_get_string(&s->options, "default-path");
-		if (*wd == '\0')
-			wd = s->cwd;
-	} else
-		wd = NULL;
-	if (wd != NULL && *wd != '\0') {
-		newpath = get_full_path(wd, path);
-		if (newpath != NULL)
-			path = newpath;
-	}
+		cwd = c->cwd;
+	else if ((s = cmd_current_session(cmdq, 0)) != NULL)
+		cwd = s->cwd;
+	else
+		cwd = -1;
+	//XXX fchdir
 
 	mask = umask(S_IRWXG | S_IRWXO);
 	if (args_has(self->args, 'a'))

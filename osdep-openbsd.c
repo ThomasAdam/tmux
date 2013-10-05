@@ -135,20 +135,6 @@ error:
 	return (NULL);
 }
 
-char *
-osdep_get_cwd(int fd)
-{
-	int		name[] = { CTL_KERN, KERN_PROC_CWD, 0 };
-	static char	path[MAXPATHLEN];
-	size_t		pathlen = sizeof path;
-
-	if ((name[2] = tcgetpgrp(fd)) == -1)
-		return (NULL);
-	if (sysctl(name, 3, path, &pathlen, NULL, 0) != 0)
-		return (NULL);
-	return (path);
-}
-
 struct event_base *
 osdep_event_init(void)
 {
