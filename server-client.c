@@ -932,7 +932,10 @@ server_client_msg_command(struct client *c, struct imsg *imsg)
 	}
 	cmd_free_argv(argc, argv);
 
-	cmdq_run(c->cmdq, cmdlist);
+	if (c != cfg_client || cfg_finished)
+		cmdq_run(c->cmdq, cmdlist);
+	else
+		cmdq_append(c->cmdq, cmdlist);
 	cmd_list_free(cmdlist);
 	return;
 

@@ -31,6 +31,7 @@ struct cmd_q		*cfg_cmd_q;
 int			 cfg_finished;
 int			 cfg_references;
 struct causelist	 cfg_causes;
+struct client		*cfg_client;
 
 int
 load_cfg(const char *path, struct cmd_q *cmdq, char **cause)
@@ -127,6 +128,12 @@ cfg_default_done(unused struct cmd_q *cmdq)
 
 	cmdq_free(cfg_cmd_q);
 	cfg_cmd_q = NULL;
+
+	if (cfg_client != NULL) {
+		cmdq_continue(cfg_client->cmdq);
+		cfg_client->references--;
+		cfg_client = NULL;
+	}
 }
 
 void
