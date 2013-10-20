@@ -1041,6 +1041,18 @@ struct environ_entry {
 };
 RB_HEAD(environ, environ_entry);
 
+/* Hooks. */
+struct hook {
+	const char	*name;
+	struct cmd_list	*cmdlist;
+	RB_ENTRY(hook)	 entry;
+};
+
+struct hooks {
+	RB_HEAD(hooks_tree, hook) tree;
+	struct hooks	*parent;
+};
+
 /* Client session. */
 struct session_group {
 	TAILQ_HEAD(, session) sessions;
@@ -1066,6 +1078,7 @@ struct session {
 	struct winlink_stack lastw;
 	struct winlinks	 windows;
 
+	struct hooks	 hooks;
 	struct options	 options;
 
 #define SESSION_UNATTACHED 0x1	/* not attached to any clients */
@@ -1479,6 +1492,7 @@ RB_HEAD(format_tree, format_entry);
 #define CMD_BUFFER_USAGE "[-b buffer-index]"
 
 /* tmux.c */
+extern struct hooks   global_hooks;
 extern struct options global_options;
 extern struct options global_s_options;
 extern struct options global_w_options;
@@ -1525,6 +1539,17 @@ void		 format_window_pane(struct format_tree *,
 		     struct window_pane *);
 void		 format_paste_buffer(struct format_tree *,
 		     struct paste_buffer *);
+
+/* hooks.c */
+int		 hooks_cmp(struct hook *, struct hook *);
+RB_PROTOTYPE(hooks_tree, hook, entry, hooks_cmp);
+void		 hooks_init(struct hooks *, struct hooks *);
+void		 hooks_free(struct hooks *);
+void		 hooks_add(struct hooks *, const char *, struct cmd_list *);
+void		 hooks_copy(struct hooks *, struct hooks *);
+void		 hooks_remove(struct hooks *, struct hook *);
+void		 hooks_run(struct hook *, struct cmd_q *);
+struct hook	*hooks_find(struct hooks *, const char *);
 
 /* mode-key.c */
 extern const struct mode_key_table mode_key_tables[];
@@ -1800,10 +1825,12 @@ extern const struct cmd_entry cmd_send_prefix_entry;
 extern const struct cmd_entry cmd_server_info_entry;
 extern const struct cmd_entry cmd_set_buffer_entry;
 extern const struct cmd_entry cmd_set_environment_entry;
+extern const struct cmd_entry cmd_set_hook_entry;
 extern const struct cmd_entry cmd_set_option_entry;
 extern const struct cmd_entry cmd_set_window_option_entry;
 extern const struct cmd_entry cmd_show_buffer_entry;
 extern const struct cmd_entry cmd_show_environment_entry;
+extern const struct cmd_entry cmd_show_hooks_entry;
 extern const struct cmd_entry cmd_show_messages_entry;
 extern const struct cmd_entry cmd_show_options_entry;
 extern const struct cmd_entry cmd_show_window_options_entry;

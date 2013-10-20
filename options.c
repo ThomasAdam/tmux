@@ -25,8 +25,8 @@
 #include "tmux.h"
 
 /*
- * Option handling; each option has a name, type and value and is stored in
- * a splay tree.
+ * Option handling; each option has a name, type and value and is stored in a
+ * tree.
  */
 
 RB_GENERATE(options_tree, options_entry, entry, options_cmp);
