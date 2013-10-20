@@ -34,8 +34,9 @@ const struct cmd_entry cmd_break_pane_entry = {
 	"break-pane", "breakp",
 	"dPF:t:", 0, 0,
 	"[-dP] [-F format] " CMD_TARGET_PANE_USAGE,
-	0,
-	cmd_break_pane_exec
+	CMD_PREPAREWINDOW,
+	cmd_break_pane_exec,
+	NULL
 };
 
 enum cmd_retval
@@ -54,8 +55,10 @@ cmd_break_pane_exec(struct cmd *self, struct cmd_q *cmdq)
 	const char		*template;
 	char			*cp;
 
-	if ((wl = cmd_find_pane(cmdq, args_get(args, 't'), &s, &wp)) == NULL)
+	if ((wl = cmdq->state.wl) == NULL)
 		return (CMD_RETURN_ERROR);
+	wp = cmdq->state.wp;
+	s = cmdq->state.s;
 
 	if (window_count_panes(wl->window) == 1) {
 		cmdq_error(cmdq, "can't break with only one pane");

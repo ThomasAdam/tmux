@@ -34,8 +34,11 @@ const struct cmd_entry cmd_show_messages_entry = {
 	"show-messages", "showmsgs",
 	"IJTt:", 0, 0,
 	"[-IJT] " CMD_TARGET_CLIENT_USAGE,
-	0,
-	cmd_show_messages_exec
+	CMD_TARGET_CLIENT_USAGE,
+	CMD_PREPARECLIENT,
+	NULL,
+	cmd_show_messages_exec,
+	NULL
 };
 
 const struct cmd_entry cmd_server_info_entry = {
@@ -123,9 +126,8 @@ cmd_show_messages_jobs(struct cmd_q *cmdq)
 }
 
 enum cmd_retval
-cmd_show_messages_exec(struct cmd *self, struct cmd_q *cmdq)
+cmd_show_messages_exec(unused struct cmd *self, struct cmd_q *cmdq)
 {
-	struct args		*args = self->args;
 	struct client		*c;
 	struct message_entry	*msg;
 	char			*tim;
@@ -152,7 +154,7 @@ cmd_show_messages_exec(struct cmd *self, struct cmd_q *cmdq)
 	if (done)
 		return (CMD_RETURN_NORMAL);
 
-	if ((c = cmd_find_client(cmdq, args_get(args, 't'), 0)) == NULL)
+	if ((c = cmdq->state.c) == NULL)
 		return (CMD_RETURN_ERROR);
 
 	for (i = 0; i < ARRAY_LENGTH(&c->message_log); i++) {

@@ -36,7 +36,8 @@ const struct cmd_entry cmd_bind_key_entry = {
 	"cnrt:", 1, -1,
 	"[-cnr] [-t mode-table] key command [arguments]",
 	0,
-	cmd_bind_key_exec
+	cmd_bind_key_exec,
+	NULL
 };
 
 enum cmd_retval

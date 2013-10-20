@@ -42,7 +42,8 @@ const struct cmd_entry cmd_new_session_entry = {
 	"[-s session-name] " CMD_TARGET_SESSION_USAGE " [-x width] "
 	"[-y height] [command]",
 	CMD_STARTSERVER|CMD_CANTNEST,
-	cmd_new_session_exec
+	cmd_new_session_exec,
+	NULL
 };
 
 const struct cmd_entry cmd_has_session_entry = {
@@ -51,6 +52,7 @@ const struct cmd_entry cmd_has_session_entry = {
 	CMD_TARGET_SESSION_USAGE,
 	0,
 	cmd_new_session_exec
+	NULL
 };
 
 enum cmd_retval
@@ -90,8 +92,8 @@ cmd_new_session_exec(struct cmd *self, struct cmd_q *cmdq)
 		}
 		if (session_find(newname) != NULL) {
 			if (args_has(args, 'A')) {
-				return (cmd_attach_session(cmdq, newname,
-				    args_has(args, 'D'), 0, NULL));
+				return (cmd_attach_session(cmdq, args_has(args,
+				    'D'), 0, NULL));
 			}
 			cmdq_error(cmdq, "duplicate session: %s", newname);
 			return (CMD_RETURN_ERROR);

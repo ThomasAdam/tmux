@@ -51,8 +51,9 @@ const struct cmd_entry cmd_find_window_entry = {
 	"find-window", "findw",
 	"F:CNt:T", 1, 4,
 	"[-CNT] [-F format] " CMD_TARGET_WINDOW_USAGE " match-string",
-	0,
-	cmd_find_window_exec
+	CMD_PREPAREWINDOW,
+	cmd_find_window_exec,
+	NULL
 };
 
 struct cmd_find_window_data {
@@ -143,13 +144,13 @@ cmd_find_window_exec(struct cmd *self, struct cmd_q *cmdq)
 	const char			*template;
 	u_int				 i, match_flags;
 
-	if ((c = cmd_current_client(cmdq)) == NULL) {
+	if ((c = cmdq->state.c) == NULL) {
 		cmdq_error(cmdq, "no client available");
 		return (CMD_RETURN_ERROR);
 	}
 	s = c->session;
 
-	if ((wl = cmd_find_window(cmdq, args_get(args, 't'), NULL)) == NULL)
+	if ((wl = cmdq->state.wl) == NULL)
 		return (CMD_RETURN_ERROR);
 
 	if ((template = args_get(args, 'F')) == NULL)

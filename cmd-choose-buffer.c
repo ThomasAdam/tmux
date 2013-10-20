@@ -36,8 +36,9 @@ const struct cmd_entry cmd_choose_buffer_entry = {
 	"choose-buffer", NULL,
 	"F:t:", 0, 1,
 	CMD_TARGET_WINDOW_USAGE " [-F format] [template]",
-	0,
-	cmd_choose_buffer_exec
+	CMD_PREPAREWINDOW,
+	cmd_choose_buffer_exec,
+	NULL
 };
 
 enum cmd_retval
@@ -53,7 +54,7 @@ cmd_choose_buffer_exec(struct cmd *self, struct cmd_q *cmdq)
 	u_int				 idx;
 	int				 utf8flag;
 
-	if ((c = cmd_current_client(cmdq)) == NULL) {
+	if ((c = cmdq->state.c) == NULL) {
 		cmdq_error(cmdq, "no client available");
 		return (CMD_RETURN_ERROR);
 	}
@@ -61,7 +62,7 @@ cmd_choose_buffer_exec(struct cmd *self, struct cmd_q *cmdq)
 	if ((template = args_get(args, 'F')) == NULL)
 		template = CHOOSE_BUFFER_TEMPLATE;
 
-	if ((wl = cmd_find_window(cmdq, args_get(args, 't'), NULL)) == NULL)
+	if ((wl = cmdq->state.wl) == NULL)
 		return (CMD_RETURN_ERROR);
 	utf8flag = options_get_number(&wl->window->options, "utf8");
 
