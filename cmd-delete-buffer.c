@@ -34,7 +34,8 @@ const struct cmd_entry cmd_delete_buffer_entry = {
 	CMD_BUFFER_USAGE,
 	0,
 	NULL,
-	cmd_delete_buffer_exec
+	cmd_delete_buffer_exec,
+	NULL
 };
 
 enum cmd_retval

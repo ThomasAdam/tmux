@@ -30,6 +30,7 @@
  */
 
 enum cmd_retval	 cmd_if_shell_exec(struct cmd *, struct cmd_q *);
+void		 cmd_if_shell_prepare(struct cmd *, struct cmd_q *);
 
 void	cmd_if_shell_callback(struct job *);
 void	cmd_if_shell_done(struct cmd_q *);
@@ -41,7 +42,8 @@ const struct cmd_entry cmd_if_shell_entry = {
 	"[-b] " CMD_TARGET_PANE_USAGE " shell-command command [command]",
 	0,
 	NULL,
-	cmd_if_shell_exec
+	cmd_if_shell_exec,
+	cmd_if_shell_prepare
 };
 
 struct cmd_if_shell_data {
@@ -51,6 +53,18 @@ struct cmd_if_shell_data {
 	int		 bflag;
 	int		 started;
 };
+
+void
+cmd_if_shell_prepare(struct cmd *self, struct cmd_q *cmdq)
+{
+	struct args	*args = self->args;
+
+	if (args_has(args, 't')) {
+		cmdq->state.wl = cmd_find_pane(cmdq, args_get(args, 't'),
+		    &cmdq->state.s, &cmdq->state.wp);
+	} else
+		cmdq->state.c = cmd_find_client(cmdq, NULL, 1);
+}
 
 enum cmd_retval
 cmd_if_shell_exec(struct cmd *self, struct cmd_q *cmdq)
@@ -64,15 +78,15 @@ cmd_if_shell_exec(struct cmd *self, struct cmd_q *cmdq)
 	struct window_pane		*wp = NULL;
 	struct format_tree		*ft;
 
-	if (args_has(args, 't'))
-		wl = cmd_find_pane(cmdq, args_get(args, 't'), &s, &wp);
-	else {
-		c = cmd_find_client(cmdq, NULL, 1);
-		if (c != NULL && c->session != NULL) {
-			s = c->session;
-			wl = s->curw;
-			wp = wl->window->active;
-		}
+	wl = cmdq->state.wl;
+	s = cmdq->state.s;
+	wp = cmdq->state.wp;
+	c = cmdq->state.c;
+
+	if (!args_has(args, 't') && c != NULL && c->session != NULL) {
+		s = c->session;
+		wl = s->curw;
+		wp = wl->window->active;
 	}
 
 	ft = format_create();

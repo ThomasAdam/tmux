@@ -25,24 +25,25 @@
  */
 
 enum cmd_retval	 cmd_clear_history_exec(struct cmd *, struct cmd_q *);
+void		 cmd_clear_history_prepare(struct cmd *, struct cmd_q *);
 
 const struct cmd_entry cmd_clear_history_entry = {
 	"clear-history", "clearhist",
 	"t:", 0, 0,
 	CMD_TARGET_PANE_USAGE,
-	0,
+	CMD_PREPAREPANE,
 	NULL,
-	cmd_clear_history_exec
+	cmd_clear_history_exec,
+	NULL
 };
 
 enum cmd_retval
-cmd_clear_history_exec(struct cmd *self, struct cmd_q *cmdq)
+cmd_clear_history_exec(unused struct cmd *self, struct cmd_q *cmdq)
 {
-	struct args		*args = self->args;
 	struct window_pane	*wp;
 	struct grid		*gd;
 
-	if (cmd_find_pane(cmdq, args_get(args, 't'), NULL, &wp) == NULL)
+	if ((wp = cmdq->state.wp) == NULL)
 		return (CMD_RETURN_ERROR);
 	gd = wp->base.grid;
 

@@ -28,26 +28,27 @@
  */
 
 enum cmd_retval	 cmd_show_messages_exec(struct cmd *, struct cmd_q *);
+void		 cmd_show_messages_prepare(struct cmd *, struct cmd_q *);
 
 const struct cmd_entry cmd_show_messages_entry = {
 	"show-messages", "showmsgs",
 	"t:", 0, 0,
 	CMD_TARGET_CLIENT_USAGE,
-	0,
+	CMD_PREPARECLIENT,
 	NULL,
-	cmd_show_messages_exec
+	cmd_show_messages_exec,
+	NULL
 };
 
 enum cmd_retval
-cmd_show_messages_exec(struct cmd *self, struct cmd_q *cmdq)
+cmd_show_messages_exec(unused struct cmd *self, struct cmd_q *cmdq)
 {
-	struct args		*args = self->args;
 	struct client		*c;
 	struct message_entry	*msg;
 	char			*tim;
 	u_int			 i;
 
-	if ((c = cmd_find_client(cmdq, args_get(args, 't'), 0)) == NULL)
+	if ((c = cmdq->state.c) == NULL)
 		return (CMD_RETURN_ERROR);
 
 	for (i = 0; i < ARRAY_LENGTH(&c->message_log); i++) {

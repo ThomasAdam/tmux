@@ -28,14 +28,16 @@
  */
 
 enum cmd_retval	 cmd_kill_session_exec(struct cmd *, struct cmd_q *);
+void		 cmd_kill_session_prepare(struct cmd *, struct cmd_q *);
 
 const struct cmd_entry cmd_kill_session_entry = {
 	"kill-session", NULL,
 	"at:", 0, 0,
 	"[-a] " CMD_TARGET_SESSION_USAGE,
-	0,
+	CMD_PREPARESESSION,
 	NULL,
-	cmd_kill_session_exec
+	cmd_kill_session_exec,
+	NULL
 };
 
 enum cmd_retval
@@ -44,7 +46,7 @@ cmd_kill_session_exec(struct cmd *self, struct cmd_q *cmdq)
 	struct args	*args = self->args;
 	struct session	*s, *s2, *s3;
 
-	if ((s = cmd_find_session(cmdq, args_get(args, 't'), 0)) == NULL)
+	if ((s = cmdq->state.s) == NULL)
 		return (CMD_RETURN_ERROR);
 
 	if (args_has(args, 'a')) {

@@ -28,6 +28,7 @@
 
 void		 cmd_confirm_before_key_binding(struct cmd *, int);
 enum cmd_retval	 cmd_confirm_before_exec(struct cmd *, struct cmd_q *);
+void		 cmd_confirm_before_prepare(struct cmd *, struct cmd_q *);
 
 int		 cmd_confirm_before_callback(void *, const char *);
 void		 cmd_confirm_before_free(void *);
@@ -36,9 +37,10 @@ const struct cmd_entry cmd_confirm_before_entry = {
 	"confirm-before", "confirm",
 	"p:t:", 1, 1,
 	"[-p prompt] " CMD_TARGET_CLIENT_USAGE " command",
-	0,
+	CMD_PREPARECLIENT,
 	cmd_confirm_before_key_binding,
-	cmd_confirm_before_exec
+	cmd_confirm_before_exec,
+	NULL
 };
 
 struct cmd_confirm_before_data {
@@ -73,7 +75,7 @@ cmd_confirm_before_exec(struct cmd *self, struct cmd_q *cmdq)
 	char				*cmd, *copy, *new_prompt, *ptr;
 	const char			*prompt;
 
-	if ((c = cmd_find_client(cmdq, args_get(args, 't'), 0)) == NULL)
+	if ((c = cmdq->state.c) == NULL)
 		return (CMD_RETURN_ERROR);
 
 	if ((prompt = args_get(args, 'p')) != NULL)

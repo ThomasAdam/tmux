@@ -29,6 +29,7 @@
 
 void		 cmd_switch_client_key_binding(struct cmd *, int);
 enum cmd_retval	 cmd_switch_client_exec(struct cmd *, struct cmd_q *);
+void		 cmd_switch_client_prepare(struct cmd *, struct cmd_q *);
 
 const struct cmd_entry cmd_switch_client_entry = {
 	"switch-client", "switchc",
@@ -36,7 +37,8 @@ const struct cmd_entry cmd_switch_client_entry = {
 	"[-lnpr] [-c target-client] [-t target-session]",
 	CMD_READONLY,
 	cmd_switch_client_key_binding,
-	cmd_switch_client_exec
+	cmd_switch_client_exec,
+	cmd_switch_client_prepare
 };
 
 void
@@ -56,6 +58,15 @@ cmd_switch_client_key_binding(struct cmd *self, int key)
 	}
 }
 
+void
+cmd_switch_client_prepare(struct cmd *self, struct cmd_q *cmdq)
+{
+	struct args	*args = self->args;
+
+	cmdq->state.c = cmd_find_client(cmdq, args_get(args, 'c'), 0);
+	cmdq->state.s = cmd_find_session(cmdq, args_get(args, 't'), 0);
+}
+
 enum cmd_retval
 cmd_switch_client_exec(struct cmd *self, struct cmd_q *cmdq)
 {
@@ -63,7 +74,7 @@ cmd_switch_client_exec(struct cmd *self, struct cmd_q *cmdq)
 	struct client	*c;
 	struct session	*s;
 
-	if ((c = cmd_find_client(cmdq, args_get(args, 'c'), 0)) == NULL)
+	if ((c = cmdq->state.c) == NULL)
 		return (CMD_RETURN_ERROR);
 
 	if (args_has(args, 'r')) {
@@ -95,9 +106,8 @@ cmd_switch_client_exec(struct cmd *self, struct cmd_q *cmdq)
 			return (CMD_RETURN_ERROR);
 		}
 	} else
-		s = cmd_find_session(cmdq, args_get(args, 't'), 0);
-	if (s == NULL)
-		return (CMD_RETURN_ERROR);
+		if ((s = cmdq->state.s) == NULL)
+			return (CMD_RETURN_ERROR);
 
 	if (c->session != NULL)
 		c->last_session = c->session;

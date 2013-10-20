@@ -97,9 +97,11 @@ const struct cmd_entry *cmd_table[] = {
 	&cmd_set_buffer_entry,
 	&cmd_set_hook_entry,
 	&cmd_set_environment_entry,
+	&cmd_set_hook_entry,
 	&cmd_set_option_entry,
 	&cmd_set_window_option_entry,
 	&cmd_show_buffer_entry,
+	&cmd_show_hooks_entry,
 	&cmd_show_environment_entry,
 	&cmd_show_hooks_entry,
 	&cmd_show_messages_entry,
@@ -286,6 +288,28 @@ usage:
 		args_free(args);
 	xasprintf(cause, "usage: %s %s", entry->name, entry->usage);
 	return (NULL);
+}
+
+void
+cmd_prepare(struct cmd *cmd, struct cmd_q *cmdq)
+{
+	struct args		*args = cmd->args;
+	const char		*tflag = args_get(args, 't');
+	struct cmd_state	*state = &cmdq->state;
+
+	cmdq->state.c = cmd_current_client(cmdq);
+
+	if (cmd->entry->flags & CMD_PREPARESESSION)
+		state->s = cmd_find_session(cmdq, tflag, 1);
+	if (cmd->entry->flags & CMD_PREPAREWINDOW)
+		state->wl = cmd_find_window(cmdq, tflag, NULL);
+	if (cmd->entry->flags & CMD_PREPAREPANE)
+		state->wl = cmd_find_pane(cmdq, tflag, &state->s, &state->wp);
+	if (cmd->entry->flags & CMD_PREPARECLIENT)
+		state->c = cmd_find_client(cmdq, tflag, 0);
+
+	if (cmd->entry->prepare != NULL)
+		cmd->entry->prepare(cmd, cmdq);
 }
 
 size_t

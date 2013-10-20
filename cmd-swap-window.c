@@ -27,6 +27,7 @@
  */
 
 enum cmd_retval	cmd_swap_window_exec(struct cmd *, struct cmd_q *);
+void		cmd_swap_window_prepare(struct cmd *, struct cmd_q *);
 
 const struct cmd_entry cmd_swap_window_entry = {
 	"swap-window", "swapw",
@@ -34,25 +35,35 @@ const struct cmd_entry cmd_swap_window_entry = {
 	"[-d] " CMD_SRCDST_WINDOW_USAGE,
 	0,
 	NULL,
-	cmd_swap_window_exec
+	cmd_swap_window_exec,
+	cmd_swap_window_prepare
 };
+
+void
+cmd_swap_window_prepare(struct cmd *self, struct cmd_q *cmdq)
+{
+	struct args	*args = self->args;
+
+	cmdq->state.wl = cmd_find_window(cmdq, args_get(args, 's'),
+	    &cmdq->state.s);
+	cmdq->state.wl2 = cmd_find_window(cmdq, args_get(args, 't'),
+	    &cmdq->state.s2);
+}
 
 enum cmd_retval
 cmd_swap_window_exec(struct cmd *self, struct cmd_q *cmdq)
 {
-	struct args		*args = self->args;
-	const char		*target_src, *target_dst;
 	struct session		*src, *dst;
 	struct session_group	*sg_src, *sg_dst;
 	struct winlink		*wl_src, *wl_dst;
 	struct window		*w;
 
-	target_src = args_get(args, 's');
-	if ((wl_src = cmd_find_window(cmdq, target_src, &src)) == NULL)
+	if ((wl_src = cmdq->state.wl) == NULL)
 		return (CMD_RETURN_ERROR);
-	target_dst = args_get(args, 't');
-	if ((wl_dst = cmd_find_window(cmdq, target_dst, &dst)) == NULL)
+	src = cmdq->state.s;
+	if ((wl_dst = cmdq->state.wl2) == NULL)
 		return (CMD_RETURN_ERROR);
+	dst = cmdq->state.s2;
 
 	sg_src = session_group_find(src);
 	sg_dst = session_group_find(dst);

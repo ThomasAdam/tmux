@@ -35,7 +35,8 @@ const struct cmd_entry cmd_list_keys_entry = {
 	"[-t key-table]",
 	0,
 	NULL,
-	cmd_list_keys_exec
+	cmd_list_keys_exec,
+	NULL
 };
 
 enum cmd_retval

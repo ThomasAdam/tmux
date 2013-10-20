@@ -33,16 +33,18 @@
  */
 
 enum cmd_retval	 cmd_new_session_exec(struct cmd *, struct cmd_q *);
+void		 cmd_new_session_prepare(struct cmd *, struct cmd_q *);
 
 const struct cmd_entry cmd_new_session_entry = {
 	"new-session", "new",
 	"Ac:dDF:n:Ps:t:x:y:", 0, 1,
 	"[-AdDP] [-c start-directory] [-F format] [-n window-name] "
-	"[-s session-name] " CMD_TARGET_SESSION_USAGE " [-x width] [-y height] "
-	"[command]",
+	"[-s session-name] " CMD_TARGET_SESSION_USAGE " [-x width] "
+	"[-y height] [command]",
 	CMD_STARTSERVER|CMD_CANTNEST,
 	NULL,
-	cmd_new_session_exec
+	cmd_new_session_exec,
+	NULL
 };
 
 enum cmd_retval
@@ -73,8 +75,8 @@ cmd_new_session_exec(struct cmd *self, struct cmd_q *cmdq)
 		}
 		if (session_find(newname) != NULL) {
 			if (args_has(args, 'A')) {
-				return (cmd_attach_session(cmdq, newname,
-				    args_has(args, 'D'), 0, NULL));
+				return (cmd_attach_session(cmdq, args_has(args,
+				    'D'), 0, NULL));
 			}
 			cmdq_error(cmdq, "duplicate session: %s", newname);
 			return (CMD_RETURN_ERROR);

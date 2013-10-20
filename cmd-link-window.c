@@ -27,6 +27,7 @@
  */
 
 enum cmd_retval	 cmd_link_window_exec(struct cmd *, struct cmd_q *);
+void		 cmd_link_window_prepare(struct cmd *, struct cmd_q *);
 
 const struct cmd_entry cmd_link_window_entry = {
 	"link-window", "linkw",
@@ -34,22 +35,36 @@ const struct cmd_entry cmd_link_window_entry = {
 	"[-dk] " CMD_SRCDST_WINDOW_USAGE,
 	0,
 	NULL,
-	cmd_link_window_exec
+	cmd_link_window_exec,
+	cmd_link_window_prepare
 };
+
+void
+cmd_link_window_prepare(struct cmd *self, struct cmd_q *cmdq)
+{
+	struct args	*args = self->args;
+
+	cmdq->state.wl = cmd_find_window(cmdq, args_get(args, 's'),
+	    &cmdq->state.s);
+	cmdq->state.idx = cmd_find_index(cmdq, args_get(args, 't'),
+	    &cmdq->state.s2);
+}
 
 enum cmd_retval
 cmd_link_window_exec(struct cmd *self, struct cmd_q *cmdq)
 {
-	struct args	*args = self->args;
 	struct session	*src, *dst;
 	struct winlink	*wl;
 	char		*cause;
 	int		 idx, kflag, dflag;
 
-	if ((wl = cmd_find_window(cmdq, args_get(args, 's'), &src)) == NULL)
+	if ((wl = cmdq->state.wl) == NULL)
 		return (CMD_RETURN_ERROR);
-	if ((idx = cmd_find_index(cmdq, args_get(args, 't'), &dst)) == -2)
+	if ((idx = cmdq->state.idx) == -2)
 		return (CMD_RETURN_ERROR);
+
+	src = cmdq->state.s;
+	dst = cmdq->state.s2;
 
 	kflag = args_has(self->args, 'k');
 	dflag = args_has(self->args, 'd');

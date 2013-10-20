@@ -28,6 +28,7 @@
  */
 
 enum cmd_retval	 cmd_choose_client_exec(struct cmd *, struct cmd_q *);
+void		 cmd_choose_client_prepare(struct cmd *, struct cmd_q *);
 
 void	cmd_choose_client_callback(struct window_choose_data *);
 
@@ -35,9 +36,10 @@ const struct cmd_entry cmd_choose_client_entry = {
 	"choose-client", NULL,
 	"F:t:", 0, 1,
 	CMD_TARGET_WINDOW_USAGE " [-F format] [template]",
-	0,
+	CMD_PREPAREWINDOW,
 	NULL,
-	cmd_choose_client_exec
+	cmd_choose_client_exec,
+	NULL
 };
 
 struct cmd_choose_client_data {
@@ -56,12 +58,12 @@ cmd_choose_client_exec(struct cmd *self, struct cmd_q *cmdq)
 	char				*action;
 	u_int			 	 i, idx, cur;
 
-	if ((c = cmd_current_client(cmdq)) == NULL) {
+	if ((c = cmdq->state.c) == NULL) {
 		cmdq_error(cmdq, "no client available");
 		return (CMD_RETURN_ERROR);
 	}
 
-	if ((wl = cmd_find_window(cmdq, args_get(args, 't'), NULL)) == NULL)
+	if ((wl = cmdq->state.wl) == NULL)
 		return (CMD_RETURN_ERROR);
 
 	if (window_pane_set_mode(wl->window->active, &window_choose_mode) != 0)

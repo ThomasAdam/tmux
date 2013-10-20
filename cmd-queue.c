@@ -21,8 +21,29 @@
 #include <ctype.h>
 #include <stdlib.h>
 #include <time.h>
+#include <string.h>
 
 #include "tmux.h"
+
+void	cmdq_set_state(struct cmd_q *);
+void	cmdq_run_hook(struct hooks *, const char *, struct cmd *,
+	    struct cmd_q *);
+
+/* Fill in state members. */
+void
+cmdq_set_state(struct cmd_q *cmdq)
+{
+	memset(&cmdq->state, 0, sizeof cmdq->state);
+
+	cmdq->state.c = cmdq->client;
+
+	cmdq->state.s = cmdq->client != NULL ? cmdq->client->session : NULL;
+	cmdq->state.s2 = NULL;
+
+	cmdq->state.w = NULL;
+	cmdq->state.wl = NULL;
+	cmdq->state.wp = NULL;
+}
 
 /* Create new command queue. */
 struct cmd_q *
@@ -181,6 +202,20 @@ cmdq_run(struct cmd_q *cmdq, struct cmd_list *cmdlist)
 	}
 }
 
+/* Run hooks based on the hooks prefix (before/after). */
+void
+cmdq_run_hook(struct hooks *hooks, const char *prefix, struct cmd *cmd,
+    struct cmd_q *cmdq)
+{
+	struct hook     *hook;
+	char            *s;
+
+	xasprintf(&s, "%s-%s", prefix, cmd->entry->name);
+	if ((hook = hooks_find(hooks, s)) != NULL)
+		hooks_run(hook, cmdq);
+	free(s);
+}
+
 /* Add command list to queue. */
 void
 cmdq_append(struct cmd_q *cmdq, struct cmd_list *cmdlist)
@@ -198,11 +233,14 @@ int
 cmdq_continue(struct cmd_q *cmdq)
 {
 	struct cmd_q_item	*next;
+	struct hooks		*hooks;
 	enum cmd_retval		 retval;
 	int			 empty, guard, flags;
 	char			 s[1024];
 
 	notify_disable();
+
+	cmdq_set_state(cmdq);
 
 	empty = TAILQ_EMPTY(&cmdq->queue);
 	if (empty)
@@ -218,6 +256,25 @@ cmdq_continue(struct cmd_q *cmdq)
 		next = TAILQ_NEXT(cmdq->item, qentry);
 
 		while (cmdq->cmd != NULL) {
+			/*
+			 * Call prepare(). This will set up the execution
+			 * context of the command. If a command wishes to do
+			 * more than the default action of prepare() then this
+			 * also call's that command's version.
+			 */
+			cmd_prepare(cmdq->cmd, cmdq);
+
+			/*
+			 * If we set no session via this or the prepare()
+			 * function wasn't defined, then use the global hooks,
+			 * otherwise used the intended session's hooks when
+			 * running the command.
+			 */
+			if (cmdq->state.s != NULL)
+				hooks = &cmdq->state.s->hooks;
+			else
+				hooks = &global_hooks;
+
 			cmd_print(cmdq->cmd, s, sizeof s);
 			log_debug("cmdq %p: %s (client %d)", cmdq, s,
 			    cmdq->client != NULL ? cmdq->client->ibuf.fd : -1);
@@ -228,7 +285,11 @@ cmdq_continue(struct cmd_q *cmdq)
 			flags = !!(cmdq->cmd->flags & CMD_CONTROL);
 			guard = cmdq_guard(cmdq, "begin", flags);
 
+			cmdq_run_hook(hooks, "before", cmdq->cmd, cmdq);
 			retval = cmdq->cmd->entry->exec(cmdq->cmd, cmdq);
+			if (retval == CMD_RETURN_ERROR)
+				break;
+			cmdq_run_hook(hooks, "after", cmdq->cmd, cmdq);
 
 			if (guard) {
 				if (retval == CMD_RETURN_ERROR)

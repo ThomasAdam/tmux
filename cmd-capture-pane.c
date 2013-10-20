@@ -28,6 +28,7 @@
  */
 
 enum cmd_retval	 cmd_capture_pane_exec(struct cmd *, struct cmd_q *);
+void		 cmd_capture_pane_prepare(struct cmd *, struct cmd_q *);
 
 char		*cmd_capture_pane_append(char *, size_t *, char *, size_t);
 char		*cmd_capture_pane_pending(struct args *, struct window_pane *,
@@ -40,9 +41,10 @@ const struct cmd_entry cmd_capture_pane_entry = {
 	"ab:CeE:JpPqS:t:", 0, 0,
 	"[-aCeJpPq] [-b buffer-index] [-E end-line] [-S start-line]"
 	CMD_TARGET_PANE_USAGE,
-	0,
+	CMD_PREPAREPANE,
 	NULL,
-	cmd_capture_pane_exec
+	cmd_capture_pane_exec,
+	NULL
 };
 
 char *
@@ -169,7 +171,7 @@ cmd_capture_pane_exec(struct cmd *self, struct cmd_q *cmdq)
 	u_int			 limit;
 	size_t			 len;
 
-	if (cmd_find_pane(cmdq, args_get(args, 't'), NULL, &wp) == NULL)
+	if ((wp = cmdq->state.wp) == NULL)
 		return (CMD_RETURN_ERROR);
 
 	len = 0;

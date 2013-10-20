@@ -25,14 +25,16 @@
  */
 
 enum cmd_retval	 cmd_kill_window_exec(struct cmd *, struct cmd_q *);
+void		 cmd_kill_window_prepare(struct cmd *, struct cmd_q *);
 
 const struct cmd_entry cmd_kill_window_entry = {
 	"kill-window", "killw",
 	"at:", 0, 0,
 	"[-a] " CMD_TARGET_WINDOW_USAGE,
-	0,
+	CMD_PREPAREWINDOW,
 	NULL,
-	cmd_kill_window_exec
+	cmd_kill_window_exec,
+	NULL
 };
 
 enum cmd_retval
@@ -42,8 +44,10 @@ cmd_kill_window_exec(struct cmd *self, struct cmd_q *cmdq)
 	struct winlink	*wl, *wl2, *wl3;
 	struct session	*s;
 
-	if ((wl = cmd_find_window(cmdq, args_get(args, 't'), &s)) == NULL)
+	if ((wl = cmdq->state.wl) == NULL)
 		return (CMD_RETURN_ERROR);
+
+	s = cmdq->state.s;
 
 	if (args_has(args, 'a')) {
 		RB_FOREACH_SAFE(wl2, winlinks, &s->windows, wl3) {
