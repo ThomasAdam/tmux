@@ -904,6 +904,7 @@ struct window_pane {
 #define PANE_FOCUSED 0x4
 #define PANE_RESIZE 0x8
 #define PANE_FOCUSPUSH 0x10
+#define PANE_ZOOMED 0x20
 
 	char		*cmd;
 	char		*shell;
