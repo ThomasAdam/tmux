@@ -604,6 +604,11 @@ const struct options_table_entry window_options_table[] = {
 	  .default_num = 0
 	},
 
+	{ .name = "restore-zoom",
+	  .type = OPTIONS_TABLE_FLAG,
+	  .default_num = 0
+	},
+
 	{ .name = "synchronize-panes",
 	  .type = OPTIONS_TABLE_FLAG,
 	  .default_num = 0

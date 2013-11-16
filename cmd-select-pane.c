@@ -67,6 +67,8 @@ cmd_select_pane_exec(struct cmd *self, struct cmd_q *cmdq)
 	struct args		*args = self->args;
 	struct winlink		*wl;
 	struct window_pane	*wp;
+	struct window		*w;
+	int			restore_zoom;
 
 	if (self->entry == &cmd_last_pane_entry || args_has(args, 'l')) {
 		wl = cmd_find_window(cmdq, args_get(args, 't'), NULL);
@@ -108,9 +110,18 @@ cmd_select_pane_exec(struct cmd *self, struct cmd_q *cmdq)
 		return (CMD_RETURN_ERROR);
 	}
 
-	window_set_active_pane(wl->window, wp);
-	server_status_window(wl->window);
-	server_redraw_window_borders(wl->window);
+	w = wl->window;
+	restore_zoom = options_get_number(&w->options, "restore-zoom");
+
+	window_set_active_pane(w, wp);
+	if (restore_zoom && wp->flags & PANE_ZOOMED) {
+		window_zoom(wp);
+		server_redraw_window(w);
+		server_status_window(w);
+	} else {
+		server_status_window(w);
+		server_redraw_window_borders(w);
+	}
 
 	return (CMD_RETURN_NORMAL);
 }
