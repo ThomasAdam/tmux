@@ -442,7 +442,12 @@ status_replace(struct client *c, struct session *s, struct winlink *wl,
 	size_t			 len;
 	struct format_tree	*ft;
 
-	if (fmt == NULL)
+	/*
+	 * If the client is NULL, we've been called from the command-line, and
+	 * hence no client is available.  Since we can't get any meaningful
+	 * information without a client, return the empty string.
+	 */
+	if (fmt == NULL || c == NULL)
 		return (xstrdup(""));
 
 	if (s == NULL)
