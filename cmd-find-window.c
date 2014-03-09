@@ -144,13 +144,13 @@ cmd_find_window_exec(struct cmd *self, struct cmd_q *cmdq)
 	const char			*template;
 	u_int				 i, match_flags;
 
-	if ((c = cmdq->state.c) == NULL) {
+	if ((c = cmdq->current_state.c) == NULL) {
 		cmdq_error(cmdq, "no client available");
 		return (CMD_RETURN_ERROR);
 	}
 	s = c->session;
 
-	if ((wl = cmdq->state.wl) == NULL)
+	if ((wl = cmdq->current_state.wl) == NULL)
 		return (CMD_RETURN_ERROR);
 
 	if ((template = args_get(args, 'F')) == NULL)

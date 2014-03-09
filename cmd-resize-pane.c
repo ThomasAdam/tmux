@@ -49,10 +49,10 @@ cmd_resize_pane_exec(struct cmd *self, struct cmd_q *cmdq)
 	u_int			 adjust;
 	int			 x, y;
 
-	if ((wl = cmdq->state.wl) == NULL)
+	if ((wl = cmdq->current_state.wl) == NULL)
 		return (CMD_RETURN_ERROR);
 	w = wl->window;
-	wp = cmdq->state.wp;
+	wp = cmdq->current_state.wp;
 
 	if (args_has(args, 'Z')) {
 		if (w->flags & WINDOW_ZOOMED)

@@ -82,10 +82,10 @@ cmd_select_window_prepare(struct cmd *self, struct cmd_q *cmdq)
 		last = 1;
 
 	if (next || previous || last)
-		cmdq->state.s = cmd_find_session(cmdq, args_get(args, 't'), 0);
+		cmdq->current_state.s = cmd_find_session(cmdq, args_get(args, 't'), 0);
 	else {
-		cmdq->state.wl = cmd_find_window(cmdq, args_get(args, 't'),
-		    &cmdq->state.s);
+		cmdq->current_state.wl = cmd_find_window(cmdq, args_get(args, 't'),
+		    &cmdq->current_state.s);
 	}
 }
 enum cmd_retval
@@ -106,7 +106,7 @@ cmd_select_window_exec(struct cmd *self, struct cmd_q *cmdq)
 		last = 1;
 
 	if (next || previous || last) {
-		if ((s = cmdq->state.s) == NULL)
+		if ((s = cmdq->current_state.s) == NULL)
 			return (CMD_RETURN_ERROR);
 
 		activity = args_has(self->args, 'a');
@@ -129,9 +129,9 @@ cmd_select_window_exec(struct cmd *self, struct cmd_q *cmdq)
 
 		server_redraw_session(s);
 	} else {
-		if ((wl = cmdq->state.wl) == NULL)
+		if ((wl = cmdq->current_state.wl) == NULL)
 			return (CMD_RETURN_ERROR);
-		s = cmdq->state.s;
+		s = cmdq->current_state.s;
 
 		/*
 		 * If -T and select-window is invoked on same window as

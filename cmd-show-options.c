@@ -60,10 +60,10 @@ cmd_show_options_prepare(struct cmd *self, struct cmd_q *cmdq)
 
 	if (args_has(args, 'g') && args_has(args, 'w') &&
 	    self->entry == &cmd_show_window_options_entry) {
-		cmdq->state.wl = cmd_find_window(cmdq, args_get(args, 't'),
+		cmdq->current_state.wl = cmd_find_window(cmdq, args_get(args, 't'),
 		    NULL);
 	} else
-		cmdq->state.s = cmd_find_session(cmdq, args_get(args, 't'), 0);
+		cmdq->current_state.s = cmd_find_session(cmdq, args_get(args, 't'), 0);
 }
 
 enum cmd_retval
@@ -85,7 +85,7 @@ cmd_show_options_exec(struct cmd *self, struct cmd_q *cmdq)
 		if (args_has(self->args, 'g'))
 			oo = &global_w_options;
 		else {
-			if ((wl = cmdq->state.wl) == NULL)
+			if ((wl = cmdq->current_state.wl) == NULL)
 				return (CMD_RETURN_ERROR);
 			oo = &wl->window->options;
 		}
@@ -94,7 +94,7 @@ cmd_show_options_exec(struct cmd *self, struct cmd_q *cmdq)
 		if (args_has(self->args, 'g'))
 			oo = &global_s_options;
 		else {
-			if ((s = cmdq->state.s) == NULL)
+			if ((s = cmdq->current_state.s) == NULL)
 				return (CMD_RETURN_ERROR);
 			oo = &s->options;
 		}

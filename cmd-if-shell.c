@@ -59,10 +59,10 @@ cmd_if_shell_prepare(struct cmd *self, struct cmd_q *cmdq)
 	struct args	*args = self->args;
 
 	if (args_has(args, 't')) {
-		cmdq->state.wl = cmd_find_pane(cmdq, args_get(args, 't'),
-		    &cmdq->state.s, &cmdq->state.wp);
+		cmdq->current_state.wl = cmd_find_pane(cmdq, args_get(args, 't'),
+		    &cmdq->current_state.s, &cmdq->current_state.wp);
 	} else
-		cmdq->state.c = cmd_find_client(cmdq, NULL, 1);
+		cmdq->current_state.c = cmd_find_client(cmdq, NULL, 1);
 }
 
 enum cmd_retval
@@ -78,10 +78,10 @@ cmd_if_shell_exec(struct cmd *self, struct cmd_q *cmdq)
 	struct window_pane		*wp = NULL;
 	struct format_tree		*ft;
 
-	wl = cmdq->state.wl;
-	s = cmdq->state.s;
-	wp = cmdq->state.wp;
-	c = cmdq->state.c;
+	wl = cmdq->current_state.wl;
+	s = cmdq->current_state.s;
+	wp = cmdq->current_state.wp;
+	c = cmdq->current_state.c;
 
 	if (!args_has(args, 't') && c != NULL && c->session != NULL) {
 		s = c->session;

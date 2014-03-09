@@ -44,9 +44,9 @@ cmd_kill_pane_exec(struct cmd *self, struct cmd_q *cmdq)
 	struct winlink		*wl;
 	struct window_pane	*loopwp, *tmpwp, *wp;
 
-	if ((wl = cmdq->state.wl) == NULL)
+	if ((wl = cmdq->current_state.wl) == NULL)
 		return (CMD_RETURN_ERROR);
-	wp = cmdq->state.wp;
+	wp = cmdq->current_state.wp;
 	server_unzoom_window(wl->window);
 
 	if (window_count_panes(wl->window) == 1) {

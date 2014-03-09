@@ -58,10 +58,10 @@ cmd_send_keys_exec(struct cmd *self, struct cmd_q *cmdq)
 	const u_char		*str;
 	int			 i, key;
 
-	if (cmdq->state.wl == NULL)
+	if (cmdq->current_state.wl == NULL)
 		return (CMD_RETURN_ERROR);
-	s = cmdq->state.s;
-	wp = cmdq->state.wp;
+	s = cmdq->current_state.s;
+	wp = cmdq->current_state.wp;
 
 	if (self->entry == &cmd_send_prefix_entry) {
 		if (args_has(args, '2'))

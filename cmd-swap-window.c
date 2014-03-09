@@ -43,10 +43,10 @@ cmd_swap_window_prepare(struct cmd *self, struct cmd_q *cmdq)
 {
 	struct args	*args = self->args;
 
-	cmdq->state.wl = cmd_find_window(cmdq, args_get(args, 's'),
-	    &cmdq->state.s);
-	cmdq->state.wl2 = cmd_find_window(cmdq, args_get(args, 't'),
-	    &cmdq->state.s2);
+	cmdq->current_state.wl = cmd_find_window(cmdq, args_get(args, 's'),
+	    &cmdq->current_state.s);
+	cmdq->current_state.wl2 = cmd_find_window(cmdq, args_get(args, 't'),
+	    &cmdq->current_state.s2);
 }
 
 enum cmd_retval
@@ -57,12 +57,12 @@ cmd_swap_window_exec(struct cmd *self, struct cmd_q *cmdq)
 	struct winlink		*wl_src, *wl_dst;
 	struct window		*w;
 
-	if ((wl_src = cmdq->state.wl) == NULL)
+	if ((wl_src = cmdq->current_state.wl) == NULL)
 		return (CMD_RETURN_ERROR);
-	src = cmdq->state.s;
-	if ((wl_dst = cmdq->state.wl2) == NULL)
+	src = cmdq->current_state.s;
+	if ((wl_dst = cmdq->current_state.wl2) == NULL)
 		return (CMD_RETURN_ERROR);
-	dst = cmdq->state.s2;
+	dst = cmdq->current_state.s2;
 
 	sg_src = session_group_find(src);
 	sg_dst = session_group_find(dst);

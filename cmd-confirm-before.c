@@ -56,7 +56,7 @@ cmd_confirm_before_exec(struct cmd *self, struct cmd_q *cmdq)
 	char				*cmd, *copy, *new_prompt, *ptr;
 	const char			*prompt;
 
-	if ((c = cmdq->state.c) == NULL)
+	if ((c = cmdq->current_state.c) == NULL)
 		return (CMD_RETURN_ERROR);
 
 	if ((prompt = args_get(args, 'p')) != NULL)

@@ -55,10 +55,10 @@ cmd_break_pane_exec(struct cmd *self, struct cmd_q *cmdq)
 	const char		*template;
 	char			*cp;
 
-	if ((wl = cmdq->state.wl) == NULL)
+	if ((wl = cmdq->current_state.wl) == NULL)
 		return (CMD_RETURN_ERROR);
-	wp = cmdq->state.wp;
-	s = cmdq->state.s;
+	wp = cmdq->current_state.wp;
+	s = cmdq->current_state.s;
 
 	if (window_count_panes(wl->window) == 1) {
 		cmdq_error(cmdq, "can't break with only one pane");

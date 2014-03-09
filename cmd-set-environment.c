@@ -65,7 +65,7 @@ cmd_set_environment_exec(struct cmd *self, struct cmd_q *cmdq)
 	if (args_has(self->args, 'g'))
 		env = &global_environ;
 	else {
-		if ((s = cmdq->state.s) == NULL)
+		if ((s = cmdq->current_state.s) == NULL)
 			return (CMD_RETURN_ERROR);
 		env = &s->environ;
 	}

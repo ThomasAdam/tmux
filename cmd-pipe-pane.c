@@ -53,9 +53,9 @@ cmd_pipe_pane_exec(struct cmd *self, struct cmd_q *cmdq)
 	char			*command;
 	int			 old_fd, pipe_fd[2], null_fd;
 
-	if (cmdq->state.wl == NULL)
+	if (cmdq->current_state.wl == NULL)
 		return (CMD_RETURN_ERROR);
-	wp = cmdq->state.wp;
+	wp = cmdq->current_state.wp;
 	c = cmd_find_client(cmdq, NULL, 1);
 
 	/* Destroy the old pipe. */

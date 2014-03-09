@@ -63,7 +63,7 @@ cmd_command_prompt_exec(struct cmd *self, struct cmd_q *cmdq)
 	char				*prompt, *ptr, *input = NULL;
 	size_t				 n;
 
-	if ((c = cmdq->state.c) == NULL)
+	if ((c = cmdq->current_state.c) == NULL)
 		return (CMD_RETURN_ERROR);
 
 	if (c->prompt_string != NULL)

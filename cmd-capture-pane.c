@@ -179,7 +179,7 @@ cmd_capture_pane_exec(struct cmd *self, struct cmd_q *cmdq)
 	const char		*bufname;
 	size_t			 len;
 
-	if ((wp = cmdq->state.wp) == NULL)
+	if ((wp = cmdq->current_state.wp) == NULL)
 		return (CMD_RETURN_ERROR);
 
 	len = 0;

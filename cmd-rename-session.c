@@ -55,7 +55,7 @@ cmd_rename_session_exec(struct cmd *self, struct cmd_q *cmdq)
 		return (CMD_RETURN_ERROR);
 	}
 
-	if ((s = cmdq->state.s) == NULL)
+	if ((s = cmdq->current_state.s) == NULL)
 		return (CMD_RETURN_ERROR);
 
 	RB_REMOVE(sessions, &sessions, s);

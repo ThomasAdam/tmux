@@ -51,11 +51,11 @@ cmd_select_pane_prepare(struct cmd *self, struct cmd_q *cmdq)
 	struct args	*args = self->args;
 
 	if (self->entry == &cmd_last_pane_entry || args_has(args, 'l')) {
-		cmdq->state.wl = cmd_find_window(cmdq, args_get(args, 't'),
+		cmdq->current_state.wl = cmd_find_window(cmdq, args_get(args, 't'),
 		    NULL);
 	} else {
-		cmdq->state.wl = cmd_find_pane(cmdq, args_get(args, 't'), NULL,
-		    &cmdq->state.wp);
+		cmdq->current_state.wl = cmd_find_pane(cmdq, args_get(args, 't'), NULL,
+		    &cmdq->current_state.wp);
 	}
 }
 enum cmd_retval
@@ -66,7 +66,7 @@ cmd_select_pane_exec(struct cmd *self, struct cmd_q *cmdq)
 	struct window_pane	*wp;
 
 	if (self->entry == &cmd_last_pane_entry || args_has(args, 'l')) {
-		if ((wl = cmdq->state.wl) == NULL)
+		if ((wl = cmdq->current_state.wl) == NULL)
 			return (CMD_RETURN_ERROR);
 
 		if (wl->window->last == NULL) {
@@ -88,10 +88,10 @@ cmd_select_pane_exec(struct cmd *self, struct cmd_q *cmdq)
 		return (CMD_RETURN_NORMAL);
 	}
 
-	if ((wl = cmdq->state.wl) == NULL)
+	if ((wl = cmdq->current_state.wl) == NULL)
 		return (CMD_RETURN_ERROR);
 
-	wp = cmdq->state.wp;
+	wp = cmdq->current_state.wp;
 
 	server_unzoom_window(wp->window);
 	if (!window_pane_visible(wp)) {

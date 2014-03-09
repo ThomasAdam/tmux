@@ -54,7 +54,7 @@ cmd_kill_window_exec(struct cmd *self, struct cmd_q *cmdq)
 	struct session_group	*sg;
 	u_int			 references;
 
-	if ((wl = cmdq->state.wl) == NULL)
+	if ((wl = cmdq->current_state.wl) == NULL)
 		return (CMD_RETURN_ERROR);
 	w = wl->window;
 
@@ -67,7 +67,7 @@ cmd_kill_window_exec(struct cmd *self, struct cmd_q *cmdq)
 		if (!args_has(self->args, 'k') && w->references == references) {
 			cmdq_error(cmdq, "window only linked to one session");
 			return (CMD_RETURN_ERROR);
-	s = cmdq->state.s;
+	s = cmdq->current_state.s;
 
 	} else {
 		if (args_has(args, 'a')) {

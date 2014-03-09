@@ -50,7 +50,7 @@ cmd_show_hooks_exec(struct cmd *self, struct cmd_q *cmdq)
 	char		 tmp[BUFSIZ];
 	size_t		 used;
 
-	if ((s = cmdq->state.s) == NULL)
+	if ((s = cmdq->current_state.s) == NULL)
 		return (CMD_RETURN_ERROR);
 	hooks = args_has(args, 'g') ? &global_hooks : &s->hooks;
 

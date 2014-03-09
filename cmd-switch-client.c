@@ -44,8 +44,8 @@ cmd_switch_client_prepare(struct cmd *self, struct cmd_q *cmdq)
 {
 	struct args	*args = self->args;
 
-	cmdq->state.c = cmd_find_client(cmdq, args_get(args, 'c'), 0);
-	cmdq->state.s = cmd_find_session(cmdq, args_get(args, 't'), 0);
+	cmdq->current_state.c = cmd_find_client(cmdq, args_get(args, 'c'), 0);
+	cmdq->current_state.s = cmd_find_session(cmdq, args_get(args, 't'), 0);
 }
 
 enum cmd_retval
@@ -59,7 +59,7 @@ cmd_switch_client_exec(struct cmd *self, struct cmd_q *cmdq)
 	struct window_pane	*wp = NULL;
 	const char		*tflag;
 
-	if ((c = cmdq->state.c) == NULL)
+	if ((c = cmdq->current_state.c) == NULL)
 		return (CMD_RETURN_ERROR);
 
 	if (args_has(args, 'r')) {

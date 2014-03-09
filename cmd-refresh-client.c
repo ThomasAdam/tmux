@@ -43,7 +43,7 @@ cmd_refresh_client_exec(struct cmd *self, struct cmd_q *cmdq)
 	const char	*size;
 	u_int		 w, h;
 
-	if ((c = cmdq->state.c) == NULL)
+	if ((c = cmdq->current_state.c) == NULL)
 		return (CMD_RETURN_ERROR);
 
 	if (args_has(args, 'C')) {

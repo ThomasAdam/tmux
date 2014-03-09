@@ -49,14 +49,14 @@ cmd_paste_buffer_exec(struct cmd *self, struct cmd_q *cmdq)
 	struct paste_buffer	*pb;
 	const char		*sepstr, *bufname;
 
-	if (cmdq->state.wl == NULL)
+	if (cmdq->current_state.wl == NULL)
 		return (CMD_RETURN_ERROR);
 
 	bufname = NULL;
 	if (args_has(args, 'b'))
 		bufname = args_get(args, 'b');
 
-	wp = cmdq->state.wp;
+	wp = cmdq->current_state.wp;
 
 	if (!args_has(args, 'b'))
 		buffer = -1;

@@ -61,7 +61,7 @@ cmd_select_layout_exec(struct cmd *self, struct cmd_q *cmdq)
 	const char	*layoutname;
 	int		 next, previous, layout;
 
-	if ((wl = cmdq->state.wl) == NULL)
+	if ((wl = cmdq->current_state.wl) == NULL)
 		return (CMD_RETURN_ERROR);
 	server_unzoom_window(wl->window);
 

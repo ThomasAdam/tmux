@@ -60,9 +60,9 @@ cmd_lock_server_prepare(struct cmd *self, struct cmd_q *cmdq)
 	struct args	*args = self->args;
 
 	if (self->entry == &cmd_lock_session_entry)
-		cmdq->state.s = cmd_find_session(cmdq, args_get(args, 't'), 0);
+		cmdq->current_state.s = cmd_find_session(cmdq, args_get(args, 't'), 0);
 	else if (self->entry == &cmd_lock_client_entry)
-		cmdq->state.c = cmd_find_client(cmdq, args_get(args, 't'), 0);
+		cmdq->current_state.c = cmd_find_client(cmdq, args_get(args, 't'), 0);
 }
 
 enum cmd_retval
@@ -74,11 +74,11 @@ cmd_lock_server_exec(struct cmd *self, unused struct cmd_q *cmdq)
 	if (self->entry == &cmd_lock_server_entry)
 		server_lock();
 	else if (self->entry == &cmd_lock_session_entry) {
-		if ((s = cmdq->state.s) == NULL)
+		if ((s = cmdq->current_state.s) == NULL)
 			return (CMD_RETURN_ERROR);
 		server_lock_session(s);
 	} else {
-		if ((c = cmdq->state.c) == NULL)
+		if ((c = cmdq->current_state.c) == NULL)
 			return (CMD_RETURN_ERROR);
 		server_lock_client(c);
 	}

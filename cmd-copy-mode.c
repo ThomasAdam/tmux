@@ -40,7 +40,7 @@ cmd_copy_mode_exec(struct cmd *self, struct cmd_q *cmdq)
 {
 	struct window_pane	*wp;
 
-	if ((wp = cmdq->state.wp) == NULL)
+	if ((wp = cmdq->current_state.wp) == NULL)
 		return (CMD_RETURN_ERROR);
 
 	if (wp->mode != &window_copy_mode) {

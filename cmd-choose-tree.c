@@ -90,15 +90,15 @@ cmd_choose_tree_exec(struct cmd *self, struct cmd_q *cmdq)
 	ses_template = win_template = NULL;
 	ses_action = win_action = NULL;
 
-	if ((c = cmdq->state.c) == NULL) {
+	if ((c = cmdq->current_state.c) == NULL) {
 		cmdq_error(cmdq, "no client available");
 		return (CMD_RETURN_ERROR);
 	}
 
-	if ((s = cmdq->state.c->session) == NULL)
+	if ((s = cmdq->current_state.c->session) == NULL)
 		return (CMD_RETURN_ERROR);
 
-	if ((wl = cmdq->state.wl) == NULL)
+	if ((wl = cmdq->current_state.wl) == NULL)
 		return (CMD_RETURN_ERROR);
 
 	if (window_pane_set_mode(wl->window->active, &window_choose_mode) != 0)
