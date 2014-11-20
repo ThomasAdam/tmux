@@ -57,6 +57,7 @@ cmd_kill_window_exec(struct cmd *self, struct cmd_q *cmdq)
 	if ((wl = cmdq->current_state.wl) == NULL)
 		return (CMD_RETURN_ERROR);
 	w = wl->window;
+	s = cmdq->current_state.s;
 
 	if (self->entry == &cmd_unlink_window_entry) {
 		sg = session_group_find(s);
@@ -67,8 +68,7 @@ cmd_kill_window_exec(struct cmd *self, struct cmd_q *cmdq)
 		if (!args_has(self->args, 'k') && w->references == references) {
 			cmdq_error(cmdq, "window only linked to one session");
 			return (CMD_RETURN_ERROR);
-	s = cmdq->current_state.s;
-
+		}
 	} else {
 		if (args_has(args, 'a')) {
 			RB_FOREACH_SAFE(wl2, winlinks, &s->windows, wl3) {

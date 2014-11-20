@@ -58,17 +58,6 @@ cmd_paste_buffer_exec(struct cmd *self, struct cmd_q *cmdq)
 
 	wp = cmdq->current_state.wp;
 
-	if (!args_has(args, 'b'))
-		buffer = -1;
-	else {
-		buffer = args_strtonum(args, 'b', 0, INT_MAX, &cause);
-		if (cause != NULL) {
-			cmdq_error(cmdq, "buffer %s", cause);
-			free(cause);
-			return (CMD_RETURN_ERROR);
-		}
-	}
-
 	if (bufname == NULL)
 		pb = paste_get_top();
 	else {

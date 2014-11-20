@@ -43,7 +43,8 @@ const struct cmd_entry cmd_attach_session_entry = {
 };
 
 enum cmd_retval
-cmd_attach_session(struct cmd_q *cmdq, int dflag, int rflag, const char *cflag)
+cmd_attach_session(struct cmd_q *cmdq, const char *tflag, int dflag, int rflag,
+    const char *cflag)
 {
 	struct session		*s;
 	struct client		*c;
@@ -62,7 +63,6 @@ cmd_attach_session(struct cmd_q *cmdq, int dflag, int rflag, const char *cflag)
 		return (CMD_RETURN_ERROR);
 	}
 
-<<<<<<< HEAD
 	if (tflag == NULL) {
 		if ((s = cmd_find_session(cmdq, tflag, 1)) == NULL)
 			return (CMD_RETURN_ERROR);
@@ -79,7 +79,7 @@ cmd_attach_session(struct cmd_q *cmdq, int dflag, int rflag, const char *cflag)
 			wl = winlink_find_by_window(&s->windows, w);
 	}
 	/* TA:  Likely broken! */
-	if ((s = cmdq->state.s) == NULL)
+	if ((s = cmdq->default_state.s) == NULL)
 		return (CMD_RETURN_ERROR);
 
 	if (cmdq->client == NULL)
@@ -194,6 +194,6 @@ cmd_attach_session_exec(struct cmd *self, struct cmd_q *cmdq)
 {
 	struct args	*args = self->args;
 
-	return (cmd_attach_session(cmdq, args_has(args, 'd'), args_has(args,
-	    'r'), args_get(args, 'c')));
+	return (cmd_attach_session(cmdq, args_get(args, 't'),
+		args_has(args, 'd'), args_has(args, 'r'), args_get(args, 'c')));
 }

@@ -113,9 +113,10 @@ cmd_switch_client_exec(struct cmd *self, struct cmd_q *cmdq)
 				window_set_active_pane(wp->window, wp);
 			session_set_current(s, wl);
 		}
-	} else
-		if ((s = cmdq->state.s) == NULL)
-			return (CMD_RETURN_ERROR);
+	}
+
+	if ((s = cmdq->current_state.s) == NULL)
+		return (CMD_RETURN_ERROR);
 
 	if (c->session != NULL)
 		c->last_session = c->session;

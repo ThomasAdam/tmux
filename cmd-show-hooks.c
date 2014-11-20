@@ -28,14 +28,12 @@
  */
 
 enum cmd_retval cmd_show_hooks_exec(struct cmd *, struct cmd_q *);
-void		cmd_show_hooks_prepare(struct cmd *, struct cmd_q *);
 
 const struct cmd_entry cmd_show_hooks_entry = {
 	"show-hooks", NULL,
 	"gt:", 0, 1,
 	"[-g] " CMD_TARGET_SESSION_USAGE,
 	CMD_PREPARESESSION,
-	NULL,
 	cmd_show_hooks_exec,
 	NULL
 };

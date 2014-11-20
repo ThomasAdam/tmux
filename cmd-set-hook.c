@@ -35,7 +35,6 @@ const struct cmd_entry cmd_set_hook_entry = {
 	"gt:u", 1, 2,
 	"[-gu]" CMD_TARGET_SESSION_USAGE " hook-name [command]",
 	CMD_PREPARESESSION,
-	NULL,
 	cmd_set_hook_exec,
 	NULL
 };
