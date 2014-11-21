@@ -1,0 +1,62 @@
+22:08 < NicM> thomas_adam?
+22:08 < thomas_adam> Hi.
+22:09 < NicM> what happens if you put a command that needs prepare_session in the before hook of a command that doesn't?
+22:11 < thomas_adam> Hmm.
+22:11 < thomas_adam> Let's see.
+22:12 < NicM> the commands in the hooks need their own prepare to be called. not the prepare of the "hooked" command
+22:13 < NicM> eg if you put swapw -s x -t y in eg before-list-keys then it'll fail because possibly wl and definitely wl2 will not be filled in
+22:13 < NicM> or worse it'll do the wrong thing entirely
+22:13 < thomas_adam> Should fix that then.
+22:13 < NicM> either prepare needs to be called for each command separately in which case there is no point
+22:14 < NicM> or prepare needs to setup the default context and the command then overrides it with it's own -t -s or whatever
+22:14 < thomas_adam> Maybe that's better.
+22:14 < NicM> well, the problem there is that the original aim is lost
+22:15 < NicM> where if you do kill-session -t foo, the before hook should run with default session == foo
+22:15 < NicM> so if you set the before-hook to eg rename-session bar it renames foo, not the current session
+22:16 < NicM> silly and useless examples but you get the point, they need to work :-)
+22:16 < NicM> i have made a load of changes to the prepare diff
+22:16 < NicM> i'll send it to you anyway and if it is ok i'll commit it to the branch
+22:16 < thomas_adam> Then it probably can only work by always calling prepare(); otherwise we'll have to completely redefine contexts in some way, which I don't like either.
+22:16 < thomas_adam> Sure.
+22:17 < NicM> at the moment prepare can't be called multiple times or you will get multiple messages
+22:17 < NicM> it either needs to be side-effect free or it needs to return success/failure
+22:17 < NicM> either so you can call multiple prepares and defer the error for the command (first option)
+22:18 < NicM> or so you can do if (cmd-prepare() != success) { return; } ... before_hook->prepare();
+22:18 < NicM> ie don't call the second prepare if the first one fails
+22:18 < NicM> that means the prepare needs to take the NULL checking from exec() too
+22:18 < NicM> sent the diff anyway
+22:20 < thomas_adam> I'll take a look.
+22:20 < NicM> i think returning an error would be better maybe
+22:21 < NicM> but sure think about it and we can talk about it later
+22:24 <  thomas_adam> | Hmm.  That's a really good point.
+22:27 <         NicM> | maybe it is just being too clever trying to make the default session be whatever you specified for the hooked command -t
+22:27 <         NicM> | in order to make that work
+22:28 <         NicM> | you need prepare to fill in the state for the hooked command
+22:28 <         NicM> | then the prepare of the before/after command needs to use that state IF -t is not giv en for them
+22:28 <         NicM> | ie instead of calling cmd_current_session or whatever they need to look in cmdq->stat e.s
+22:28 <         NicM> | and fill that into THEIR state
+22:29 <  thomas_adam> | Yeah...
+22:29 <  thomas_adam> | That'd work, and be less invasive.
+22:29 <         NicM> | so basically i think the cmdq state would be the default state
+22:29 <         NicM> | and then you'd have a local state for each one
+22:29 <         NicM> | so you'd do this
+22:29 <         NicM> | cmd_prepare(hooked_cmd, &cmdq->state, NULL/*default state*/)
+22:30 <         NicM> | struct cmd_state before_state; cmd_prepare(before_cmd, &before_state, &cmdq->state); cmd_exec(before_cmd)
+22:30 <         NicM> | and then the same for after
+22:30 <         NicM> | er cmd_exec(before_cmd, &before_state)
+22:30 <         NicM> | or put it in the struct cmd would be better
+22:31 <         NicM> | or maybe in the cmdq, but have two members
+22:31 <         NicM> | i dunno
+22:31 <  thomas_adam> | Yeah... that ought to work.
+22:31 <         NicM> | in the cmdq would be better
+22:32 <         NicM> | ie cmdq has two members, current-command-state and default-command-state
+22:32 <         NicM> | cmdq would be best because it's already passed into prepare and exec and all the cmd.c functions
+22:33 <  thomas_adam> | That shouldn't be too hard to do.
+22:33 <  thomas_adam> | BRB...
+22:33 <         NicM> | yeh since exec is only called in two places now
+22:34 <         NicM> | basically cmdq_continue does what it does now but with the default state and copies that into the current state before exec
+22:36 <         NicM> | or it may be better to copy to the default state
+22:37 <         NicM> | so prepare always fills in current state then we copy to default so the before can use it, we call the before prepare and it overwrites the current, then we call before exec, then we copy default back to current to call the hooked command
+22:37 <         NicM> | anyway it seems like it'd work
+22:48 <  thomas_adam> | I'll give that a go.
+
