@@ -1423,8 +1423,8 @@ struct cmd_q {
 	struct cmd_q_items	 queue;
 	struct cmd_q_item	*item;
 	struct cmd		*cmd;
-	struct cmd_state	 default_state;
 	struct cmd_state	 current_state;
+	struct cmd_state	 default_state;
 
 	time_t			 time;
 	u_int			 number;
