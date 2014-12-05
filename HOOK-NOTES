@@ -60,3 +60,59 @@
 22:37 <         NicM> | anyway it seems like it'd work
 22:48 <  thomas_adam> | I'll give that a go.
 
+Then later...
+
+            nicm | so for example
+            nicm | kill-session prepare does this {state->s =
+                 | cmd_find_session(args_get('t'),NULL)} then kill-session exec
+                 | does {s = cmd_find_session(args_get('t'),state->s)}
+            nicm | list-keys prepare does {state->s = cmd_current_session()} and
+                 | swapw does {s = cmd_find_session('t',state->s}
+     thomas_adam | Ugh. 
+     thomas_adam | That's just confusing.
+            nicm | well, there may be alternatives
+            nicm | but the important thing is, kill-session's prepare has to set
+                 | up a state suitable for ANY command
+     thomas_adam | The point of prepare() was to try and centralise these
+                 | things, not spread them about.
+            nicm | it can't assume it will only be used for kill-session
+     thomas_adam | Hmm.
+     thomas_adam | Yes.
+            nicm | well, no, the point of prepare is to allow the current
+                 | session to be replaced in hooks
+            nicm | new-session and new-window and after- hooks have a different
+                 | issue too, because there we want to default to the NEW
+                 | session
+            nicm | so they need to update the state for subsequent commands
+     thomas_adam | Interesting.  Yes.
+            nicm | i think this would work, but you will need to parse -t twice
+            nicm | - there is a state which is current {win,sess,client} - there
+                 | is the "actual" command being run, and the "hook" commands -
+                 | state is set up by running the "actual" command prepare which
+                 | looks at the actual -t etc - then the before-hooks use that
+                 | state for their current {sess,win,client} - the actual
+                 | command is then run with the state too, and updates it if
+                 | needed - the after hooks use the updated state for their
+                 | current {win,se
+     thomas_adam | Yeah.  OK.
+            nicm | command sequences are irrelevent -- new command, new state   
+     thomas_adam | I can see how this is needed.
+            nicm | so: "lsw\; lsk\; killw" has three states and three different
+                 | prepare()s are called
+            nicm | this only matters for the before and after hooks
+            nicm | i think you will find it works well for simple commands with
+                 | no -t or just -t
+            nicm | -t -s might be more fiddly but i don't care so much about  
+                 | that
+            nicm | well, it might be ok
+            nicm | at the moment there is only one "current session"
+            nicm | so i'd pick one or the other to be the current if you have -t
+                 | and -s
+            nicm | for a first iteration that'd be fine, if people start wanting
+                 | to write hooks that are fancy and need to know both we can do
+                 | something else
+     thomas_adam | OK.  This is starting to make a lot more sense in my head
+                 | now.
+     thomas_adam | Yes, I'm starting to remember these subtlties the last time I
+                 | looked at this.
+
