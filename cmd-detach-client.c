@@ -53,9 +53,9 @@ cmd_detach_client_prepare(struct cmd *self, struct cmd_q *cmdq)
 	struct args	*args = self->args;
 
 	if (args_has(args, 's'))
-		cmdq->current_state.s = cmd_find_session(cmdq, args_get(args, 's'), 0);
+		cmdq->state.s = cmd_find_session(cmdq, args_get(args, 's'), 0);
 	else
-		cmdq->current_state.c = cmd_find_client(cmdq, args_get(args, 't'), 0);
+		cmdq->state.c = cmd_find_client(cmdq, args_get(args, 't'), 0);
 }
 
 enum cmd_retval
@@ -82,7 +82,7 @@ cmd_detach_client_exec(struct cmd *self, struct cmd_q *cmdq)
 		msgtype = MSG_DETACH;
 
 	if (args_has(args, 's')) {
-		if ((s = cmdq->current_state.s) == NULL)
+		if ((s = cmdq->state.s) == NULL)
 			return (CMD_RETURN_ERROR);
 
 		for (i = 0; i < ARRAY_LENGTH(&clients); i++) {
@@ -93,7 +93,7 @@ cmd_detach_client_exec(struct cmd *self, struct cmd_q *cmdq)
 			    strlen(c->session->name) + 1);
 		}
 	} else {
-		if ((c = cmdq->current_state.c) == NULL)
+		if ((c = cmdq->state.c) == NULL)
 			return (CMD_RETURN_ERROR);
 
 		if (args_has(args, 'a')) {

@@ -53,11 +53,11 @@ cmd_respawn_pane_exec(struct cmd *self, struct cmd_q *cmdq)
 	u_int			 idx;
 	struct environ_entry	*envent;
 
-	if ((wl = cmdq->current_state.wl) == NULL)
+	if ((wl = cmdq->state.wl) == NULL)
 		return (CMD_RETURN_ERROR);
 	w = wl->window;
-	s = cmdq->current_state.s;
-	wp = cmdq->current_state.wp;
+	s = cmdq->state.s;
+	wp = cmdq->state.wp;
 
 	if (!args_has(self->args, 'k') && wp->fd != -1) {
 		if (window_pane_index(wp, &idx) != 0)

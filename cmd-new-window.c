@@ -51,18 +51,18 @@ cmd_new_window_prepare(struct cmd *self, struct cmd_q *cmdq)
 	struct args	*args = self->args;
 
 	if (args_has(args, 'a')) {
-		cmdq->current_state.wl = cmd_find_window(cmdq, args_get(args, 't'),
-		    &cmdq->current_state.s);
+		cmdq->state.wl = cmd_find_window(cmdq, args_get(args, 't'),
+		    &cmdq->state.s);
 	} else
-		cmd_find_index(cmdq, args_get(args, 't'), &cmdq->current_state.s);
+		cmd_find_index(cmdq, args_get(args, 't'), &cmdq->state.s);
 }
 
 enum cmd_retval
 cmd_new_window_exec(struct cmd *self, struct cmd_q *cmdq)
 {
 	struct args		*args = self->args;
-	struct session		*s = cmdq->current_state.s;
-	struct winlink		*wl = cmdq->current_state.wl;
+	struct session		*s = cmdq->state.s;
+	struct winlink		*wl = cmdq->state.wl;
 	struct client		*c;
 	const char		*cmd, *path, *template;
 	char		       **argv, *cause, *cp;

@@ -63,12 +63,12 @@ cmd_choose_client_exec(struct cmd *self, struct cmd_q *cmdq)
 	char				*action;
 	u_int			 	 i, idx, cur;
 
-	if ((c = cmdq->current_state.c) == NULL) {
+	if ((c = cmdq->state.c) == NULL) {
 		cmdq_error(cmdq, "no client available");
 		return (CMD_RETURN_ERROR);
 	}
 
-	if ((wl = cmdq->current_state.wl) == NULL)
+	if ((wl = cmdq->state.wl) == NULL)
 		return (CMD_RETURN_ERROR);
 
 	if (window_pane_set_mode(wl->window->active, &window_choose_mode) != 0)

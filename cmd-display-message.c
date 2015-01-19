@@ -51,17 +51,17 @@ cmd_display_message_prepare(struct cmd *self, struct cmd_q *cmdq)
 	struct args	*args = self->args;
 
 	if (args_has(args, 't')) {
-		cmdq->current_state.wl = cmd_find_pane(cmdq, args_get(args, 't'),
-		    &cmdq->current_state.s, &cmdq->current_state.wp);
+		cmdq->state.wl = cmd_find_pane(cmdq, args_get(args, 't'),
+		    &cmdq->state.s, &cmdq->state.wp);
 	} else {
-		cmdq->current_state.wl = cmd_find_pane(cmdq, NULL, &cmdq->current_state.s,
-		    &cmdq->current_state.wp);
+		cmdq->state.wl = cmd_find_pane(cmdq, NULL, &cmdq->state.s,
+		    &cmdq->state.wp);
 	}
 
 	if (args_has(args, 'c'))
-		cmdq->current_state.c = cmd_find_client(cmdq, args_get(args, 'c'), 0);
+		cmdq->state.c = cmd_find_client(cmdq, args_get(args, 'c'), 0);
 	else
-		cmdq->current_state.c = cmd_current_client(cmdq);
+		cmdq->state.c = cmd_current_client(cmdq);
 }
 
 enum cmd_retval
@@ -79,18 +79,18 @@ cmd_display_message_exec(struct cmd *self, struct cmd_q *cmdq)
 	time_t			 t;
 	size_t			 len;
 
-	if ((wl = cmdq->current_state.wl) == NULL)
+	if ((wl = cmdq->state.wl) == NULL)
 		return (CMD_RETURN_ERROR);
 
-	wp = cmdq->current_state.wp;
-	s = cmdq->current_state.s;
+	wp = cmdq->state.wp;
+	s = cmdq->state.s;
 
 	if (args_has(args, 'F') && args->argc != 0) {
 		cmdq_error(cmdq, "only one of -F or argument must be given");
 		return (CMD_RETURN_ERROR);
 	}
 
-	c = cmdq->current_state.c;
+	c = cmdq->state.c;
 	if (args_has(args, 'c')) {
 		if (c == NULL)
 			return (CMD_RETURN_ERROR);

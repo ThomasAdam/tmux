@@ -53,12 +53,12 @@ cmd_move_window_prepare(struct cmd *self, struct cmd_q *cmdq)
 	struct args	*args = self->args;
 
 	if (args_has(args, 'r'))
-		cmdq->current_state.s = cmd_find_session(cmdq, args_get(args, 't'), 0);
+		cmdq->state.s = cmd_find_session(cmdq, args_get(args, 't'), 0);
 	else {
-		cmdq->current_state.wl = cmd_find_window(cmdq, args_get(args, 's'),
-		    &cmdq->current_state.s);
-		cmdq->current_state.idx = cmd_find_index(cmdq, args_get(args, 't'),
-		    &cmdq->current_state.s2);
+		cmdq->state.wl = cmd_find_window(cmdq, args_get(args, 's'),
+		    &cmdq->state.s);
+		cmdq->state.idx = cmd_find_index(cmdq, args_get(args, 't'),
+		    &cmdq->state.s2);
 	}
 }
 
@@ -72,7 +72,7 @@ cmd_move_window_exec(struct cmd *self, struct cmd_q *cmdq)
 	int		 idx, kflag, dflag;
 
 	if (args_has(args, 'r')) {
-		if ((s = cmdq->current_state.s) == NULL)
+		if ((s = cmdq->state.s) == NULL)
 			return (CMD_RETURN_ERROR);
 
 		session_renumber_windows(s);
@@ -80,12 +80,12 @@ cmd_move_window_exec(struct cmd *self, struct cmd_q *cmdq)
 
 		return (CMD_RETURN_NORMAL);
 	}
-	src = cmdq->current_state.s;
-	dst = cmdq->current_state.s2;
+	src = cmdq->state.s;
+	dst = cmdq->state.s2;
 
-	if ((wl = cmdq->current_state.wl) == NULL)
+	if ((wl = cmdq->state.wl) == NULL)
 		return (CMD_RETURN_ERROR);
-	if ((idx = cmdq->current_state.idx) == -2)
+	if ((idx = cmdq->state.idx) == -2)
 		return (CMD_RETURN_ERROR);
 
 	kflag = args_has(self->args, 'k');

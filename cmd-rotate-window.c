@@ -44,7 +44,7 @@ cmd_rotate_window_exec(struct cmd *self, struct cmd_q *cmdq)
 	struct layout_cell	*lc;
 	u_int			 sx, sy, xoff, yoff;
 
-	if ((wl = cmdq->current_state.wl) == NULL)
+	if ((wl = cmdq->state.wl) == NULL)
 		return (CMD_RETURN_ERROR);
 	w = wl->window;
 

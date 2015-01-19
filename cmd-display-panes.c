@@ -40,7 +40,7 @@ cmd_display_panes_exec(unused struct cmd *self, struct cmd_q *cmdq)
 {
 	struct client	*c;
 
-	if ((c = cmdq->current_state.c) == NULL)
+	if ((c = cmdq->state.c) == NULL)
 		return (CMD_RETURN_ERROR);
 
 	server_set_identify(c);

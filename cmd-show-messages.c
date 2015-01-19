@@ -154,7 +154,7 @@ cmd_show_messages_exec(unused struct cmd *self, struct cmd_q *cmdq)
 	if (done)
 		return (CMD_RETURN_NORMAL);
 
-	if ((c = cmdq->current_state.c) == NULL)
+	if ((c = cmdq->state.c) == NULL)
 		return (CMD_RETURN_ERROR);
 
 	for (i = 0; i < ARRAY_LENGTH(&c->message_log); i++) {

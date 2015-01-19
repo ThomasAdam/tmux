@@ -79,7 +79,7 @@ cmd_attach_session(struct cmd_q *cmdq, const char *tflag, int dflag, int rflag,
 			wl = winlink_find_by_window(&s->windows, w);
 	}
 	/* TA:  Likely broken! */
-	if ((s = cmdq->default_state.s) == NULL)
+	if ((s = cmdq->state.s) == NULL)
 		return (CMD_RETURN_ERROR);
 
 	if (cmdq->client == NULL)

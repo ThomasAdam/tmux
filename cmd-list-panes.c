@@ -51,10 +51,10 @@ cmd_list_panes_prepare(struct cmd *self, struct cmd_q *cmdq)
 	struct args	*args = self->args;
 
 	if (args_has(args, 's'))
-		cmdq->current_state.s = cmd_find_session(cmdq, args_get(args, 't'), 0);
+		cmdq->state.s = cmd_find_session(cmdq, args_get(args, 't'), 0);
 	else if (args_has(args, 't')) {
-		cmdq->current_state.wl = cmd_find_window(cmdq, args_get(args, 't'),
-		    &cmdq->current_state.s);
+		cmdq->state.wl = cmd_find_window(cmdq, args_get(args, 't'),
+		    &cmdq->state.s);
 	}
 }
 
@@ -65,7 +65,7 @@ cmd_list_panes_exec(struct cmd *self, struct cmd_q *cmdq)
 	struct session	*s;
 	struct winlink	*wl;
 
-	s = cmdq->current_state.s;
+	s = cmdq->state.s;
 
 	if (args_has(args, 'a'))
 		cmd_list_panes_server(self, cmdq);
@@ -74,7 +74,7 @@ cmd_list_panes_exec(struct cmd *self, struct cmd_q *cmdq)
 			return (CMD_RETURN_ERROR);
 		cmd_list_panes_session(self, s, cmdq, 1);
 	} else {
-		if ((wl = cmdq->current_state.wl) == NULL)
+		if ((wl = cmdq->state.wl) == NULL)
 			return (CMD_RETURN_ERROR);
 		cmd_list_panes_window(self, s, wl, cmdq, 0);
 	}

@@ -54,10 +54,10 @@ cmd_kill_window_exec(struct cmd *self, struct cmd_q *cmdq)
 	struct session_group	*sg;
 	u_int			 references;
 
-	if ((wl = cmdq->current_state.wl) == NULL)
+	if ((wl = cmdq->state.wl) == NULL)
 		return (CMD_RETURN_ERROR);
 	w = wl->window;
-	s = cmdq->current_state.s;
+	s = cmdq->state.s;
 
 	if (self->entry == &cmd_unlink_window_entry) {
 		sg = session_group_find(s);

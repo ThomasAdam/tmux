@@ -38,7 +38,7 @@ const struct cmd_entry cmd_has_session_entry = {
 enum cmd_retval
 cmd_has_session_exec(unused struct cmd *self, struct cmd_q *cmdq)
 {
-	if (cmdq->current_state.s == NULL)
+	if (cmdq->state.s == NULL)
 		return (CMD_RETURN_ERROR);
 
 	return (CMD_RETURN_NORMAL);

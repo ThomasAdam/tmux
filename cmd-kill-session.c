@@ -45,7 +45,7 @@ cmd_kill_session_exec(struct cmd *self, struct cmd_q *cmdq)
 	struct args	*args = self->args;
 	struct session	*s, *s2, *s3;
 
-	if ((s = cmdq->current_state.s) == NULL)
+	if ((s = cmdq->state.s) == NULL)
 		return (CMD_RETURN_ERROR);
 
 	if (args_has(args, 'a')) {

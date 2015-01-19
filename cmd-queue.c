@@ -33,17 +33,17 @@ void	cmdq_run_hook(struct hooks *, const char *, struct cmd *,
 void
 cmdq_set_state(struct cmd_q *cmdq)
 {
-	memset(&cmdq->default_state, 0, sizeof cmdq->default_state);
+	memset(&cmdq->state, 0, sizeof cmdq->state);
 
-	cmdq->default_state.c = cmdq->client;
+	cmdq->state.c = cmdq->client;
 
-	cmdq->default_state.s = cmdq->client != NULL ?
+	cmdq->state.s = cmdq->client != NULL ?
 		cmdq->client->session : NULL;
-	cmdq->default_state.s2 = NULL;
+	cmdq->state.s2 = NULL;
 
-	cmdq->default_state.w = NULL;
-	cmdq->default_state.wl = NULL;
-	cmdq->default_state.wp = NULL;
+	cmdq->state.w = NULL;
+	cmdq->state.wl = NULL;
+	cmdq->state.wp = NULL;
 }
 
 /* Create new command queue. */
@@ -233,8 +233,8 @@ cmdq_continue(struct cmd_q *cmdq)
 			 * otherwise used the intended session's hooks when
 			 * running the command.
 			 */
-			if (cmdq->default_state.s != NULL)
-				hooks = &cmdq->default_state.s->hooks;
+			if (cmdq->state.s != NULL)
+				hooks = &cmdq->state.s->hooks;
 			else
 				hooks = &global_hooks;
 

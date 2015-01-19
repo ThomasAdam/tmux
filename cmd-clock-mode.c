@@ -40,7 +40,7 @@ cmd_clock_mode_exec(unused struct cmd *self, struct cmd_q *cmdq)
 {
 	struct window_pane	*wp;
 
-	if ((wp = cmdq->current_state.wp) == NULL)
+	if ((wp = cmdq->state.wp) == NULL)
 		return (CMD_RETURN_ERROR);
 
 	window_pane_set_mode(wp, &window_clock_mode);

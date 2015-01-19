@@ -55,7 +55,7 @@ cmd_list_clients_exec(struct cmd *self, struct cmd_q *cmdq)
 	u_int			 i;
 	char			*line;
 
-	s = cmdq->current_state.s;
+	s = cmdq->state.s;
 	if (args_has(args, 't') && s == NULL)
 		return (CMD_RETURN_ERROR);
 
