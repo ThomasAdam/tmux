@@ -104,6 +104,10 @@ hooks_run(struct hook *hook, struct cmd_q *cmdq)
 {
 	struct cmd	*cmd;
 
-	TAILQ_FOREACH(cmd, &hook->cmdlist->list, qentry)
+	log_debug("H: Running hooks: <<%s>>", hook->name);
+
+	TAILQ_FOREACH(cmd, &hook->cmdlist->list, qentry) {
+		log_debug("H:   Hooked cmd: <<%s>>", cmd->entry->name);
 		cmd->entry->exec(cmd, cmdq);
+	}
 }

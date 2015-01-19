@@ -220,19 +220,12 @@ cmdq_continue(struct cmd_q *cmdq)
 	do {
 		while (cmdq->cmd != NULL) {
 			/*
-			 * Call prepare(). This will set up the execution
-			 * context of the command. If a command wishes to do
-			 * more than the default action of prepare() then this
-			 * also call's that command's version.
-			 */
-			cmd_prepare(cmdq->cmd, cmdq);
-
-			/*
 			 * If we set no session via this or the prepare()
 			 * function wasn't defined, then use the global hooks,
 			 * otherwise used the intended session's hooks when
 			 * running the command.
 			 */
+			cmd_prepare(cmdq->cmd, cmdq);
 			if (cmdq->state.s != NULL)
 				hooks = &cmdq->state.s->hooks;
 			else
@@ -249,9 +242,21 @@ cmdq_continue(struct cmd_q *cmdq)
 			guard = cmdq_guard(cmdq, "begin", flags);
 
 			cmdq_run_hook(hooks, "before", cmdq->cmd, cmdq);
+			/*
+			 * Call prepare(). This will set up the execution
+			 * context of the command. If a command wishes to do
+			 * more than the default action of prepare() then this
+			 * also call's that command's version.
+			 */
+			cmdq_set_state(cmdq);
+			log_debug("H: prepare() for cmd: <<%s>>",
+				cmdq->cmd->entry->name);
+			cmd_prepare(cmdq->cmd, cmdq);
+
 			retval = cmdq->cmd->entry->exec(cmdq->cmd, cmdq);
 			if (retval == CMD_RETURN_ERROR)
 				break;
+			cmd_prepare(cmdq->cmd, cmdq);
 			cmdq_run_hook(hooks, "after", cmdq->cmd, cmdq);
 
 			if (guard) {

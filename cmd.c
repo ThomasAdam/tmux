@@ -326,7 +326,7 @@ cmd_prepare(struct cmd *cmd, struct cmd_q *cmdq)
 	cmdq->state.c = cmd_current_client(cmdq);
 
 	if (cmd->entry->flags & CMD_PREPARESESSION)
-		state->s = cmd_find_session(cmdq, tflag, 1);
+		state->s = cmd_find_session(cmdq, tflag, 0);
 	if (cmd->entry->flags & CMD_PREPAREWINDOW)
 		state->wl = cmd_find_window(cmdq, tflag, NULL);
 	if (cmd->entry->flags & CMD_PREPAREPANE)

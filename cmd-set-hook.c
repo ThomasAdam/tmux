@@ -50,9 +50,11 @@ cmd_set_hook_exec(struct cmd *self, struct cmd_q *cmdq)
 	char		*cause;
 	const char	*name, *cmd;
 
-	if ((s = cmdq->state.s) == NULL)
-		return (CMD_RETURN_ERROR);
-	hooks = args_has(args, 'g') ? &global_hooks : &s->hooks;
+	s = cmdq->state.s;
+	if (s == NULL && args_has(args, 'g'))
+		hooks = &global_hooks;
+	else
+		hooks = &s->hooks;
 
 	name = args->argv[0];
 	if (*name == '\0') {
