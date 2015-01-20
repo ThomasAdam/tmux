@@ -94,13 +94,11 @@ const struct cmd_entry *cmd_table[] = {
 	&cmd_send_prefix_entry,
 	&cmd_server_info_entry,
 	&cmd_set_buffer_entry,
-	&cmd_set_hook_entry,
 	&cmd_set_environment_entry,
 	&cmd_set_hook_entry,
 	&cmd_set_option_entry,
 	&cmd_set_window_option_entry,
 	&cmd_show_buffer_entry,
-	&cmd_show_hooks_entry,
 	&cmd_show_environment_entry,
 	&cmd_show_hooks_entry,
 	&cmd_show_messages_entry,
@@ -317,13 +315,14 @@ usage:
 }
 
 void
-cmd_prepare(struct cmd *cmd, struct cmd_q *cmdq)
+cmd_prepare(struct cmd *cmd, struct cmd_q *cmdq, int run_cmd_prepare)
 {
 	struct args		*args = cmd->args;
 	const char		*tflag = args_get(args, 't');
 	struct cmd_state	*state = &cmdq->state;
 
-	cmdq->state.c = cmd_current_client(cmdq);
+	if (cfg_finished == 0)
+		return;
 
 	if (cmd->entry->flags & CMD_PREPARESESSION)
 		state->s = cmd_find_session(cmdq, tflag, 0);
@@ -334,7 +333,7 @@ cmd_prepare(struct cmd *cmd, struct cmd_q *cmdq)
 	if (cmd->entry->flags & CMD_PREPARECLIENT)
 		state->c = cmd_find_client(cmdq, tflag, 0);
 
-	if (cmd->entry->prepare != NULL)
+	if (run_cmd_prepare == 1 && cmd->entry->prepare != NULL)
 		cmd->entry->prepare(cmd, cmdq);
 }
 

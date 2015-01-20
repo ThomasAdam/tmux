@@ -225,7 +225,6 @@ cmdq_continue(struct cmd_q *cmdq)
 			 * otherwise used the intended session's hooks when
 			 * running the command.
 			 */
-			cmd_prepare(cmdq->cmd, cmdq);
 			if (cmdq->state.s != NULL)
 				hooks = &cmdq->state.s->hooks;
 			else
@@ -241,6 +240,7 @@ cmdq_continue(struct cmd_q *cmdq)
 			flags = !!(cmdq->cmd->flags & CMD_CONTROL);
 			guard = cmdq_guard(cmdq, "begin", flags);
 
+			cmd_prepare(cmdq->cmd, cmdq, 0);
 			cmdq_run_hook(hooks, "before", cmdq->cmd, cmdq);
 			/*
 			 * Call prepare(). This will set up the execution
@@ -251,12 +251,12 @@ cmdq_continue(struct cmd_q *cmdq)
 			cmdq_set_state(cmdq);
 			log_debug("H: prepare() for cmd: <<%s>>",
 				cmdq->cmd->entry->name);
-			cmd_prepare(cmdq->cmd, cmdq);
+			cmd_prepare(cmdq->cmd, cmdq, 1);
 
 			retval = cmdq->cmd->entry->exec(cmdq->cmd, cmdq);
 			if (retval == CMD_RETURN_ERROR)
 				break;
-			cmd_prepare(cmdq->cmd, cmdq);
+			cmd_prepare(cmdq->cmd, cmdq, 1);
 			cmdq_run_hook(hooks, "after", cmdq->cmd, cmdq);
 
 			if (guard) {

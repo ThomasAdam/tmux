@@ -65,9 +65,11 @@ cmd_split_window_exec(struct cmd *self, struct cmd_q *cmdq)
 
 	if ((wl = cmdq->state.wl) == NULL)
 		return (CMD_RETURN_ERROR);
-	w = wl->window;
-	s = cmdq->state.s;
-	wp = cmdq->state.wp;
+	else {
+		w = wl->window;
+		s = cmdq->state.s;
+		wp = cmdq->state.wp;
+	}
 	server_unzoom_window(w);
 
 	environ_init(&env);
