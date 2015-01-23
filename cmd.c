@@ -315,7 +315,7 @@ usage:
 }
 
 void
-cmd_prepare(struct cmd *cmd, struct cmd_q *cmdq, int run_cmd_prepare)
+cmd_prepare(struct cmd *cmd, struct cmd_q *cmdq)
 {
 	struct args		*args = cmd->args;
 	const char		*tflag = args_get(args, 't');
@@ -333,7 +333,7 @@ cmd_prepare(struct cmd *cmd, struct cmd_q *cmdq, int run_cmd_prepare)
 	if (cmd->entry->flags & CMD_PREPARECLIENT)
 		state->c = cmd_find_client(cmdq, tflag, 0);
 
-	if (run_cmd_prepare == 1 && cmd->entry->prepare != NULL)
+	if (cmd->entry->prepare != NULL)
 		cmd->entry->prepare(cmd, cmdq);
 }
 
