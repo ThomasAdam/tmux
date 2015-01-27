@@ -219,17 +219,13 @@ cmdq_continue(struct cmd_q *cmdq)
 
 	do {
 		while (cmdq->cmd != NULL) {
-			/*
-			 * If we set no session via this or the prepare()
-			 * function wasn't defined, then use the global hooks,
-			 * otherwise used the intended session's hooks when
-			 * running the command.
-			 */
 			cmd_prepare(cmdq->cmd, cmdq);
-			memcpy(&cmdq->default_state, &cmdq->state,
-				sizeof cmdq->state);
-			if (cmdq->state.s != NULL)
-				hooks = &cmdq->state.s->hooks;
+			/* TA:  FIXME - this doesn't belong here. */
+			memcpy(&cmdq->prior_state, &cmd->state,
+				sizeof cmd->state);
+			cmdq->prior_state.tflag = args_get(cmdq->cmd->args, 't');
+			if (cmd->state.s != NULL)
+				hooks = &cmd->state.s->hooks;
 			else
 				hooks = &global_hooks;
 
@@ -252,7 +248,6 @@ cmdq_continue(struct cmd_q *cmdq)
 			 */
 			log_debug("H: prepare() for cmd: <<%s>>",
 				cmdq->cmd->entry->name);
-			cmd_prepare(cmdq->cmd, cmdq);
 			retval = cmdq->cmd->entry->exec(cmdq->cmd, cmdq);
 			if (retval == CMD_RETURN_ERROR)
 				break;

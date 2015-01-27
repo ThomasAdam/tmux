@@ -319,10 +319,13 @@ cmd_prepare(struct cmd *cmd, struct cmd_q *cmdq)
 {
 	struct args		*args = cmd->args;
 	const char		*tflag = args_get(args, 't');
-	struct cmd_state	*state = &cmdq->state;
+	struct cmd_state	*state = &cmd->state;
 
 	if (cfg_finished == 0)
 		return;
+
+	if (tflag == NULL && cmdq->default_state.tflag != NULL)
+		tflag = cmdq->default_state.tflag;
 
 	if (cmd->entry->flags & CMD_PREPARESESSION)
 		state->s = cmd_find_session(cmdq, tflag, 0);

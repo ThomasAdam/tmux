@@ -104,20 +104,9 @@ hooks_run(struct hook *hook, struct cmd_q *cmdq)
 {
 	struct cmd	*cmd;
 
-	log_debug("H: Running hooks: <<%s>>", hook->name);
-
 	TAILQ_FOREACH(cmd, &hook->cmdlist->list, qentry) {
-		log_debug("H:   Hooked cmd: <<%s>>", cmd->entry->name);
-
-		log_debug("H:        Session: <<%s>>", cmdq->state.s ? 
-				cmdq->state.s->name : "(UNKNOWN)");
-
-		/* TA:  FIXME; this isn't right in all cases! */
 		cmd_prepare(cmd, cmdq);
 		/* TA:  How do we handle errors here, if at all??? */
 		cmd->entry->exec(cmd, cmdq);
-
-		memcpy(&cmdq->state, &cmdq->default_state,
-			sizeof cmdq->state);
 	}
 }
