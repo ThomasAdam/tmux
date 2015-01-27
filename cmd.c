@@ -312,6 +312,38 @@ usage:
 	return (NULL);
 }
 
+void
+cmd_prepare(struct cmd *cmd, struct cmd_q *cmdq)
+{
+	struct args		*args = cmd->args;
+	const char		*tflag = args_get(args, 't');
+	struct cmd_state	*state = &cmdq->state;
+
+	/* FIXME:  Handle this!  What should happen during cfg_load? */
+	if (cfg_finished == 0)
+		return;
+
+	/*
+	 * Prepare the context for the command.  It might be the case that a
+	 * hooked command is being called.  If this command doesn't have a
+	 * tflag, use the same one as the command being hooked.
+	 */
+	if (tflag == NULL && cmdq->state.prior_tflag != NULL)
+		tflag = state->prior_tflag;
+
+	if (cmd->entry->flags & CMD_PREPARESESSION)
+		state->s = cmd_find_session(cmdq, tflag, 0);
+	if (cmd->entry->flags & CMD_PREPAREWINDOW)
+		state->wl = cmd_find_window(cmdq, tflag, NULL);
+	if (cmd->entry->flags & CMD_PREPAREPANE)
+		state->wl = cmd_find_pane(cmdq, tflag, &state->s, &state->wp);
+	if (cmd->entry->flags & CMD_PREPARECLIENT)
+		state->c = cmd_find_client(cmdq, tflag, 0);
+
+	if (cmd->entry->prepare != NULL)
+		cmd->entry->prepare(cmd, cmdq);
+}
+
 size_t
 cmd_print(struct cmd *cmd, char *buf, size_t len)
 {
