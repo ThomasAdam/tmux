@@ -30,16 +30,14 @@ const struct cmd_entry cmd_has_session_entry = {
 	"has-session", "has",
 	"t:", 0, 0,
 	CMD_TARGET_SESSION_USAGE,
-	0,
+	CMD_PREPAREWINDOW,
 	cmd_has_session_exec
 };
 
 enum cmd_retval
-cmd_has_session_exec(struct cmd *self, struct cmd_q *cmdq)
+cmd_has_session_exec(unused struct cmd *self, struct cmd_q *cmdq)
 {
-	struct args	*args = self->args;
-
-	if (cmd_find_session(cmdq, args_get(args, 't'), 0) == NULL)
+	if (cmdq->state.s == NULL)
 		return (CMD_RETURN_ERROR);
 
 	return (CMD_RETURN_NORMAL);

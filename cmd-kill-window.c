@@ -30,7 +30,7 @@ const struct cmd_entry cmd_kill_window_entry = {
 	"kill-window", "killw",
 	"at:", 0, 0,
 	"[-a] " CMD_TARGET_WINDOW_USAGE,
-	0,
+	CMD_PREPAREWINDOW,
 	cmd_kill_window_exec
 };
 
@@ -38,7 +38,7 @@ const struct cmd_entry cmd_unlink_window_entry = {
 	"unlink-window", "unlinkw",
 	"kt:", 0, 0,
 	"[-k] " CMD_TARGET_WINDOW_USAGE,
-	0,
+	CMD_PREPAREWINDOW,
 	cmd_kill_window_exec
 };
 
@@ -52,9 +52,10 @@ cmd_kill_window_exec(struct cmd *self, struct cmd_q *cmdq)
 	struct session_group	*sg;
 	u_int			 references;
 
-	if ((wl = cmd_find_window(cmdq, args_get(args, 't'), &s)) == NULL)
+	if ((wl = cmdq->state.wl) == NULL)
 		return (CMD_RETURN_ERROR);
 	w = wl->window;
+	s = cmdq->state.s;
 
 	if (self->entry == &cmd_unlink_window_entry) {
 		sg = session_group_find(s);
@@ -66,7 +67,6 @@ cmd_kill_window_exec(struct cmd *self, struct cmd_q *cmdq)
 			cmdq_error(cmdq, "window only linked to one session");
 			return (CMD_RETURN_ERROR);
 		}
-		server_unlink_window(s, wl);
 	} else {
 		if (args_has(args, 'a')) {
 			RB_FOREACH_SAFE(wl2, winlinks, &s->windows, wl3) {

@@ -21,8 +21,35 @@
 #include <ctype.h>
 #include <stdlib.h>
 #include <time.h>
+#include <string.h>
 
 #include "tmux.h"
+
+void	cmdq_set_state(struct cmd_q *);
+void	cmdq_run_hook(struct hooks *, const char *, struct cmd *,
+	    struct cmd_q *);
+
+/* Fill in state members. */
+void
+cmdq_set_state(struct cmd_q *cmdq)
+{
+	memset(&cmdq->state, 0, sizeof cmdq->state);
+
+	cmdq->state.c = cmdq->client;
+
+	cmdq->state.s = cmdq->client != NULL ?
+		cmdq->client->session : NULL;
+	cmdq->state.s2 = NULL;
+	cmdq->state.w = NULL;
+	cmdq->state.wl = NULL;
+	cmdq->state.wp = NULL;
+	cmdq->state.tflag = NULL;
+	cmdq->state.idx = -1;
+
+	cmd_prepare(cmdq->cmd, cmdq);
+
+	cmdq->state.prior_tflag = args_get(cmdq->cmd->args, 't');
+}
 
 /* Create new command queue. */
 struct cmd_q *
@@ -145,6 +172,20 @@ cmdq_run(struct cmd_q *cmdq, struct cmd_list *cmdlist)
 	}
 }
 
+/* Run hooks based on the hooks prefix (before/after). */
+void
+cmdq_run_hook(struct hooks *hooks, const char *prefix, struct cmd *cmd,
+    struct cmd_q *cmdq)
+{
+	struct hook     *hook;
+	char            *s;
+
+	xasprintf(&s, "%s-%s", prefix, cmd->entry->name);
+	if ((hook = hooks_find(hooks, s)) != NULL)
+		hooks_run(hook, cmdq);
+	free(s);
+}
+
 /* Add command list to queue. */
 void
 cmdq_append(struct cmd_q *cmdq, struct cmd_list *cmdlist)
@@ -162,6 +203,7 @@ int
 cmdq_continue(struct cmd_q *cmdq)
 {
 	struct cmd_q_item	*next;
+	struct hooks		*hooks;
 	enum cmd_retval		 retval;
 	int			 empty, guard, flags;
 	char			 s[1024];
@@ -180,6 +222,17 @@ cmdq_continue(struct cmd_q *cmdq)
 
 	do {
 		while (cmdq->cmd != NULL) {
+			/*
+			 * Set the execution context for this command.  This
+			 * then allows for session hooks to be used if this
+			 * command has any.
+			 */
+			cmdq_set_state(cmdq);
+			if (cmdq->state.s != NULL)
+				hooks = &cmdq->state.s->hooks;
+			else
+				hooks = &global_hooks;
+
 			cmd_print(cmdq->cmd, s, sizeof s);
 			log_debug("cmdq %p: %s (client %d)", cmdq, s,
 			    cmdq->client != NULL ? cmdq->client->ibuf.fd : -1);
@@ -190,7 +243,14 @@ cmdq_continue(struct cmd_q *cmdq)
 			flags = !!(cmdq->cmd->flags & CMD_CONTROL);
 			guard = cmdq_guard(cmdq, "begin", flags);
 
+			cmdq_run_hook(hooks, "before", cmdq->cmd, cmdq);
+
+			cmdq_set_state(cmdq);
 			retval = cmdq->cmd->entry->exec(cmdq->cmd, cmdq);
+			if (retval == CMD_RETURN_ERROR)
+				break;
+
+			cmdq_run_hook(hooks, "after", cmdq->cmd, cmdq);
 
 			if (guard) {
 				if (retval == CMD_RETURN_ERROR)

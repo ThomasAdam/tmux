@@ -38,35 +38,32 @@ const struct cmd_entry cmd_lock_session_entry = {
 	"lock-session", "locks",
 	"t:", 0, 0,
 	CMD_TARGET_SESSION_USAGE,
-	0,
-	cmd_lock_server_exec
+	CMD_PREPARESESSION,
+	cmd_lock_server_exec,
 };
 
 const struct cmd_entry cmd_lock_client_entry = {
 	"lock-client", "lockc",
 	"t:", 0, 0,
 	CMD_TARGET_CLIENT_USAGE,
-	0,
+	CMD_PREPARECLIENT,
 	cmd_lock_server_exec
 };
 
 enum cmd_retval
 cmd_lock_server_exec(struct cmd *self, unused struct cmd_q *cmdq)
 {
-	struct args	*args = self->args;
 	struct client	*c;
 	struct session	*s;
 
 	if (self->entry == &cmd_lock_server_entry)
 		server_lock();
 	else if (self->entry == &cmd_lock_session_entry) {
-		s = cmd_find_session(cmdq, args_get(args, 't'), 0);
-		if (s == NULL)
+		if ((s = cmdq->state.s) == NULL)
 			return (CMD_RETURN_ERROR);
 		server_lock_session(s);
 	} else {
-		c = cmd_find_client(cmdq, args_get(args, 't'), 0);
-		if (c == NULL)
+		if ((c = cmdq->state.c) == NULL)
 			return (CMD_RETURN_ERROR);
 		server_lock_client(c);
 	}

@@ -33,7 +33,7 @@ const struct cmd_entry cmd_switch_client_entry = {
 	"switch-client", "switchc",
 	"lc:npt:r", 0, 0,
 	"[-lnpr] [-c target-client] [-t target-session]",
-	CMD_READONLY,
+	CMD_READONLY|CMD_PREPARESESSION,
 	cmd_switch_client_exec
 };
 
@@ -103,6 +103,9 @@ cmd_switch_client_exec(struct cmd *self, struct cmd_q *cmdq)
 			session_set_current(s, wl);
 		}
 	}
+
+	if ((s = cmdq->state.s) == NULL)
+		return (CMD_RETURN_ERROR);
 
 	if (c->session != NULL)
 		c->last_session = c->session;

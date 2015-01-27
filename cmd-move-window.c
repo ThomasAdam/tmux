@@ -32,7 +32,7 @@ const struct cmd_entry cmd_move_window_entry = {
 	"move-window", "movew",
 	"dkrs:t:", 0, 0,
 	"[-dkr] " CMD_SRCDST_WINDOW_USAGE,
-	0,
+	CMD_PREPARESESSION|CMD_PREPARESESSION2|CMD_PREPAREWINDOW,
 	cmd_move_window_exec
 };
 
@@ -40,7 +40,7 @@ const struct cmd_entry cmd_link_window_entry = {
 	"link-window", "linkw",
 	"dks:t:", 0, 0,
 	"[-dk] " CMD_SRCDST_WINDOW_USAGE,
-	0,
+	CMD_PREPARESESSION|CMD_PREPAREWINDOW,
 	cmd_move_window_exec
 };
 
@@ -54,8 +54,7 @@ cmd_move_window_exec(struct cmd *self, struct cmd_q *cmdq)
 	int		 idx, kflag, dflag;
 
 	if (args_has(args, 'r')) {
-		s = cmd_find_session(cmdq, args_get(args, 't'), 0);
-		if (s == NULL)
+		if ((s = cmdq->state.s) == NULL)
 			return (CMD_RETURN_ERROR);
 
 		session_renumber_windows(s);
@@ -63,10 +62,12 @@ cmd_move_window_exec(struct cmd *self, struct cmd_q *cmdq)
 
 		return (CMD_RETURN_NORMAL);
 	}
+	src = cmdq->state.s;
+	dst = cmdq->state.s2;
 
-	if ((wl = cmd_find_window(cmdq, args_get(args, 's'), &src)) == NULL)
+	if ((wl = cmdq->state.wl) == NULL)
 		return (CMD_RETURN_ERROR);
-	if ((idx = cmd_find_index(cmdq, args_get(args, 't'), &dst)) == -2)
+	if ((idx = cmdq->state.idx) == -2)
 		return (CMD_RETURN_ERROR);
 
 	kflag = args_has(self->args, 'k');

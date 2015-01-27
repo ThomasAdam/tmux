@@ -39,7 +39,7 @@ const struct cmd_entry cmd_list_panes_entry = {
 	"list-panes", "lsp",
 	"asF:t:", 0, 0,
 	"[-as] [-F format] " CMD_TARGET_WINDOW_USAGE,
-	0,
+	CMD_PREPARESESSION|CMD_PREPARESESSION2|CMD_PREPAREWINDOW,
 	cmd_list_panes_exec
 };
 
@@ -50,16 +50,16 @@ cmd_list_panes_exec(struct cmd *self, struct cmd_q *cmdq)
 	struct session	*s;
 	struct winlink	*wl;
 
+	s = cmdq->state.s;
+
 	if (args_has(args, 'a'))
 		cmd_list_panes_server(self, cmdq);
 	else if (args_has(args, 's')) {
-		s = cmd_find_session(cmdq, args_get(args, 't'), 0);
 		if (s == NULL)
 			return (CMD_RETURN_ERROR);
 		cmd_list_panes_session(self, s, cmdq, 1);
 	} else {
-		wl = cmd_find_window(cmdq, args_get(args, 't'), &s);
-		if (wl == NULL)
+		if ((wl = cmdq->state.wl) == NULL)
 			return (CMD_RETURN_ERROR);
 		cmd_list_panes_window(self, s, wl, cmdq, 0);
 	}

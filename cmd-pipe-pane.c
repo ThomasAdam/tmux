@@ -39,7 +39,7 @@ const struct cmd_entry cmd_pipe_pane_entry = {
 	"pipe-pane", "pipep",
 	"ot:", 0, 1,
 	"[-o] " CMD_TARGET_PANE_USAGE " [command]",
-	0,
+	CMD_PREPAREPANE,
 	cmd_pipe_pane_exec
 };
 
@@ -52,8 +52,9 @@ cmd_pipe_pane_exec(struct cmd *self, struct cmd_q *cmdq)
 	char			*command;
 	int			 old_fd, pipe_fd[2], null_fd;
 
-	if (cmd_find_pane(cmdq, args_get(args, 't'), NULL, &wp) == NULL)
+	if (cmdq->state.wl == NULL)
 		return (CMD_RETURN_ERROR);
+	wp = cmdq->state.wp;
 	c = cmd_find_client(cmdq, NULL, 1);
 
 	/* Destroy the old pipe. */

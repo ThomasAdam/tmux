@@ -28,15 +28,13 @@
  */
 
 enum cmd_retval cmd_set_hook_exec(struct cmd *, struct cmd_q *);
-void		cmd_set_hook_prepare(struct cmd *, struct cmd_q *);
 
 const struct cmd_entry cmd_set_hook_entry = {
 	"set-hook", NULL,
 	"gt:u", 1, 2,
 	"[-gu]" CMD_TARGET_SESSION_USAGE " hook-name [command]",
 	CMD_PREPARESESSION,
-	cmd_set_hook_exec,
-	NULL
+	cmd_set_hook_exec
 };
 
 enum cmd_retval

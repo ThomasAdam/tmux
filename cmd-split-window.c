@@ -39,7 +39,7 @@ const struct cmd_entry cmd_split_window_entry = {
 	"bc:dF:l:hp:Pt:v", 0, -1,
 	"[-bdhvP] [-c start-directory] [-F format] [-p percentage|-l size] "
 	CMD_TARGET_PANE_USAGE " [command]",
-	0,
+	CMD_PREPAREPANE,
 	cmd_split_window_exec
 };
 
@@ -62,9 +62,13 @@ cmd_split_window_exec(struct cmd *self, struct cmd_q *cmdq)
 	struct format_tree	*ft;
 	struct environ_entry	*envent;
 
-	if ((wl = cmd_find_pane(cmdq, args_get(args, 't'), &s, &wp)) == NULL)
+	if ((wl = cmdq->state.wl) == NULL)
 		return (CMD_RETURN_ERROR);
-	w = wl->window;
+	else {
+		w = wl->window;
+		s = cmdq->state.s;
+		wp = cmdq->state.wp;
+	}
 	server_unzoom_window(w);
 
 	environ_init(&env);
