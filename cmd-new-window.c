@@ -32,23 +32,37 @@
 
 #define NEW_WINDOW_TEMPLATE "#{session_name}:#{window_index}.#{pane_index}"
 
-enum cmd_retval	cmd_new_window_exec(struct cmd *, struct cmd_q *);
+enum cmd_retval	 cmd_new_window_exec(struct cmd *, struct cmd_q *);
+void		 cmd_new_window_prepare(struct cmd *, struct cmd_q *);
 
 const struct cmd_entry cmd_new_window_entry = {
 	"new-window", "neww",
 	"ac:dF:kn:Pt:", 0, -1,
 	"[-adkP] [-c start-directory] [-F format] [-n window-name] "
 	CMD_TARGET_WINDOW_USAGE " [command]",
-	0,
-	cmd_new_window_exec
+	CMD_PREPAREWINDOW,
+	cmd_new_window_exec,
+	cmd_new_window_prepare
 };
+
+void
+cmd_new_window_prepare(struct cmd *self, struct cmd_q *cmdq)
+{
+	struct args	*args = self->args;
+
+	if (args_has(args, 'a')) {
+		cmdq->state.wl = cmd_find_window(cmdq, args_get(args, 't'),
+		    &cmdq->state.s);
+	} else
+		cmd_find_index(cmdq, args_get(args, 't'), &cmdq->state.s);
+}
 
 enum cmd_retval
 cmd_new_window_exec(struct cmd *self, struct cmd_q *cmdq)
 {
 	struct args		*args = self->args;
-	struct session		*s;
-	struct winlink		*wl;
+	struct session		*s = cmdq->state.s;
+	struct winlink		*wl = cmdq->state.wl;
 	struct client		*c;
 	const char		*cmd, *path, *template;
 	char		       **argv, *cause, *cp;
@@ -57,7 +71,6 @@ cmd_new_window_exec(struct cmd *self, struct cmd_q *cmdq)
 	struct environ_entry	*envent;
 
 	if (args_has(args, 'a')) {
-		wl = cmd_find_window(cmdq, args_get(args, 't'), &s);
 		if (wl == NULL)
 			return (CMD_RETURN_ERROR);
 		idx = wl->idx + 1;

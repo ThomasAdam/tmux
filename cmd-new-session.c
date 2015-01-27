@@ -42,7 +42,8 @@ const struct cmd_entry cmd_new_session_entry = {
 	"[-s session-name] " CMD_TARGET_SESSION_USAGE " [-x width] "
 	"[-y height] [command]",
 	CMD_STARTSERVER|CMD_CANTNEST,
-	cmd_new_session_exec
+	cmd_new_session_exec,
+	NULL
 };
 
 const struct cmd_entry cmd_has_session_entry = {
@@ -50,7 +51,8 @@ const struct cmd_entry cmd_has_session_entry = {
 	"t:", 0, 0,
 	CMD_TARGET_SESSION_USAGE,
 	0,
-	cmd_new_session_exec
+	cmd_new_session_exec,
+	NULL
 };
 
 enum cmd_retval

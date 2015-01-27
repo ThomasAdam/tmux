@@ -30,17 +30,17 @@ const struct cmd_entry cmd_copy_mode_entry = {
 	"copy-mode", NULL,
 	"t:u", 0, 0,
 	"[-u] " CMD_TARGET_PANE_USAGE,
-	0,
-	cmd_copy_mode_exec
+	CMD_PREPAREPANE,
+	cmd_copy_mode_exec,
+	NULL
 };
 
 enum cmd_retval
 cmd_copy_mode_exec(struct cmd *self, struct cmd_q *cmdq)
 {
-	struct args		*args = self->args;
 	struct window_pane	*wp;
 
-	if (cmd_find_pane(cmdq, args_get(args, 't'), NULL, &wp) == NULL)
+	if ((wp = cmdq->state.wp) == NULL)
 		return (CMD_RETURN_ERROR);
 
 	if (wp->mode != &window_copy_mode) {

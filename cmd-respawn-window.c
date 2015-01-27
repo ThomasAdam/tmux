@@ -33,8 +33,9 @@ const struct cmd_entry cmd_respawn_window_entry = {
 	"respawn-window", "respawnw",
 	"kt:", 0, -1,
 	"[-k] " CMD_TARGET_WINDOW_USAGE " [command]",
-	0,
-	cmd_respawn_window_exec
+	CMD_PREPAREWINDOW,
+	cmd_respawn_window_exec,
+	NULL
 };
 
 enum cmd_retval
@@ -50,9 +51,10 @@ cmd_respawn_window_exec(struct cmd *self, struct cmd_q *cmdq)
 	char		 	*cause;
 	struct environ_entry	*envent;
 
-	if ((wl = cmd_find_window(cmdq, args_get(args, 't'), &s)) == NULL)
+	if ((wl = cmdq->state.wl) == NULL)
 		return (CMD_RETURN_ERROR);
 	w = wl->window;
+	s = cmdq->state.s;
 
 	if (!args_has(self->args, 'k')) {
 		TAILQ_FOREACH(wp, &w->panes, entry) {
