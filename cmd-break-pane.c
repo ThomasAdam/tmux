@@ -34,7 +34,7 @@ const struct cmd_entry cmd_break_pane_entry = {
 	"break-pane", "breakp",
 	"dPF:t:", 0, 0,
 	"[-dP] [-F format] " CMD_TARGET_PANE_USAGE,
-	CMD_PREPAREWINDOW,
+	CMD_PREPAREPANE,
 	cmd_break_pane_exec,
 	NULL
 };

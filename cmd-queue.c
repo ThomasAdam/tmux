@@ -40,10 +40,15 @@ cmdq_set_state(struct cmd_q *cmdq)
 	cmdq->state.s = cmdq->client != NULL ?
 		cmdq->client->session : NULL;
 	cmdq->state.s2 = NULL;
-
 	cmdq->state.w = NULL;
 	cmdq->state.wl = NULL;
 	cmdq->state.wp = NULL;
+	cmdq->state.tflag = NULL;
+	cmdq->state.sflag = NULL;
+
+	cmd_prepare(cmdq->cmd, cmdq);
+
+	cmdq->state.prior_tflag = args_get(cmdq->cmd->args, 't');
 }
 
 /* Create new command queue. */
@@ -205,8 +210,6 @@ cmdq_continue(struct cmd_q *cmdq)
 
 	notify_disable();
 
-	cmdq_set_state(cmdq);
-
 	empty = TAILQ_EMPTY(&cmdq->queue);
 	if (empty)
 		goto empty;
@@ -219,13 +222,14 @@ cmdq_continue(struct cmd_q *cmdq)
 
 	do {
 		while (cmdq->cmd != NULL) {
-			cmd_prepare(cmdq->cmd, cmdq);
-			/* TA:  FIXME - this doesn't belong here. */
-			memcpy(&cmdq->prior_state, &cmd->state,
-				sizeof cmd->state);
-			cmdq->prior_state.tflag = args_get(cmdq->cmd->args, 't');
-			if (cmd->state.s != NULL)
-				hooks = &cmd->state.s->hooks;
+			/*
+			 * Set the execution context for this command.  This
+			 * then allows for session hooks to be used if this
+			 * command has any.
+			 */
+			cmdq_set_state(cmdq);
+			if (cmdq->state.s != NULL)
+				hooks = &cmdq->state.s->hooks;
 			else
 				hooks = &global_hooks;
 
@@ -240,19 +244,11 @@ cmdq_continue(struct cmd_q *cmdq)
 			guard = cmdq_guard(cmdq, "begin", flags);
 
 			cmdq_run_hook(hooks, "before", cmdq->cmd, cmdq);
-			/*
-			 * Call prepare(). This will set up the execution
-			 * context of the command. If a command wishes to do
-			 * more than the default action of prepare() then this
-			 * also call's that command's version.
-			 */
-			log_debug("H: prepare() for cmd: <<%s>>",
-				cmdq->cmd->entry->name);
+
 			retval = cmdq->cmd->entry->exec(cmdq->cmd, cmdq);
 			if (retval == CMD_RETURN_ERROR)
 				break;
 
-			cmd_prepare(cmdq->cmd, cmdq);
 			cmdq_run_hook(hooks, "after", cmdq->cmd, cmdq);
 
 			if (guard) {

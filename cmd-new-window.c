@@ -50,10 +50,6 @@ cmd_new_window_prepare(struct cmd *self, struct cmd_q *cmdq)
 {
 	struct args	*args = self->args;
 
-	log_debug("neww prepare(): -t: <<%s>>, session: <<%s>>",
-		args_get(args, 't'), cmdq->state.s ?
-			cmdq->state.s->name : "(UNKNOWN)");
-
 	if (args_has(args, 'a')) {
 		cmdq->state.wl = cmd_find_window(cmdq, args_get(args, 't'),
 		    &cmdq->state.s);

@@ -1380,14 +1380,15 @@ struct cmd_state {
 
 	const char		*tflag;
 	const char		*sflag;
+
+	const char		*prior_tflag;
+	const char		*prior_sflag;
 };
 
 /* Command and list of commands. */
 struct cmd {
 	const struct cmd_entry	*entry;
 	struct args		*args;
-	struct cmd_state	 prior_state;
-	struct cmd_state	 state;
 
 	char			*file;
 	u_int			 line;
@@ -1428,6 +1429,7 @@ struct cmd_q {
 	struct cmd_q_items	 queue;
 	struct cmd_q_item	*item;
 	struct cmd		*cmd;
+	struct cmd_state	 state;
 
 	time_t			 time;
 	u_int			 number;
