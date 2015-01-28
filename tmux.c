@@ -38,7 +38,6 @@ struct options	 global_options;	/* server options */
 struct options	 global_s_options;	/* session options */
 struct options	 global_w_options;	/* window options */
 struct environ	 global_environ;
-struct hooks	 global_hooks;
 
 struct event_base *ev_base;
 
@@ -289,7 +288,6 @@ main(int argc, char **argv)
 			flags |= CLIENT_UTF8;
 	}
 
-	hooks_init(&global_hooks, NULL);
 	environ_init(&global_environ);
 	for (var = environ; *var != NULL; var++)
 		environ_put(&global_environ, *var);
