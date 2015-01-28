@@ -36,7 +36,7 @@ const struct cmd_entry cmd_join_pane_entry = {
 	"join-pane", "joinp",
 	"bdhvp:l:s:t:", 0, 0,
 	"[-bdhv] [-p percentage|-l size] [-s src-pane] [-t dst-pane]",
-	CMD_PREPAREPANE|CMD_PREPAREPANE2,
+	0,
 	cmd_join_pane_exec
 };
 
@@ -44,7 +44,7 @@ const struct cmd_entry cmd_move_pane_entry = {
 	"move-pane", "movep",
 	"bdhvp:l:s:t:", 0, 0,
 	"[-bdhv] [-p percentage|-l size] [-s src-pane] [-t dst-pane]",
-	CMD_PREPAREPANE|CMD_PREPAREPANE2,
+	0,
 	cmd_join_pane_exec
 };
 
@@ -67,17 +67,16 @@ join_pane(struct cmd *self, struct cmd_q *cmdq, int not_same_window)
 	enum layout_type	 type;
 	struct layout_cell	*lc;
 
-	if ((dst_wl = cmdq->state.wl) == NULL)
+	dst_wl = cmd_find_pane(cmdq, args_get(args, 't'), &dst_s, &dst_wp);
+	if (dst_wl == NULL)
 		return (CMD_RETURN_ERROR);
-	dst_s =  cmdq->state.s;
-	dst_wp = cmdq->state.wp;
 	dst_w = dst_wl->window;
 	dst_idx = dst_wl->idx;
 	server_unzoom_window(dst_w);
 
-	if ((src_wl = cmdq->state.wl2) == NULL)
+	src_wl = cmd_find_pane(cmdq, args_get(args, 's'), NULL, &src_wp);
+	if (src_wl == NULL)
 		return (CMD_RETURN_ERROR);
-	src_wp = cmdq->state.wp2;
 	src_w = src_wl->window;
 	server_unzoom_window(src_w);
 

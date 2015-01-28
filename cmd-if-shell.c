@@ -39,7 +39,7 @@ const struct cmd_entry cmd_if_shell_entry = {
 	"if-shell", "if",
 	"bFt:", 2, 3,
 	"[-bF] " CMD_TARGET_PANE_USAGE " shell-command command [command]",
-	CMD_PREPAREPANE,
+	0,
 	cmd_if_shell_exec
 };
 
@@ -64,15 +64,15 @@ cmd_if_shell_exec(struct cmd *self, struct cmd_q *cmdq)
 	struct window_pane		*wp = NULL;
 	struct format_tree		*ft;
 
-	wl = cmdq->state.wl;
-	s = cmdq->state.s;
-	wp = cmdq->state.wp;
-	c = cmd_find_client(cmdq, NULL, 1);
-
-	if (!args_has(args, 't') && c != NULL && c->session != NULL) {
-		s = c->session;
-		wl = s->curw;
-		wp = wl->window->active;
+	if (args_has(args, 't'))
+		wl = cmd_find_pane(cmdq, args_get(args, 't'), &s, &wp);
+	else {
+		c = cmd_find_client(cmdq, NULL, 1);
+		if (c != NULL && c->session != NULL) {
+			s = c->session;
+			wl = s->curw;
+			wp = wl->window->active;
+		}
 	}
 
 	ft = format_create();

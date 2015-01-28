@@ -30,16 +30,17 @@ const struct cmd_entry cmd_clock_mode_entry = {
 	"clock-mode", NULL,
 	"t:", 0, 0,
 	CMD_TARGET_PANE_USAGE,
-	CMD_PREPAREPANE,
+	0,
 	cmd_clock_mode_exec
 };
 
 enum cmd_retval
-cmd_clock_mode_exec(unused struct cmd *self, struct cmd_q *cmdq)
+cmd_clock_mode_exec(struct cmd *self, struct cmd_q *cmdq)
 {
+	struct args		*args = self->args;
 	struct window_pane	*wp;
 
-	if ((wp = cmdq->state.wp) == NULL)
+	if (cmd_find_pane(cmdq, args_get(args, 't'), NULL, &wp) == NULL)
 		return (CMD_RETURN_ERROR);
 
 	window_pane_set_mode(wp, &window_clock_mode);

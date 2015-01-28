@@ -44,8 +44,7 @@ const struct cmd_entry cmd_list_commands_entry = {
 	"", 0, 0,
 	"",
 	0,
-	cmd_list_keys_exec,
-	NULL
+	cmd_list_keys_exec
 };
 
 enum cmd_retval

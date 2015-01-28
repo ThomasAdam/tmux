@@ -30,7 +30,7 @@ const struct cmd_entry cmd_select_pane_entry = {
 	"select-pane", "selectp",
 	"DdeLlRt:U", 0, 0,
 	"[-DdeLlRU] " CMD_TARGET_PANE_USAGE,
-	CMD_PREPAREPANE,
+	0,
 	cmd_select_pane_exec
 };
 
@@ -38,7 +38,7 @@ const struct cmd_entry cmd_last_pane_entry = {
 	"last-pane", "lastp",
 	"det:", 0, 0,
 	"[-de] " CMD_TARGET_WINDOW_USAGE,
-	CMD_PREPAREPANE,
+	0,
 	cmd_select_pane_exec
 };
 
@@ -50,7 +50,8 @@ cmd_select_pane_exec(struct cmd *self, struct cmd_q *cmdq)
 	struct window_pane	*wp;
 
 	if (self->entry == &cmd_last_pane_entry || args_has(args, 'l')) {
-		if ((wl = cmdq->state.wl) == NULL)
+		wl = cmd_find_window(cmdq, args_get(args, 't'), NULL);
+		if (wl == NULL)
 			return (CMD_RETURN_ERROR);
 
 		if (wl->window->last == NULL) {
@@ -72,10 +73,8 @@ cmd_select_pane_exec(struct cmd *self, struct cmd_q *cmdq)
 		return (CMD_RETURN_NORMAL);
 	}
 
-	if ((wl = cmdq->state.wl) == NULL)
+	if ((wl = cmd_find_pane(cmdq, args_get(args, 't'), NULL, &wp)) == NULL)
 		return (CMD_RETURN_ERROR);
-
-	wp = cmdq->state.wp;
 
 	server_unzoom_window(wp->window);
 	if (!window_pane_visible(wp)) {

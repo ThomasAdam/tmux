@@ -39,7 +39,7 @@ const struct cmd_entry cmd_display_message_entry = {
 	"c:pt:F:", 0, 1,
 	"[-p] [-c target-client] [-F format] " CMD_TARGET_PANE_USAGE
 	" [message]",
-	CMD_PREPAREWINDOW|CMD_PREPARECLIENT,
+	0,
 	cmd_display_message_exec
 };
 
@@ -58,12 +58,15 @@ cmd_display_message_exec(struct cmd *self, struct cmd_q *cmdq)
 	time_t			 t;
 	size_t			 len;
 
-	if ((wl = cmdq->state.wl) == NULL)
-		return (CMD_RETURN_ERROR);
-
-	c = cmd_current_client(cmdq);
-	wp = cmdq->state.wp;
-	s = cmdq->state.s;
+	if (args_has(args, 't')) {
+		wl = cmd_find_pane(cmdq, args_get(args, 't'), &s, &wp);
+		if (wl == NULL)
+			return (CMD_RETURN_ERROR);
+	} else {
+		wl = cmd_find_pane(cmdq, NULL, &s, &wp);
+		if (wl == NULL)
+			return (CMD_RETURN_ERROR);
+	}
 
 	if (args_has(args, 'F') && args->argc != 0) {
 		cmdq_error(cmdq, "only one of -F or argument must be given");
@@ -71,9 +74,11 @@ cmd_display_message_exec(struct cmd *self, struct cmd_q *cmdq)
 	}
 
 	if (args_has(args, 'c')) {
-		if ((c = cmd_find_client(cmdq, args_get(args, 'c'), 0)) == NULL)
+		c = cmd_find_client(cmdq, args_get(args, 'c'), 0);
+		if (c == NULL)
 			return (CMD_RETURN_ERROR);
 	} else {
+		c = cmd_current_client(cmdq);
 		if (c == NULL && !args_has(self->args, 'p')) {
 			cmdq_error(cmdq, "no client available");
 			return (CMD_RETURN_ERROR);

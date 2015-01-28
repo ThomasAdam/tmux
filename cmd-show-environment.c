@@ -28,13 +28,12 @@
  */
 
 enum cmd_retval	 cmd_show_environment_exec(struct cmd *, struct cmd_q *);
-void		 cmd_show_environment_prepare(struct cmd *, struct cmd_q *);
 
 const struct cmd_entry cmd_show_environment_entry = {
 	"show-environment", "showenv",
 	"gt:", 0, 1,
 	"[-g] " CMD_TARGET_SESSION_USAGE " [name]",
-	CMD_PREPARESESSION,
+	0,
 	cmd_show_environment_exec
 };
 
@@ -49,7 +48,7 @@ cmd_show_environment_exec(struct cmd *self, struct cmd_q *cmdq)
 	if (args_has(self->args, 'g'))
 		env = &global_environ;
 	else {
-		if ((s = cmdq->state.s) == NULL)
+		if ((s = cmd_find_session(cmdq, args_get(args, 't'), 0)) == NULL)
 			return (CMD_RETURN_ERROR);
 		env = &s->environ;
 	}

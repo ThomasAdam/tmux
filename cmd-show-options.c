@@ -38,7 +38,7 @@ const struct cmd_entry cmd_show_options_entry = {
 	"show-options", "show",
 	"gqst:vw", 0, 1,
 	"[-gqsvw] [-t target-session|target-window] [option]",
-	CMD_PREPARESESSION|CMD_PREPAREWINDOW,
+	0,
 	cmd_show_options_exec
 };
 
@@ -46,7 +46,7 @@ const struct cmd_entry cmd_show_window_options_entry = {
 	"show-window-options", "showw",
 	"gvt:", 0, 1,
 	"[-gv] " CMD_TARGET_WINDOW_USAGE " [option]",
-	CMD_PREPARESESSION|CMD_PREPAREWINDOW,
+	0,
 	cmd_show_options_exec
 };
 
@@ -69,7 +69,8 @@ cmd_show_options_exec(struct cmd *self, struct cmd_q *cmdq)
 		if (args_has(self->args, 'g'))
 			oo = &global_w_options;
 		else {
-			if ((wl = cmdq->state.wl) == NULL)
+			wl = cmd_find_window(cmdq, args_get(args, 't'), NULL);
+			if (wl == NULL)
 				return (CMD_RETURN_ERROR);
 			oo = &wl->window->options;
 		}
@@ -78,7 +79,8 @@ cmd_show_options_exec(struct cmd *self, struct cmd_q *cmdq)
 		if (args_has(self->args, 'g'))
 			oo = &global_s_options;
 		else {
-			if ((s = cmdq->state.s) == NULL)
+			s = cmd_find_session(cmdq, args_get(args, 't'), 0);
+			if (s == NULL)
 				return (CMD_RETURN_ERROR);
 			oo = &s->options;
 		}

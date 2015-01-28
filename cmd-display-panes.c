@@ -30,16 +30,17 @@ const struct cmd_entry cmd_display_panes_entry = {
 	"display-panes", "displayp",
 	"t:", 0, 0,
 	CMD_TARGET_CLIENT_USAGE,
-	CMD_PREPARECLIENT,
+	0,
 	cmd_display_panes_exec
 };
 
 enum cmd_retval
-cmd_display_panes_exec(unused struct cmd *self, struct cmd_q *cmdq)
+cmd_display_panes_exec(struct cmd *self, struct cmd_q *cmdq)
 {
+	struct args	*args = self->args;
 	struct client	*c;
 
-	if ((c = cmdq->state.c) == NULL)
+	if ((c = cmd_find_client(cmdq, args_get(args, 't'), 0)) == NULL)
 		return (CMD_RETURN_ERROR);
 
 	server_set_identify(c);

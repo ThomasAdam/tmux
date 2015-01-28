@@ -32,7 +32,7 @@ const struct cmd_entry cmd_detach_client_entry = {
 	"detach-client", "detach",
 	"as:t:P", 0, 0,
 	"[-P] [-a] [-s target-session] " CMD_TARGET_CLIENT_USAGE,
-	CMD_READONLY|CMD_PREPARECLIENT|CMD_PREPARESESSION,
+	CMD_READONLY,
 	cmd_detach_client_exec
 };
 
@@ -40,7 +40,7 @@ const struct cmd_entry cmd_suspend_client_entry = {
 	"suspend-client", "suspendc",
 	"t:", 0, 0,
 	CMD_TARGET_CLIENT_USAGE,
-	CMD_PREPARECLIENT,
+	0,
 	cmd_detach_client_exec
 };
 
@@ -68,7 +68,8 @@ cmd_detach_client_exec(struct cmd *self, struct cmd_q *cmdq)
 		msgtype = MSG_DETACH;
 
 	if (args_has(args, 's')) {
-		if ((s = cmd_find_session(cmdq, args_get(args, 's'), 0)) == NULL)
+		s = cmd_find_session(cmdq, args_get(args, 's'), 0);
+		if (s == NULL)
 			return (CMD_RETURN_ERROR);
 
 		for (i = 0; i < ARRAY_LENGTH(&clients); i++) {
@@ -79,7 +80,8 @@ cmd_detach_client_exec(struct cmd *self, struct cmd_q *cmdq)
 			    strlen(c->session->name) + 1);
 		}
 	} else {
-		if ((c = cmdq->state.c) == NULL)
+		c = cmd_find_client(cmdq, args_get(args, 't'), 0);
+		if (c == NULL)
 			return (CMD_RETURN_ERROR);
 
 		if (args_has(args, 'a')) {

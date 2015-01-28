@@ -33,7 +33,7 @@ const struct cmd_entry cmd_kill_session_entry = {
 	"kill-session", NULL,
 	"at:", 0, 0,
 	"[-a] " CMD_TARGET_SESSION_USAGE,
-	CMD_PREPARESESSION,
+	0,
 	cmd_kill_session_exec
 };
 
@@ -43,7 +43,7 @@ cmd_kill_session_exec(struct cmd *self, struct cmd_q *cmdq)
 	struct args	*args = self->args;
 	struct session	*s, *s2, *s3;
 
-	if ((s = cmdq->state.s) == NULL)
+	if ((s = cmd_find_session(cmdq, args_get(args, 't'), 0)) == NULL)
 		return (CMD_RETURN_ERROR);
 
 	if (args_has(args, 'a')) {

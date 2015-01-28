@@ -33,7 +33,7 @@ const struct cmd_entry cmd_send_keys_entry = {
 	"send-keys", "send",
 	"lRt:", 0, -1,
 	"[-lR] " CMD_TARGET_PANE_USAGE " key ...",
-	CMD_PREPAREPANE,
+	0,
 	cmd_send_keys_exec
 };
 
@@ -41,7 +41,7 @@ const struct cmd_entry cmd_send_prefix_entry = {
 	"send-prefix", NULL,
 	"2t:", 0, 0,
 	"[-2] " CMD_TARGET_PANE_USAGE,
-	CMD_PREPAREPANE,
+	0,
 	cmd_send_keys_exec
 };
 
@@ -55,10 +55,8 @@ cmd_send_keys_exec(struct cmd *self, struct cmd_q *cmdq)
 	const u_char		*str;
 	int			 i, key;
 
-	if (cmdq->state.wl == NULL)
+	if (cmd_find_pane(cmdq, args_get(args, 't'), &s, &wp) == NULL)
 		return (CMD_RETURN_ERROR);
-	s = cmdq->state.s;
-	wp = cmdq->state.wp;
 
 	if (self->entry == &cmd_send_prefix_entry) {
 		if (args_has(args, '2'))

@@ -41,7 +41,7 @@ const struct cmd_entry cmd_new_session_entry = {
 	"[-AdDP] [-c start-directory] [-F format] [-n window-name] "
 	"[-s session-name] " CMD_TARGET_SESSION_USAGE " [-x width] "
 	"[-y height] [command]",
-	CMD_STARTSERVER|CMD_CANTNEST|CMD_PREPARESESSION,
+	CMD_STARTSERVER|CMD_CANTNEST,
 	cmd_new_session_exec
 };
 
@@ -49,7 +49,7 @@ const struct cmd_entry cmd_has_session_entry = {
 	"has-session", "has",
 	"t:", 0, 0,
 	CMD_TARGET_SESSION_USAGE,
-	CMD_PREPARESESSION,
+	0,
 	cmd_new_session_exec
 };
 
@@ -99,11 +99,12 @@ cmd_new_session_exec(struct cmd *self, struct cmd_q *cmdq)
 	}
 
 	target = args_get(args, 't');
-	groupwith = NULL;
 	if (target != NULL) {
-		if ((groupwith = cmdq->state.s) == NULL)
+		groupwith = cmd_find_session(cmdq, target, 0);
+		if (groupwith == NULL)
 			return (CMD_RETURN_ERROR);
-	}
+	} else
+		groupwith = NULL;
 
 	/* Set -d if no client. */
 	detached = args_has(args, 'd');

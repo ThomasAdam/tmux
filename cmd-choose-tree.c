@@ -48,7 +48,7 @@ const struct cmd_entry cmd_choose_tree_entry = {
 	"S:W:swub:c:t:", 0, 1,
 	"[-suw] [-b session-template] [-c window template] [-S format] " \
 	"[-W format] " CMD_TARGET_WINDOW_USAGE,
-	CMD_PREPAREWINDOW,
+	0,
 	cmd_choose_tree_exec
 };
 
@@ -56,7 +56,7 @@ const struct cmd_entry cmd_choose_session_entry = {
 	"choose-session", NULL,
 	"F:t:", 0, 1,
 	CMD_TARGET_WINDOW_USAGE " [-F format] [template]",
-	CMD_PREPAREWINDOW,
+	0,
 	cmd_choose_tree_exec
 };
 
@@ -64,7 +64,7 @@ const struct cmd_entry cmd_choose_window_entry = {
 	"choose-window", NULL,
 	"F:t:", 0, 1,
 	CMD_TARGET_WINDOW_USAGE "[-F format] [template]",
-	CMD_PREPAREWINDOW,
+	0,
 	cmd_choose_tree_exec
 };
 
@@ -87,15 +87,12 @@ cmd_choose_tree_exec(struct cmd *self, struct cmd_q *cmdq)
 	ses_template = win_template = NULL;
 	ses_action = win_action = NULL;
 
-	if ((c = cmdq->state.c) == NULL) {
+	if ((c = cmd_current_client(cmdq)) == NULL) {
 		cmdq_error(cmdq, "no client available");
 		return (CMD_RETURN_ERROR);
 	}
 
-	if ((s = cmdq->state.c->session) == NULL)
-		return (CMD_RETURN_ERROR);
-
-	if ((wl = cmdq->state.wl) == NULL)
+	if ((wl = cmd_find_window(cmdq, args_get(args, 't'), &s)) == NULL)
 		return (CMD_RETURN_ERROR);
 
 	if (window_pane_set_mode(wl->window->active, &window_choose_mode) != 0)
