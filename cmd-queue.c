@@ -34,16 +34,19 @@ void
 cmdq_set_state(struct cmd_q *cmdq)
 {
 	struct cmd_state	*state = &cmdq->state;
+	struct session		*s;
+
+	s = cmd_current_session(cmdq, 0);
 
 	state->c = cmdq->client;
 
-	state->tflag.s = NULL;
+	state->tflag.s = s;
 	state->tflag.wl = NULL;
 	state->tflag.wp = NULL;
 	state->tflag.idx = -1;
 	state->tflag.prior = args_get(cmdq->cmd->args, 't');
 
-	state->sflag.s = NULL;
+	state->sflag.s = s;
 	state->sflag.wl = NULL;
 	state->sflag.wp = NULL;
 	state->sflag.idx = -1;
