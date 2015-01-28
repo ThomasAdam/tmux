@@ -37,8 +37,7 @@ const struct cmd_entry cmd_choose_buffer_entry = {
 	"F:t:", 0, 1,
 	CMD_TARGET_WINDOW_USAGE " [-F format] [template]",
 	CMD_PREPAREWINDOW,
-	cmd_choose_buffer_exec,
-	NULL
+	cmd_choose_buffer_exec
 };
 
 enum cmd_retval

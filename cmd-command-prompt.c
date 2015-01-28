@@ -39,8 +39,7 @@ const struct cmd_entry cmd_command_prompt_entry = {
 	"I:p:t:", 0, 1,
 	"[-I inputs] [-p prompts] " CMD_TARGET_CLIENT_USAGE " [template]",
 	CMD_PREPARECLIENT,
-	cmd_command_prompt_exec,
-	NULL
+	cmd_command_prompt_exec
 };
 
 struct cmd_command_prompt_cdata {

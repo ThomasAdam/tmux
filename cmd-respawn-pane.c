@@ -35,8 +35,7 @@ const struct cmd_entry cmd_respawn_pane_entry = {
 	"kt:", 0, -1,
 	"[-k] " CMD_TARGET_PANE_USAGE " [command]",
 	CMD_PREPAREPANE,
-	cmd_respawn_pane_exec,
-	NULL
+	cmd_respawn_pane_exec
 };
 
 enum cmd_retval

@@ -41,8 +41,7 @@ const struct cmd_entry cmd_capture_pane_entry = {
 	"[-aCeJpPq] " CMD_BUFFER_USAGE " [-E end-line] [-S start-line]"
 	CMD_TARGET_PANE_USAGE,
 	CMD_PREPAREPANE,
-	cmd_capture_pane_exec,
-	NULL
+	cmd_capture_pane_exec
 };
 
 char *

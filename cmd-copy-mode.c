@@ -31,8 +31,7 @@ const struct cmd_entry cmd_copy_mode_entry = {
 	"t:u", 0, 0,
 	"[-u] " CMD_TARGET_PANE_USAGE,
 	CMD_PREPAREPANE,
-	cmd_copy_mode_exec,
-	NULL
+	cmd_copy_mode_exec
 };
 
 enum cmd_retval

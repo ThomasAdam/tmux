@@ -35,8 +35,7 @@ const struct cmd_entry cmd_break_pane_entry = {
 	"dPF:t:", 0, 0,
 	"[-dP] [-F format] " CMD_TARGET_PANE_USAGE,
 	CMD_PREPAREPANE,
-	cmd_break_pane_exec,
-	NULL
+	cmd_break_pane_exec
 };
 
 enum cmd_retval

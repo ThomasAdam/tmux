@@ -31,17 +31,15 @@ const struct cmd_entry cmd_kill_window_entry = {
 	"at:", 0, 0,
 	"[-a] " CMD_TARGET_WINDOW_USAGE,
 	CMD_PREPAREWINDOW,
-	cmd_kill_window_exec,
-	NULL
+	cmd_kill_window_exec
 };
 
 const struct cmd_entry cmd_unlink_window_entry = {
 	"unlink-window", "unlinkw",
 	"kt:", 0, 0,
 	"[-k] " CMD_TARGET_WINDOW_USAGE,
-	0,
-	cmd_kill_window_exec,
-	NULL
+	CMD_PREPAREWINDOW,
+	cmd_kill_window_exec
 };
 
 enum cmd_retval

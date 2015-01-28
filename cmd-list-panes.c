@@ -28,7 +28,6 @@
  */
 
 enum cmd_retval	 cmd_list_panes_exec(struct cmd *, struct cmd_q *);
-void		 cmd_list_panes_prepare(struct cmd *, struct cmd_q *);
 
 void	cmd_list_panes_server(struct cmd *, struct cmd_q *);
 void	cmd_list_panes_session(
@@ -40,23 +39,9 @@ const struct cmd_entry cmd_list_panes_entry = {
 	"list-panes", "lsp",
 	"asF:t:", 0, 0,
 	"[-as] [-F format] " CMD_TARGET_WINDOW_USAGE,
-	CMD_PREPARESESSION|CMD_PREPAREWINDOW,
-	cmd_list_panes_exec,
-	cmd_list_panes_prepare
+	CMD_PREPARESESSION|CMD_PREPARESESSION2|CMD_PREPAREWINDOW,
+	cmd_list_panes_exec
 };
-
-void
-cmd_list_panes_prepare(struct cmd *self, struct cmd_q *cmdq)
-{
-	struct args	*args = self->args;
-
-	if (args_has(args, 's'))
-		cmdq->state.s = cmd_find_session(cmdq, args_get(args, 't'), 0);
-	else if (args_has(args, 't')) {
-		cmdq->state.wl = cmd_find_window(cmdq, args_get(args, 't'),
-		    &cmdq->state.s);
-	}
-}
 
 enum cmd_retval
 cmd_list_panes_exec(struct cmd *self, struct cmd_q *cmdq)

@@ -28,7 +28,6 @@
  */
 
 enum cmd_retval	 cmd_show_options_exec(struct cmd *, struct cmd_q *);
-void		 cmd_show_options_prepare(struct cmd *, struct cmd_q *);
 
 enum cmd_retval	cmd_show_options_one(struct cmd *, struct cmd_q *,
 		    struct options *, int);
@@ -40,31 +39,16 @@ const struct cmd_entry cmd_show_options_entry = {
 	"gqst:vw", 0, 1,
 	"[-gqsvw] [-t target-session|target-window] [option]",
 	CMD_PREPARESESSION|CMD_PREPAREWINDOW,
-	cmd_show_options_exec,
-	cmd_show_options_prepare
+	cmd_show_options_exec
 };
 
 const struct cmd_entry cmd_show_window_options_entry = {
 	"show-window-options", "showw",
 	"gvt:", 0, 1,
 	"[-gv] " CMD_TARGET_WINDOW_USAGE " [option]",
-	0,
-	cmd_show_options_exec,
-	cmd_show_options_prepare
+	CMD_PREPARESESSION|CMD_PREPAREWINDOW,
+	cmd_show_options_exec
 };
-
-void
-cmd_show_options_prepare(struct cmd *self, struct cmd_q *cmdq)
-{
-	struct args	*args = self->args;
-
-	if (args_has(args, 'g') && args_has(args, 'w') &&
-	    self->entry == &cmd_show_window_options_entry) {
-		cmdq->state.wl = cmd_find_window(cmdq, args_get(args, 't'),
-		    NULL);
-	} else
-		cmdq->state.s = cmd_find_session(cmdq, args_get(args, 't'), 0);
-}
 
 enum cmd_retval
 cmd_show_options_exec(struct cmd *self, struct cmd_q *cmdq)

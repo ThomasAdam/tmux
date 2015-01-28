@@ -31,15 +31,13 @@
  */
 
 enum cmd_retval	cmd_attach_session_exec(struct cmd *, struct cmd_q *);
-void		cmd_attach_session_prepare(struct cmd *, struct cmd_q *);
 
 const struct cmd_entry cmd_attach_session_entry = {
 	"attach-session", "attach",
 	"c:drt:", 0, 0,
 	"[-dr] [-c working-directory] " CMD_TARGET_SESSION_USAGE,
 	CMD_CANTNEST|CMD_STARTSERVER|CMD_PREPARESESSION,
-	cmd_attach_session_exec,
-	NULL
+	cmd_attach_session_exec
 };
 
 enum cmd_retval
@@ -78,7 +76,6 @@ cmd_attach_session(struct cmd_q *cmdq, const char *tflag, int dflag, int rflag,
 		if (w != NULL)
 			wl = winlink_find_by_window(&s->windows, w);
 	}
-	/* TA:  Likely broken! */
 	if ((s = cmdq->state.s) == NULL)
 		return (CMD_RETURN_ERROR);
 

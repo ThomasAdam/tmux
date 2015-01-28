@@ -29,7 +29,6 @@
  */
 
 enum cmd_retval	 cmd_join_pane_exec(struct cmd *, struct cmd_q *);
-void		 cmd_join_pane_prepare(struct cmd *, struct cmd_q *);
 
 enum cmd_retval	 join_pane(struct cmd *, struct cmd_q *, int);
 
@@ -37,31 +36,18 @@ const struct cmd_entry cmd_join_pane_entry = {
 	"join-pane", "joinp",
 	"bdhvp:l:s:t:", 0, 0,
 	"[-bdhv] [-p percentage|-l size] [-s src-pane] [-t dst-pane]",
-	CMD_PREPAREPANE,
-	cmd_join_pane_exec,
-	cmd_join_pane_prepare
+	CMD_PREPAREPANE|CMD_PREPAREPANE2,
+	cmd_join_pane_exec
 };
 
 const struct cmd_entry cmd_move_pane_entry = {
 	"move-pane", "movep",
 	"bdhvp:l:s:t:", 0, 0,
 	"[-bdhv] [-p percentage|-l size] [-s src-pane] [-t dst-pane]",
-	CMD_PREPAREWINDOW,
-	cmd_join_pane_exec,
-	cmd_join_pane_prepare
+	CMD_PREPAREWINDOW|CMD_PREPAREPANE2,
+	cmd_join_pane_exec
 };
 
-
-void
-cmd_join_pane_prepare(struct cmd *self, struct cmd_q *cmdq)
-{
-	struct args	*args = self->args;
-
-	cmdq->state.wl = cmd_find_pane(cmdq, args_get(args, 't'),
-	    &cmdq->state.s, &cmdq->state.wp);
-	cmdq->state.wl2 = cmd_find_pane(cmdq, args_get(args, 's'), NULL,
-	    &cmdq->state.wp2);
-}
 enum cmd_retval
 cmd_join_pane_exec(struct cmd *self, struct cmd_q *cmdq)
 {

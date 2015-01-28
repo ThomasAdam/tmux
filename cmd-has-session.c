@@ -31,8 +31,7 @@ const struct cmd_entry cmd_has_session_entry = {
 	"t:", 0, 0,
 	CMD_TARGET_SESSION_USAGE,
 	CMD_PREPAREWINDOW,
-	cmd_has_session_exec,
-	NULL
+	cmd_has_session_exec
 };
 
 enum cmd_retval

@@ -25,45 +25,30 @@
  */
 
 enum cmd_retval	 cmd_lock_server_exec(struct cmd *, struct cmd_q *);
-void		 cmd_lock_server_prepare(struct cmd *, struct cmd_q *);
 
 const struct cmd_entry cmd_lock_server_entry = {
 	"lock-server", "lock",
 	"", 0, 0,
 	"",
 	0,
-	cmd_lock_server_exec,
-	cmd_lock_server_prepare,
+	cmd_lock_server_exec
 };
 
 const struct cmd_entry cmd_lock_session_entry = {
 	"lock-session", "locks",
 	"t:", 0, 0,
 	CMD_TARGET_SESSION_USAGE,
-	0,
+	CMD_PREPARESESSION,
 	cmd_lock_server_exec,
-	cmd_lock_server_prepare
 };
 
 const struct cmd_entry cmd_lock_client_entry = {
 	"lock-client", "lockc",
 	"t:", 0, 0,
 	CMD_TARGET_CLIENT_USAGE,
-	0,
-	cmd_lock_server_exec,
-	cmd_lock_server_prepare
+	CMD_PREPARECLIENT,
+	cmd_lock_server_exec
 };
-
-void
-cmd_lock_server_prepare(struct cmd *self, struct cmd_q *cmdq)
-{
-	struct args	*args = self->args;
-
-	if (self->entry == &cmd_lock_session_entry)
-		cmdq->state.s = cmd_find_session(cmdq, args_get(args, 't'), 0);
-	else if (self->entry == &cmd_lock_client_entry)
-		cmdq->state.c = cmd_find_client(cmdq, args_get(args, 't'), 0);
-}
 
 enum cmd_retval
 cmd_lock_server_exec(struct cmd *self, unused struct cmd_q *cmdq)

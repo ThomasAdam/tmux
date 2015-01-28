@@ -28,15 +28,13 @@
  */
 
 enum cmd_retval	 cmd_send_keys_exec(struct cmd *, struct cmd_q *);
-void		 cmd_send_keys_prepare(struct cmd *, struct cmd_q *);
 
 const struct cmd_entry cmd_send_keys_entry = {
 	"send-keys", "send",
 	"lRt:", 0, -1,
 	"[-lR] " CMD_TARGET_PANE_USAGE " key ...",
 	CMD_PREPAREPANE,
-	cmd_send_keys_exec,
-	NULL
+	cmd_send_keys_exec
 };
 
 const struct cmd_entry cmd_send_prefix_entry = {
@@ -44,8 +42,7 @@ const struct cmd_entry cmd_send_prefix_entry = {
 	"2t:", 0, 0,
 	"[-2] " CMD_TARGET_PANE_USAGE,
 	CMD_PREPAREPANE,
-	cmd_send_keys_exec,
-	NULL
+	cmd_send_keys_exec
 };
 
 enum cmd_retval

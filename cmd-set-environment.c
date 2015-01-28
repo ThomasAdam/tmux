@@ -28,15 +28,13 @@
  */
 
 enum cmd_retval	 cmd_set_environment_exec(struct cmd *, struct cmd_q *);
-void		 cmd_set_environment_prepare(struct cmd *, struct cmd_q *);
 
 const struct cmd_entry cmd_set_environment_entry = {
 	"set-environment", "setenv",
 	"grt:u", 1, 2,
 	"[-gru] " CMD_TARGET_SESSION_USAGE " name [value]",
 	CMD_PREPARESESSION,
-	cmd_set_environment_exec,
-	NULL
+	cmd_set_environment_exec
 };
 
 enum cmd_retval

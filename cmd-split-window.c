@@ -40,8 +40,7 @@ const struct cmd_entry cmd_split_window_entry = {
 	"[-bdhvP] [-c start-directory] [-F format] [-p percentage|-l size] "
 	CMD_TARGET_PANE_USAGE " [command]",
 	CMD_PREPAREPANE,
-	cmd_split_window_exec,
-	NULL
+	cmd_split_window_exec
 };
 
 enum cmd_retval

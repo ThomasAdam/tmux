@@ -25,15 +25,13 @@
  */
 
 enum cmd_retval	 cmd_clear_history_exec(struct cmd *, struct cmd_q *);
-void		 cmd_clear_history_prepare(struct cmd *, struct cmd_q *);
 
 const struct cmd_entry cmd_clear_history_entry = {
 	"clear-history", "clearhist",
 	"t:", 0, 0,
 	CMD_TARGET_PANE_USAGE,
 	CMD_PREPAREPANE,
-	cmd_clear_history_exec,
-	NULL
+	cmd_clear_history_exec
 };
 
 enum cmd_retval

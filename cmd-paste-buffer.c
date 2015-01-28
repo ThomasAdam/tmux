@@ -37,8 +37,7 @@ const struct cmd_entry cmd_paste_buffer_entry = {
 	"db:prs:t:", 0, 0,
 	"[-dpr] [-s separator] " CMD_BUFFER_USAGE " " CMD_TARGET_PANE_USAGE,
 	CMD_PREPAREPANE,
-	cmd_paste_buffer_exec,
-	NULL
+	cmd_paste_buffer_exec
 };
 
 enum cmd_retval

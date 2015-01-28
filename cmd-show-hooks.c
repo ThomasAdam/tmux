@@ -34,8 +34,7 @@ const struct cmd_entry cmd_show_hooks_entry = {
 	"gt:", 0, 1,
 	"[-g] " CMD_TARGET_SESSION_USAGE,
 	CMD_PREPARESESSION,
-	cmd_show_hooks_exec,
-	NULL
+	cmd_show_hooks_exec
 };
 
 enum cmd_retval

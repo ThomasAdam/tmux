@@ -44,7 +44,7 @@ cmdq_set_state(struct cmd_q *cmdq)
 	cmdq->state.wl = NULL;
 	cmdq->state.wp = NULL;
 	cmdq->state.tflag = NULL;
-	cmdq->state.sflag = NULL;
+	cmdq->state.idx = -1;
 
 	cmd_prepare(cmdq->cmd, cmdq);
 
@@ -245,6 +245,7 @@ cmdq_continue(struct cmd_q *cmdq)
 
 			cmdq_run_hook(hooks, "before", cmdq->cmd, cmdq);
 
+			cmdq_set_state(cmdq);
 			retval = cmdq->cmd->entry->exec(cmdq->cmd, cmdq);
 			if (retval == CMD_RETURN_ERROR)
 				break;

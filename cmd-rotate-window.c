@@ -31,8 +31,7 @@ const struct cmd_entry cmd_rotate_window_entry = {
 	"Dt:U", 0, 0,
 	"[-DU] " CMD_TARGET_WINDOW_USAGE,
 	CMD_PREPAREWINDOW,
-	cmd_rotate_window_exec,
-	NULL
+	cmd_rotate_window_exec
 };
 
 enum cmd_retval

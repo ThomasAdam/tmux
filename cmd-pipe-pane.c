@@ -40,8 +40,7 @@ const struct cmd_entry cmd_pipe_pane_entry = {
 	"ot:", 0, 1,
 	"[-o] " CMD_TARGET_PANE_USAGE " [command]",
 	CMD_PREPAREPANE,
-	cmd_pipe_pane_exec,
-	NULL
+	cmd_pipe_pane_exec
 };
 
 enum cmd_retval

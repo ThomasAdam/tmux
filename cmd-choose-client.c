@@ -34,7 +34,6 @@
 	"(last used #{client_activity_string})"
 
 enum cmd_retval	 cmd_choose_client_exec(struct cmd *, struct cmd_q *);
-void		 cmd_choose_client_prepare(struct cmd *, struct cmd_q *);
 
 void	cmd_choose_client_callback(struct window_choose_data *);
 
@@ -43,8 +42,7 @@ const struct cmd_entry cmd_choose_client_entry = {
 	"F:t:", 0, 1,
 	CMD_TARGET_WINDOW_USAGE " [-F format] [template]",
 	CMD_PREPAREWINDOW,
-	cmd_choose_client_exec,
-	NULL
+	cmd_choose_client_exec
 };
 
 struct cmd_choose_client_data {

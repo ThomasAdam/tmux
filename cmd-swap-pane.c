@@ -33,8 +33,7 @@ const struct cmd_entry cmd_swap_pane_entry = {
 	"dDs:t:U", 0, 0,
 	"[-dDU] " CMD_SRCDST_PANE_USAGE,
 	CMD_PREPAREPANE,
-	cmd_swap_pane_exec,
-	NULL
+	cmd_swap_pane_exec
 };
 
 enum cmd_retval

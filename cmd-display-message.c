@@ -33,7 +33,6 @@
 	"- (%H:%M %d-%b-%y)"
 
 enum cmd_retval	 cmd_display_message_exec(struct cmd *, struct cmd_q *);
-void		 cmd_display_message_prepare(struct cmd *, struct cmd_q *);
 
 const struct cmd_entry cmd_display_message_entry = {
 	"display-message", "display",
@@ -41,28 +40,8 @@ const struct cmd_entry cmd_display_message_entry = {
 	"[-p] [-c target-client] [-F format] " CMD_TARGET_PANE_USAGE
 	" [message]",
 	CMD_PREPAREWINDOW|CMD_PREPARECLIENT,
-	cmd_display_message_exec,
-	cmd_display_message_prepare
+	cmd_display_message_exec
 };
-
-void
-cmd_display_message_prepare(struct cmd *self, struct cmd_q *cmdq)
-{
-	struct args	*args = self->args;
-
-	if (args_has(args, 't')) {
-		cmdq->state.wl = cmd_find_pane(cmdq, args_get(args, 't'),
-		    &cmdq->state.s, &cmdq->state.wp);
-	} else {
-		cmdq->state.wl = cmd_find_pane(cmdq, NULL, &cmdq->state.s,
-		    &cmdq->state.wp);
-	}
-
-	if (args_has(args, 'c'))
-		cmdq->state.c = cmd_find_client(cmdq, args_get(args, 'c'), 0);
-	else
-		cmdq->state.c = cmd_current_client(cmdq);
-}
 
 enum cmd_retval
 cmd_display_message_exec(struct cmd *self, struct cmd_q *cmdq)
@@ -82,6 +61,7 @@ cmd_display_message_exec(struct cmd *self, struct cmd_q *cmdq)
 	if ((wl = cmdq->state.wl) == NULL)
 		return (CMD_RETURN_ERROR);
 
+	c = cmd_current_client(cmdq);
 	wp = cmdq->state.wp;
 	s = cmdq->state.s;
 
@@ -90,9 +70,8 @@ cmd_display_message_exec(struct cmd *self, struct cmd_q *cmdq)
 		return (CMD_RETURN_ERROR);
 	}
 
-	c = cmdq->state.c;
 	if (args_has(args, 'c')) {
-		if (c == NULL)
+		if ((c = cmd_find_client(cmdq, args_get(args, 'c'), 0)) == NULL)
 			return (CMD_RETURN_ERROR);
 	} else {
 		if (c == NULL && !args_has(self->args, 'p')) {

@@ -33,8 +33,7 @@ const struct cmd_entry cmd_resize_pane_entry = {
 	"DLRt:Ux:y:Z", 0, 1,
 	"[-DLRUZ] [-x width] [-y height] " CMD_TARGET_PANE_USAGE " [adjustment]",
 	CMD_PREPAREPANE,
-	cmd_resize_pane_exec,
-	NULL
+	cmd_resize_pane_exec
 };
 
 enum cmd_retval

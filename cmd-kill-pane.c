@@ -27,15 +27,13 @@
  */
 
 enum cmd_retval	 cmd_kill_pane_exec(struct cmd *, struct cmd_q *);
-void		 cmd_kill_pane_prepare(struct cmd *, struct cmd_q *);
 
 const struct cmd_entry cmd_kill_pane_entry = {
 	"kill-pane", "killp",
 	"at:", 0, 0,
 	"[-a] " CMD_TARGET_PANE_USAGE,
 	CMD_PREPAREPANE,
-	cmd_kill_pane_exec,
-	NULL
+	cmd_kill_pane_exec
 };
 
 enum cmd_retval

@@ -40,8 +40,7 @@ const struct cmd_entry cmd_list_clients_entry = {
 	"F:t:", 0, 0,
 	"[-F format] " CMD_TARGET_SESSION_USAGE,
 	CMD_READONLY|CMD_PREPARESESSION,
-	cmd_list_clients_exec,
-	NULL
+	cmd_list_clients_exec
 };
 
 enum cmd_retval

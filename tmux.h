@@ -1371,7 +1371,6 @@ struct cmd_state {
 	struct winlink		*wl2;
 
 	struct window		*w;
-	struct window		*w2;
 
 	struct window_pane	*wp;
 	struct window_pane	*wp2;
@@ -1379,10 +1378,7 @@ struct cmd_state {
 	int			 idx;
 
 	const char		*tflag;
-	const char		*sflag;
-
 	const char		*prior_tflag;
-	const char		*prior_sflag;
 };
 
 /* Command and list of commands. */
@@ -1455,13 +1451,15 @@ struct cmd_entry {
 #define CMD_CANTNEST 0x2
 #define CMD_READONLY 0x4
 #define CMD_PREPARESESSION 0x8
-#define CMD_PREPAREWINDOW 0x10
-#define CMD_PREPAREPANE 0x20
-#define CMD_PREPARECLIENT 0x40
+#define CMD_PREPARESESSION2 0x10
+#define CMD_PREPAREWINDOW 0x20
+#define CMD_PREPAREPANE 0x40
+#define CMD_PREPAREPANE2 0x80
+#define CMD_PREPARECLIENT 0x100
+#define CMD_PREPAREIDX 0x200
 	int		 flags;
 
 	enum cmd_retval	 (*exec)(struct cmd *, struct cmd_q *);
-	void		 (*prepare)(struct cmd *, struct cmd_q *);
 };
 
 /* Key binding. */

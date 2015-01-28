@@ -35,8 +35,7 @@ const struct cmd_entry cmd_show_messages_entry = {
 	"IJTt:", 0, 0,
 	"[-IJT] " CMD_TARGET_CLIENT_USAGE,
 	CMD_PREPARECLIENT,
-	cmd_show_messages_exec,
-	NULL
+	cmd_show_messages_exec
 };
 
 const struct cmd_entry cmd_server_info_entry = {
@@ -44,8 +43,7 @@ const struct cmd_entry cmd_server_info_entry = {
 	"", 0, 0,
 	"",
 	0,
-	cmd_show_messages_exec,
-	NULL
+	cmd_show_messages_exec
 };
 
 void	cmd_show_messages_server(struct cmd_q *);

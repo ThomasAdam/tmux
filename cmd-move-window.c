@@ -27,15 +27,13 @@
  */
 
 enum cmd_retval	 cmd_move_window_exec(struct cmd *, struct cmd_q *);
-void		 cmd_move_window_prepare(struct cmd *, struct cmd_q *);
 
 const struct cmd_entry cmd_move_window_entry = {
 	"move-window", "movew",
 	"dkrs:t:", 0, 0,
 	"[-dkr] " CMD_SRCDST_WINDOW_USAGE,
-	0,
-	cmd_move_window_exec,
-	NULL
+	CMD_PREPARESESSION|CMD_PREPARESESSION2|CMD_PREPAREWINDOW,
+	cmd_move_window_exec
 };
 
 const struct cmd_entry cmd_link_window_entry = {
@@ -43,24 +41,8 @@ const struct cmd_entry cmd_link_window_entry = {
 	"dks:t:", 0, 0,
 	"[-dk] " CMD_SRCDST_WINDOW_USAGE,
 	CMD_PREPARESESSION|CMD_PREPAREWINDOW,
-	cmd_move_window_exec,
-	cmd_move_window_prepare
+	cmd_move_window_exec
 };
-
-void
-cmd_move_window_prepare(struct cmd *self, struct cmd_q *cmdq)
-{
-	struct args	*args = self->args;
-
-	if (args_has(args, 'r'))
-		cmdq->state.s = cmd_find_session(cmdq, args_get(args, 't'), 0);
-	else {
-		cmdq->state.wl = cmd_find_window(cmdq, args_get(args, 's'),
-		    &cmdq->state.s);
-		cmdq->state.idx = cmd_find_index(cmdq, args_get(args, 't'),
-		    &cmdq->state.s2);
-	}
-}
 
 enum cmd_retval
 cmd_move_window_exec(struct cmd *self, struct cmd_q *cmdq)

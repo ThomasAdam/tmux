@@ -49,8 +49,7 @@ const struct cmd_entry cmd_choose_tree_entry = {
 	"[-suw] [-b session-template] [-c window template] [-S format] " \
 	"[-W format] " CMD_TARGET_WINDOW_USAGE,
 	CMD_PREPAREWINDOW,
-	cmd_choose_tree_exec,
-	NULL
+	cmd_choose_tree_exec
 };
 
 const struct cmd_entry cmd_choose_session_entry = {
@@ -58,8 +57,7 @@ const struct cmd_entry cmd_choose_session_entry = {
 	"F:t:", 0, 1,
 	CMD_TARGET_WINDOW_USAGE " [-F format] [template]",
 	CMD_PREPAREWINDOW,
-	cmd_choose_tree_exec,
-	NULL
+	cmd_choose_tree_exec
 };
 
 const struct cmd_entry cmd_choose_window_entry = {
@@ -67,8 +65,7 @@ const struct cmd_entry cmd_choose_window_entry = {
 	"F:t:", 0, 1,
 	CMD_TARGET_WINDOW_USAGE "[-F format] [template]",
 	CMD_PREPAREWINDOW,
-	cmd_choose_tree_exec,
-	NULL
+	cmd_choose_tree_exec
 };
 
 enum cmd_retval

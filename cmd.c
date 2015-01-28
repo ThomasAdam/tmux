@@ -319,6 +319,7 @@ cmd_prepare(struct cmd *cmd, struct cmd_q *cmdq)
 {
 	struct args		*args = cmd->args;
 	const char		*tflag = args_get(args, 't');
+	const char		*sflag = args_get(args, 's');
 	struct cmd_state	*state = &cmdq->state;
 
 	/* FIXME:  Handle this!  What should happen during cfg_load? */
@@ -335,15 +336,18 @@ cmd_prepare(struct cmd *cmd, struct cmd_q *cmdq)
 
 	if (cmd->entry->flags & CMD_PREPARESESSION)
 		state->s = cmd_find_session(cmdq, tflag, 0);
+	if (cmd->entry->flags & CMD_PREPARESESSION2)
+		state->s2 = cmd_find_session(cmdq, sflag, 0);
 	if (cmd->entry->flags & CMD_PREPAREWINDOW)
 		state->wl = cmd_find_window(cmdq, tflag, NULL);
 	if (cmd->entry->flags & CMD_PREPAREPANE)
 		state->wl = cmd_find_pane(cmdq, tflag, &state->s, &state->wp);
+	if (cmd->entry->flags & CMD_PREPAREPANE2)
+		state->wl2 = cmd_find_pane(cmdq, sflag, &state->s, &state->wp);
 	if (cmd->entry->flags & CMD_PREPARECLIENT)
 		state->c = cmd_find_client(cmdq, tflag, 0);
-
-	if (cmd->entry->prepare != NULL)
-		cmd->entry->prepare(cmd, cmdq);
+	if (cmd->entry->flags & CMD_PREPAREIDX)
+		state->idx = cmd_find_index(cmdq, tflag, &state->s);
 }
 
 size_t

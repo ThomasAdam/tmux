@@ -35,8 +35,7 @@ const struct cmd_entry cmd_source_file_entry = {
 	"", 1, 1,
 	"path",
 	0,
-	cmd_source_file_exec,
-	NULL
+	cmd_source_file_exec
 };
 
 enum cmd_retval

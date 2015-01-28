@@ -36,8 +36,7 @@ const struct cmd_entry cmd_list_keys_entry = {
 	"t:", 0, 0,
 	"[-t key-table]",
 	0,
-	cmd_list_keys_exec,
-	NULL
+	cmd_list_keys_exec
 };
 
 const struct cmd_entry cmd_list_commands_entry = {

@@ -27,15 +27,13 @@
  */
 
 enum cmd_retval	 cmd_select_window_exec(struct cmd *, struct cmd_q *);
-void		 cmd_select_window_prepare(struct cmd *, struct cmd_q *);
 
 const struct cmd_entry cmd_select_window_entry = {
 	"select-window", "selectw",
 	"lnpTt:", 0, 0,
 	"[-lnpT] " CMD_TARGET_WINDOW_USAGE,
 	CMD_PREPAREWINDOW,
-	cmd_select_window_exec,
-	cmd_select_window_prepare
+	cmd_select_window_exec
 };
 
 const struct cmd_entry cmd_next_window_entry = {
@@ -43,8 +41,7 @@ const struct cmd_entry cmd_next_window_entry = {
 	"at:", 0, 0,
 	"[-a] " CMD_TARGET_SESSION_USAGE,
 	CMD_PREPAREWINDOW,
-	cmd_select_window_exec,
-	cmd_select_window_prepare
+	cmd_select_window_exec
 };
 
 const struct cmd_entry cmd_previous_window_entry = {
@@ -52,8 +49,7 @@ const struct cmd_entry cmd_previous_window_entry = {
 	"at:", 0, 0,
 	"[-a] " CMD_TARGET_SESSION_USAGE,
 	CMD_PREPAREWINDOW,
-	cmd_select_window_exec,
-	cmd_select_window_prepare
+	cmd_select_window_exec
 };
 
 const struct cmd_entry cmd_last_window_entry = {
@@ -61,33 +57,9 @@ const struct cmd_entry cmd_last_window_entry = {
 	"t:", 0, 0,
 	CMD_TARGET_SESSION_USAGE,
 	CMD_PREPAREWINDOW,
-	cmd_select_window_exec,
-	cmd_select_window_prepare
+	cmd_select_window_exec
 };
 
-void
-cmd_select_window_prepare(struct cmd *self, struct cmd_q *cmdq)
-{
-	struct args	*args = self->args;
-	int		 next, previous, last;
-
-	next = self->entry == &cmd_next_window_entry;
-	if (args_has(self->args, 'n'))
-		next = 1;
-	previous = self->entry == &cmd_previous_window_entry;
-	if (args_has(self->args, 'p'))
-		previous = 1;
-	last = self->entry == &cmd_last_window_entry;
-	if (args_has(self->args, 'l'))
-		last = 1;
-
-	if (next || previous || last)
-		cmdq->state.s = cmd_find_session(cmdq, args_get(args, 't'), 0);
-	else {
-		cmdq->state.wl = cmd_find_window(cmdq, args_get(args, 't'),
-		    &cmdq->state.s);
-	}
-}
 enum cmd_retval
 cmd_select_window_exec(struct cmd *self, struct cmd_q *cmdq)
 {

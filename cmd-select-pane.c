@@ -25,15 +25,13 @@
  */
 
 enum cmd_retval	 cmd_select_pane_exec(struct cmd *, struct cmd_q *);
-void		 cmd_select_pane_prepare(struct cmd *, struct cmd_q *);
 
 const struct cmd_entry cmd_select_pane_entry = {
 	"select-pane", "selectp",
 	"DdeLlRt:U", 0, 0,
 	"[-DdeLlRU] " CMD_TARGET_PANE_USAGE,
 	CMD_PREPAREPANE,
-	cmd_select_pane_exec,
-	cmd_select_pane_prepare
+	cmd_select_pane_exec
 };
 
 const struct cmd_entry cmd_last_pane_entry = {
@@ -41,23 +39,9 @@ const struct cmd_entry cmd_last_pane_entry = {
 	"det:", 0, 0,
 	"[-de] " CMD_TARGET_WINDOW_USAGE,
 	CMD_PREPAREPANE,
-	cmd_select_pane_exec,
-	cmd_select_pane_prepare
+	cmd_select_pane_exec
 };
 
-void
-cmd_select_pane_prepare(struct cmd *self, struct cmd_q *cmdq)
-{
-	struct args	*args = self->args;
-
-	if (self->entry == &cmd_last_pane_entry || args_has(args, 'l')) {
-		cmdq->state.wl = cmd_find_window(cmdq, args_get(args, 't'),
-		    NULL);
-	} else {
-		cmdq->state.wl = cmd_find_pane(cmdq, args_get(args, 't'), NULL,
-		    &cmdq->state.wp);
-	}
-}
 enum cmd_retval
 cmd_select_pane_exec(struct cmd *self, struct cmd_q *cmdq)
 {

@@ -27,27 +27,13 @@
  */
 
 enum cmd_retval	cmd_swap_window_exec(struct cmd *, struct cmd_q *);
-void		cmd_swap_window_prepare(struct cmd *, struct cmd_q *);
 
 const struct cmd_entry cmd_swap_window_entry = {
 	"swap-window", "swapw",
 	"ds:t:", 0, 0,
 	"[-d] " CMD_SRCDST_WINDOW_USAGE,
-	CMD_PREPAREWINDOW,
-	cmd_swap_window_exec,
-	cmd_swap_window_prepare
+	CMD_PREPAREWINDOW|CMD_PREPARESESSION2
 };
-
-void
-cmd_swap_window_prepare(struct cmd *self, struct cmd_q *cmdq)
-{
-	struct args	*args = self->args;
-
-	cmdq->state.wl = cmd_find_window(cmdq, args_get(args, 's'),
-	    &cmdq->state.s);
-	cmdq->state.wl2 = cmd_find_window(cmdq, args_get(args, 't'),
-	    &cmdq->state.s2);
-}
 
 enum cmd_retval
 cmd_swap_window_exec(struct cmd *self, struct cmd_q *cmdq)

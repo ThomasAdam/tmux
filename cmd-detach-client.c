@@ -27,15 +27,13 @@
  */
 
 enum cmd_retval	 cmd_detach_client_exec(struct cmd *, struct cmd_q *);
-void		 cmd_detach_client_prepare(struct cmd *, struct cmd_q *);
 
 const struct cmd_entry cmd_detach_client_entry = {
 	"detach-client", "detach",
 	"as:t:P", 0, 0,
 	"[-P] [-a] [-s target-session] " CMD_TARGET_CLIENT_USAGE,
 	CMD_READONLY|CMD_PREPARECLIENT|CMD_PREPARESESSION,
-	cmd_detach_client_exec,
-	cmd_detach_client_prepare
+	cmd_detach_client_exec
 };
 
 const struct cmd_entry cmd_suspend_client_entry = {
@@ -43,20 +41,8 @@ const struct cmd_entry cmd_suspend_client_entry = {
 	"t:", 0, 0,
 	CMD_TARGET_CLIENT_USAGE,
 	CMD_PREPARECLIENT,
-	cmd_detach_client_exec,
-	cmd_detach_client_prepare
+	cmd_detach_client_exec
 };
-
-void
-cmd_detach_client_prepare(struct cmd *self, struct cmd_q *cmdq)
-{
-	struct args	*args = self->args;
-
-	if (args_has(args, 's'))
-		cmdq->state.s = cmd_find_session(cmdq, args_get(args, 's'), 0);
-	else
-		cmdq->state.c = cmd_find_client(cmdq, args_get(args, 't'), 0);
-}
 
 enum cmd_retval
 cmd_detach_client_exec(struct cmd *self, struct cmd_q *cmdq)
@@ -82,7 +68,7 @@ cmd_detach_client_exec(struct cmd *self, struct cmd_q *cmdq)
 		msgtype = MSG_DETACH;
 
 	if (args_has(args, 's')) {
-		if ((s = cmdq->state.s) == NULL)
+		if ((s = cmd_find_session(cmdq, args_get(args, 's'), 0)) == NULL)
 			return (CMD_RETURN_ERROR);
 
 		for (i = 0; i < ARRAY_LENGTH(&clients); i++) {
