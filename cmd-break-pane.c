@@ -89,7 +89,7 @@ cmd_break_pane_exec(struct cmd *self, struct cmd_q *cmdq)
 			template = BREAK_PANE_TEMPLATE;
 
 		ft = format_create();
-		format_defaults(ft, cmd_find_client(cmdq, NULL, 1), s, wl, wp);
+		format_defaults(ft, cmdq->state.c, s, wl, wp);
 
 		cp = format_expand(ft, template);
 		cmdq_print(cmdq, "%s", cp);

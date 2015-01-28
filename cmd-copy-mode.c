@@ -30,14 +30,14 @@ const struct cmd_entry cmd_copy_mode_entry = {
 	"copy-mode", NULL,
 	"Mt:u", 0, 0,
 	"[-Mu] " CMD_TARGET_PANE_USAGE,
-	0,
+	,
 	cmd_copy_mode_exec
 };
 
 const struct cmd_entry cmd_clock_mode_entry = {
 	"clock-mode", NULL,
-	"t:", 0, 0,
-	CMD_TARGET_PANE_USAGE,
+	"t:u", 0, 0,
+	"[-u] " CMD_TARGET_PANE_USAGE,
 	0,
 	cmd_copy_mode_exec
 };
@@ -56,6 +56,9 @@ cmd_copy_mode_exec(struct cmd *self, struct cmd_q *cmdq)
 		if (c == NULL || c->session != s)
 			return (CMD_RETURN_NORMAL);
 	} else if (cmd_find_pane(cmdq, args_get(args, 't'), NULL, &wp) == NULL)
+	struct window_pane	*wp;
+
+	if (cmd_find_pane(cmdq, args_get(args, 't'), NULL, &wp) == NULL)
 		return (CMD_RETURN_ERROR);
 
 	if (self->entry == &cmd_clock_mode_entry) {

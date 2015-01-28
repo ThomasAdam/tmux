@@ -33,7 +33,8 @@ const struct cmd_entry cmd_switch_client_entry = {
 	"switch-client", "switchc",
 	"lc:npt:rT:", 0, 0,
 	"[-lnpr] [-c target-client] [-t target-session] [-T key-table]",
-	CMD_READONLY,
+	CMD_READONLY|CMD_PREP_CLIENT_C|CMD_PREP_PANE_T|CMD_PREP_SESSION_T|
+	CMD_PREP_PREFERUNATTACHED,
 	cmd_switch_client_exec
 };
 
@@ -41,16 +42,11 @@ enum cmd_retval
 cmd_switch_client_exec(struct cmd *self, struct cmd_q *cmdq)
 {
 	struct args		*args = self->args;
-	struct client		*c;
-	struct session		*s = NULL;
-	struct winlink		*wl = NULL;
-	struct window 		*w = NULL;
-	struct window_pane	*wp = NULL;
-	const char		*tflag, *tablename;
-	struct key_table	*table;
-
-	if ((c = cmd_find_client(cmdq, args_get(args, 'c'), 0)) == NULL)
-		return (CMD_RETURN_ERROR);
+	struct cmd_state	*state = &cmdq->state;
+	struct client		*c = state->c;
+	struct session		*s;
+	struct window_pane	*wp;
+	const char		*tflag;
 
 	if (args_has(args, 'r')) {
 		if (c->flags & CLIENT_READONLY)
@@ -59,19 +55,6 @@ cmd_switch_client_exec(struct cmd *self, struct cmd_q *cmdq)
 			c->flags |= CLIENT_READONLY;
 	}
 
-	tablename = args_get(args, 'T');
-	if (tablename != NULL) {
-		table = key_bindings_get_table(tablename, 0);
-		if (table == NULL) {
-			cmdq_error(cmdq, "table %s doesn't exist", tablename);
-			return (CMD_RETURN_ERROR);
-		}
-		table->references++;
-		key_bindings_unref_table(c->keytable);
-		c->keytable = table;
-	}
-
-	tflag = args_get(args, 't');
 	if (args_has(args, 'n')) {
 		if ((s = session_next_session(c->session)) == NULL) {
 			cmdq_error(cmdq, "can't find next session");
@@ -90,32 +73,15 @@ cmd_switch_client_exec(struct cmd *self, struct cmd_q *cmdq)
 			return (CMD_RETURN_ERROR);
 		}
 	} else {
-		if (tflag == NULL) {
-			if ((s = cmd_find_session(cmdq, tflag, 1)) == NULL)
-				return (CMD_RETURN_ERROR);
-		} else if (tflag[strcspn(tflag, ":.")] != '\0') {
-			if ((wl = cmd_find_pane(cmdq, tflag, &s, &wp)) == NULL)
-				return (CMD_RETURN_ERROR);
-		} else {
-			if ((s = cmd_find_session(cmdq, tflag, 1)) == NULL)
-				return (CMD_RETURN_ERROR);
-			w = window_find_by_id_str(tflag);
-			if (w == NULL) {
-				wp = window_pane_find_by_id_str(tflag);
-				if (wp != NULL)
-					w = wp->window;
-			}
-			if (w != NULL)
-				wl = winlink_find_by_window(&s->windows, w);
-		}
-
 		if (cmdq->client == NULL)
 			return (CMD_RETURN_NORMAL);
 
-		if (wl != NULL) {
+		s = state->tflag.s;
+		if (state->tflag.wl != NULL) {
+			wp = state->tflag.wp;
 			if (wp != NULL)
 				window_set_active_pane(wp->window, wp);
-			session_set_current(s, wl);
+			session_set_current(s, state->tflag.wl);
 		}
 	}
 

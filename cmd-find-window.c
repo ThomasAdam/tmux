@@ -136,21 +136,17 @@ cmd_find_window_exec(struct cmd *self, struct cmd_q *cmdq)
 	struct args			*args = self->args;
 	struct client			*c;
 	struct window_choose_data	*cdata;
-	struct session			*s;
-	struct winlink			*wl, *wm;
+	struct session			*s = cmdq->state.tflag.s;
+	struct winlink			*wl = cmdq->state.tflag.wl, *wm;
 	struct cmd_find_window_data_list find_list;
 	char				*str, *searchstr;
 	const char			*template;
 	u_int				 i, match_flags;
 
-	if ((c = cmd_find_client(cmdq, NULL, 1)) == NULL) {
+	if (c == NULL) {
 		cmdq_error(cmdq, "no client available");
 		return (CMD_RETURN_ERROR);
 	}
-	s = c->session;
-
-	if ((wl = cmd_find_window(cmdq, args_get(args, 't'), NULL)) == NULL)
-		return (CMD_RETURN_ERROR);
 
 	if ((template = args_get(args, 'F')) == NULL)
 		template = FIND_WINDOW_TEMPLATE;

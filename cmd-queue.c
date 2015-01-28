@@ -25,6 +25,10 @@
 
 #include "tmux.h"
 
+void	cmdq_set_state(struct cmd_q *);
+void	cmdq_run_hook(struct hooks *, const char *, struct cmd *,
+	    struct cmd_q *);
+
 /* Create new command queue. */
 struct cmd_q *
 cmdq_new(struct client *c)
@@ -165,6 +169,8 @@ int
 cmdq_continue(struct cmd_q *cmdq)
 {
 	struct cmd_q_item	*next;
+	struct cmd		*cmd;
+	struct hooks		*hooks;
 	enum cmd_retval		 retval;
 	int			 empty, flags;
 	char			 s[1024];
@@ -184,22 +190,47 @@ cmdq_continue(struct cmd_q *cmdq)
 
 	do {
 		while (cmdq->cmd != NULL) {
-			cmd_print(cmdq->cmd, s, sizeof s);
+			cmd = cmdq->cmd;
+
+			cmd_print(cmd, s, sizeof s);
 			log_debug("cmdq %p: %s (client %d)", cmdq, s,
 			    cmdq->client != NULL ? cmdq->client->ibuf.fd : -1);
+
+			if (cmd_prepare_state(cmd, cmdq) != 0)
+				break;
 
 			cmdq->time = time(NULL);
 			cmdq->number++;
 
-			flags = !!(cmdq->cmd->flags & CMD_CONTROL);
-			cmdq_guard(cmdq, "begin", flags);
+			flags = !!(cmd->flags & CMD_CONTROL);
+			guard = cmdq_guard(cmdq, "begin", flags);
 
-			retval = cmdq->cmd->entry->exec(cmdq->cmd, cmdq);
-
-			if (retval == CMD_RETURN_ERROR)
-				cmdq_guard(cmdq, "error", flags);
+			if (cmdq->state.tflag.s != NULL)
+				hooks = &cmdq->state.tflag.s->hooks;
+			else if (cmdq->state.sflag.s != NULL)
+				hooks = &cmdq->state.sflag.s->hooks;
 			else
-				cmdq_guard(cmdq, "end", flags);
+				hooks = &global_hooks;
+			cmdq_run_hook(hooks, "before", cmd, cmdq);
+
+			/*
+			 * hooks_run will change the state before each hook, so
+			 * it needs to be restored afterwards. XXX not very
+			 * obvious how this works from here...
+			 */
+			if (cmd_prepare_state(cmd, cmdq) != 0)
+				retval = CMD_RETURN_ERROR;
+			else
+				retval = cmd->entry->exec(cmd, cmdq);
+			if (retval != CMD_RETURN_ERROR)
+				cmdq_run_hook(hooks, "after", cmd, cmdq);
+
+			if (guard) {
+				if (retval == CMD_RETURN_ERROR)
+					cmdq_guard(cmdq, "error", flags);
+				else
+					cmdq_guard(cmdq, "end", flags);
+			}
 
 			if (retval == CMD_RETURN_ERROR)
 				break;

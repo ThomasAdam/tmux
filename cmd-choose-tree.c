@@ -87,13 +87,6 @@ cmd_choose_tree_exec(struct cmd *self, struct cmd_q *cmdq)
 	ses_template = win_template = NULL;
 	ses_action = win_action = NULL;
 
-	if ((c = cmd_find_client(cmdq, NULL, 1)) == NULL) {
-		cmdq_error(cmdq, "no client available");
-		return (CMD_RETURN_ERROR);
-	}
-
-	if ((wl = cmd_find_window(cmdq, args_get(args, 't'), &s)) == NULL)
-		return (CMD_RETURN_ERROR);
 
 	if (window_pane_set_mode(wl->window->active, &window_choose_mode) != 0)
 		return (CMD_RETURN_NORMAL);

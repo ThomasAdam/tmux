@@ -61,13 +61,18 @@ cmd_choose_client_exec(struct cmd *self, struct cmd_q *cmdq)
 	char				*action;
 	u_int			 	 idx, cur;
 
-	if ((c = cmd_find_client(cmdq, NULL, 1)) == NULL) {
+	if ((c = cmdq->state.c) == NULL) {
 		cmdq_error(cmdq, "no client available");
 		return (CMD_RETURN_ERROR);
 	}
 
 	if ((wl = cmd_find_window(cmdq, args_get(args, 't'), NULL)) == NULL)
 		return (CMD_RETURN_ERROR);
+
+	if (c == NULL) {
+		cmdq_error(cmdq, "no client available");
+		return (CMD_RETURN_ERROR);
+	}
 
 	if (window_pane_set_mode(wl->window->active, &window_choose_mode) != 0)
 		return (CMD_RETURN_NORMAL);

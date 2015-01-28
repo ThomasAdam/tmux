@@ -1,7 +1,7 @@
 /* $OpenBSD$ */
 
 /*
- * Copyright (c) 2009 Nicholas Marriott <nicm@users.sourceforge.net>
+ * Copyright (c) 2012 Thomas Adam <thomas@xteddy.org>
  *
  * Permission to use, copy, modify, and distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -18,32 +18,44 @@
 
 #include <sys/types.h>
 
+#include <stdlib.h>
+#include <string.h>
+
 #include "tmux.h"
 
 /*
- * Display panes on a client.
+ * Show global or session hooks.
  */
 
-enum cmd_retval	 cmd_display_panes_exec(struct cmd *, struct cmd_q *);
+enum cmd_retval cmd_show_hooks_exec(struct cmd *, struct cmd_q *);
 
-const struct cmd_entry cmd_display_panes_entry = {
-	"display-panes", "displayp",
-	"t:", 0, 0,
-	CMD_TARGET_CLIENT_USAGE,
-	0,
-	cmd_display_panes_exec
+const struct cmd_entry cmd_show_hooks_entry = {
+	"show-hooks", NULL,
+	"gt:", 0, 1,
+	"[-g] " CMD_TARGET_SESSION_USAGE,
+	CMD_PREP_SESSION_T,
+	cmd_show_hooks_exec
 };
 
 enum cmd_retval
-cmd_display_panes_exec(unused struct cmd *self, struct cmd_q *cmdq)
+cmd_show_hooks_exec(struct cmd *self, struct cmd_q *cmdq)
 {
 	struct args	*args = self->args;
-	struct client	*c;
+	struct session	*s;
+	struct hooks	*hooks;
+	struct hook	*hook;
+	char		 tmp[BUFSIZ];
+	size_t		 used;
 
-	if ((c = cmd_find_client(cmdq, args_get(args, 't'), 0)) == NULL)
+	if ((s = cmdq->state.tflag.s) == NULL)
 		return (CMD_RETURN_ERROR);
+	hooks = args_has(args, 'g') ? &global_hooks : &s->hooks;
 
-	server_set_identify(c);
+	RB_FOREACH(hook, hooks_tree, &hooks->tree) {
+		used = xsnprintf(tmp, sizeof tmp, "%s -> ", hook->name);
+		cmd_list_print(hook->cmdlist, tmp + used, (sizeof tmp) - used);
+		cmdq_print(cmdq, "%s", tmp);
+	}
 
 	return (CMD_RETURN_NORMAL);
 }

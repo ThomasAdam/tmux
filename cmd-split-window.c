@@ -87,8 +87,7 @@ cmd_split_window_exec(struct cmd *self, struct cmd_q *cmdq)
 
 	if (args_has(args, 'c')) {
 		ft = format_create();
-		format_defaults(ft, cmd_find_client(cmdq, NULL, 1), s, NULL,
-		    NULL);
+		format_defaults(ft, cmdq->state.c, s, NULL, NULL);
 		cp = format_expand(ft, args_get(args, 'c'));
 		format_free(ft);
 
@@ -176,8 +175,7 @@ cmd_split_window_exec(struct cmd *self, struct cmd_q *cmdq)
 			template = SPLIT_WINDOW_TEMPLATE;
 
 		ft = format_create();
-		format_defaults(ft, cmd_find_client(cmdq, NULL, 1), s, wl,
-		    new_wp);
+		format_defaults(ft, cmdq->state.c, s, wl, new_wp);
 
 		cp = format_expand(ft, template);
 		cmdq_print(cmdq, "%s", cp);
