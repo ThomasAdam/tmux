@@ -36,9 +36,7 @@ cmdq_set_state(struct cmd_q *cmdq)
 	memset(&cmdq->state, 0, sizeof cmdq->state);
 
 	cmdq->state.c = cmdq->client;
-
-	cmdq->state.s = cmdq->client != NULL ?
-		cmdq->client->session : NULL;
+	cmdq->state.s = cmdq->client != NULL ? cmdq->client->session : NULL;
 	cmdq->state.s2 = NULL;
 	cmdq->state.w = NULL;
 	cmdq->state.wl = NULL;
