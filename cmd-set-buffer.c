@@ -35,8 +35,7 @@ const struct cmd_entry cmd_set_buffer_entry = {
 	CMD_BUFFER_USAGE " data",
 	0,
 	NULL,
-	cmd_set_buffer_exec,
-	NULL
+	cmd_set_buffer_exec
 };
 
 enum cmd_retval

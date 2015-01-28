@@ -28,16 +28,14 @@
  */
 
 enum cmd_retval	 cmd_respawn_window_exec(struct cmd *, struct cmd_q *);
-void		 cmd_respawn_window_prepare(struct cmd *, struct cmd_q *);
 
 const struct cmd_entry cmd_respawn_window_entry = {
 	"respawn-window", "respawnw",
 	"kt:", 0, 1,
 	"[-k] " CMD_TARGET_WINDOW_USAGE " [command]",
-	CMD_PREPAREWINDOW,
+	0,
 	NULL,
-	cmd_respawn_window_exec,
-	NULL
+	cmd_respawn_window_exec
 };
 
 enum cmd_retval
@@ -52,10 +50,9 @@ cmd_respawn_window_exec(struct cmd *self, struct cmd_q *cmdq)
 	const char		*cmd;
 	char		 	*cause;
 
-	if ((wl = cmdq->state.wl) == NULL)
+	if ((wl = cmd_find_window(cmdq, args_get(args, 't'), &s)) == NULL)
 		return (CMD_RETURN_ERROR);
 	w = wl->window;
-	s = cmdq->state.s;
 
 	if (!args_has(self->args, 'k')) {
 		TAILQ_FOREACH(wp, &w->panes, entry) {

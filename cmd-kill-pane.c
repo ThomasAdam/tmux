@@ -27,27 +27,25 @@
  */
 
 enum cmd_retval	 cmd_kill_pane_exec(struct cmd *, struct cmd_q *);
-void		 cmd_kill_pane_prepare(struct cmd *, struct cmd_q *);
 
 const struct cmd_entry cmd_kill_pane_entry = {
 	"kill-pane", "killp",
 	"at:", 0, 0,
 	"[-a] " CMD_TARGET_PANE_USAGE,
-	CMD_PREPAREPANE,
+	0,
 	NULL,
-	cmd_kill_pane_exec,
-	NULL
+	cmd_kill_pane_exec
 };
 
 enum cmd_retval
 cmd_kill_pane_exec(struct cmd *self, struct cmd_q *cmdq)
 {
+	struct args		*args = self->args;
 	struct winlink		*wl;
 	struct window_pane	*loopwp, *tmpwp, *wp;
 
-	if ((wl = cmdq->state.wl) == NULL)
+	if ((wl = cmd_find_pane(cmdq, args_get(args, 't'), NULL, &wp)) == NULL)
 		return (CMD_RETURN_ERROR);
-	wp = cmdq->state.wp;
 	server_unzoom_window(wl->window);
 
 	if (window_count_panes(wl->window) == 1) {

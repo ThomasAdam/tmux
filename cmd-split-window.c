@@ -32,17 +32,15 @@
 
 void		 cmd_split_window_key_binding(struct cmd *, int);
 enum cmd_retval	 cmd_split_window_exec(struct cmd *, struct cmd_q *);
-void		 cmd_split_window_prepare(struct cmd *, struct cmd_q *);
 
 const struct cmd_entry cmd_split_window_entry = {
 	"split-window", "splitw",
 	"c:dF:l:hp:Pt:v", 0, 1,
 	"[-dhvP] [-c start-directory] [-F format] [-p percentage|-l size] "
 	CMD_TARGET_PANE_USAGE " [command]",
-	CMD_PREPAREPANE,
+	0,
 	cmd_split_window_key_binding,
-	cmd_split_window_exec,
-	NULL
+	cmd_split_window_exec
 };
 
 void
@@ -71,11 +69,9 @@ cmd_split_window_exec(struct cmd *self, struct cmd_q *cmdq)
 	struct client		*c;
 	struct format_tree	*ft;
 
-	if ((wl = cmdq->state.wl) == NULL)
+	if ((wl = cmd_find_pane(cmdq, args_get(args, 't'), &s, &wp)) == NULL)
 		return (CMD_RETURN_ERROR);
 	w = wl->window;
-	s = cmdq->state.s;
-	wp = cmdq->state.wp;
 	server_unzoom_window(w);
 
 	environ_init(&env);

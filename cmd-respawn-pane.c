@@ -29,16 +29,14 @@
  */
 
 enum cmd_retval	 cmd_respawn_pane_exec(struct cmd *, struct cmd_q *);
-void		 cmd_respawn_pane_prepare(struct cmd *, struct cmd_q *);
 
 const struct cmd_entry cmd_respawn_pane_entry = {
 	"respawn-pane", "respawnp",
 	"kt:", 0, 1,
 	"[-k] " CMD_TARGET_PANE_USAGE " [command]",
-	CMD_PREPAREPANE,
+	0,
 	NULL,
-	cmd_respawn_pane_exec,
-	NULL
+	cmd_respawn_pane_exec
 };
 
 enum cmd_retval
@@ -54,11 +52,9 @@ cmd_respawn_pane_exec(struct cmd *self, struct cmd_q *cmdq)
 	char			*cause;
 	u_int			 idx;
 
-	if ((wl = cmdq->state.wl) == NULL)
+	if ((wl = cmd_find_pane(cmdq, args_get(args, 't'), &s, &wp)) == NULL)
 		return (CMD_RETURN_ERROR);
 	w = wl->window;
-	s = cmdq->state.s;
-	wp = cmdq->state.wp;
 
 	if (!args_has(self->args, 'k') && wp->fd != -1) {
 		if (window_pane_index(wp, &idx) != 0)

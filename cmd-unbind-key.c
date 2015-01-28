@@ -35,8 +35,7 @@ const struct cmd_entry cmd_unbind_key_entry = {
 	"[-acn] [-t key-table] key",
 	0,
 	NULL,
-	cmd_unbind_key_exec,
-	NULL
+	cmd_unbind_key_exec
 };
 
 enum cmd_retval

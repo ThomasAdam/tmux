@@ -34,10 +34,9 @@ const struct cmd_entry cmd_show_hooks_entry = {
 	"show-hooks", NULL,
 	"gt:", 0, 1,
 	"[-g] " CMD_TARGET_SESSION_USAGE,
-	CMD_PREPARESESSION,
+	0,
 	NULL,
-	cmd_show_hooks_exec,
-	NULL
+	cmd_show_hooks_exec
 };
 
 enum cmd_retval
@@ -50,7 +49,7 @@ cmd_show_hooks_exec(struct cmd *self, struct cmd_q *cmdq)
 	char		 tmp[BUFSIZ];
 	size_t		 used;
 
-	if ((s = cmdq->state.s) == NULL)
+	if ((s = cmd_find_session(cmdq, args_get(args, 't'), 0)) == NULL)
 		return (CMD_RETURN_ERROR);
 	hooks = args_has(args, 'g') ? &global_hooks : &s->hooks;
 

@@ -35,8 +35,7 @@ const struct cmd_entry cmd_list_buffers_entry = {
 	"[-F format]",
 	0,
 	NULL,
-	cmd_list_buffers_exec,
-	NULL
+	cmd_list_buffers_exec
 };
 
 enum cmd_retval

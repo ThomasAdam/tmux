@@ -26,36 +26,32 @@
 
 void		 cmd_select_layout_key_binding(struct cmd *, int);
 enum cmd_retval	 cmd_select_layout_exec(struct cmd *, struct cmd_q *);
-void		 cmd_select_layout_prepare(struct cmd *, struct cmd_q *);
 
 const struct cmd_entry cmd_select_layout_entry = {
 	"select-layout", "selectl",
 	"npt:", 0, 1,
 	"[-np] " CMD_TARGET_WINDOW_USAGE " [layout-name]",
-	CMD_PREPAREWINDOW,
+	0,
 	cmd_select_layout_key_binding,
-	cmd_select_layout_exec,
-	NULL
+	cmd_select_layout_exec
 };
 
 const struct cmd_entry cmd_next_layout_entry = {
 	"next-layout", "nextl",
 	"t:", 0, 0,
 	CMD_TARGET_WINDOW_USAGE,
-	CMD_PREPAREWINDOW,
+	0,
 	NULL,
-	cmd_select_layout_exec,
-	NULL
+	cmd_select_layout_exec
 };
 
 const struct cmd_entry cmd_previous_layout_entry = {
 	"previous-layout", "prevl",
 	"t:", 0, 0,
 	CMD_TARGET_WINDOW_USAGE,
-	CMD_PREPAREWINDOW,
+	0,
 	NULL,
-	cmd_select_layout_exec,
-	NULL
+	cmd_select_layout_exec
 };
 
 void
@@ -91,7 +87,7 @@ cmd_select_layout_exec(struct cmd *self, struct cmd_q *cmdq)
 	const char	*layoutname;
 	int		 next, previous, layout;
 
-	if ((wl = cmdq->state.wl) == NULL)
+	if ((wl = cmd_find_window(cmdq, args_get(args, 't'), NULL)) == NULL)
 		return (CMD_RETURN_ERROR);
 	server_unzoom_window(wl->window);
 

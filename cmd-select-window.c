@@ -28,7 +28,6 @@
 
 void		 cmd_select_window_key_binding(struct cmd *, int);
 enum cmd_retval	 cmd_select_window_exec(struct cmd *, struct cmd_q *);
-void		 cmd_select_window_prepare(struct cmd *, struct cmd_q *);
 
 const struct cmd_entry cmd_select_window_entry = {
 	"select-window", "selectw",
@@ -36,8 +35,7 @@ const struct cmd_entry cmd_select_window_entry = {
 	"[-lnpT] " CMD_TARGET_WINDOW_USAGE,
 	0,
 	cmd_select_window_key_binding,
-	cmd_select_window_exec,
-	cmd_select_window_prepare
+	cmd_select_window_exec
 };
 
 const struct cmd_entry cmd_next_window_entry = {
@@ -46,8 +44,7 @@ const struct cmd_entry cmd_next_window_entry = {
 	"[-a] " CMD_TARGET_SESSION_USAGE,
 	0,
 	cmd_select_window_key_binding,
-	cmd_select_window_exec,
-	cmd_select_window_prepare
+	cmd_select_window_exec
 };
 
 const struct cmd_entry cmd_previous_window_entry = {
@@ -56,8 +53,7 @@ const struct cmd_entry cmd_previous_window_entry = {
 	"[-a] " CMD_TARGET_SESSION_USAGE,
 	0,
 	cmd_select_window_key_binding,
-	cmd_select_window_exec,
-	cmd_select_window_prepare
+	cmd_select_window_exec
 };
 
 const struct cmd_entry cmd_last_window_entry = {
@@ -66,8 +62,7 @@ const struct cmd_entry cmd_last_window_entry = {
 	CMD_TARGET_SESSION_USAGE,
 	0,
 	NULL,
-	cmd_select_window_exec,
-	cmd_select_window_prepare
+	cmd_select_window_exec
 };
 
 void
@@ -84,33 +79,10 @@ cmd_select_window_key_binding(struct cmd *self, int key)
 		args_set(self->args, 'a', NULL);
 }
 
-void
-cmd_select_window_prepare(struct cmd *self, struct cmd_q *cmdq)
-{
-	struct args	*args = self->args;
-	int		 next, previous, last;
-
-	next = self->entry == &cmd_next_window_entry;
-	if (args_has(self->args, 'n'))
-		next = 1;
-	previous = self->entry == &cmd_previous_window_entry;
-	if (args_has(self->args, 'p'))
-		previous = 1;
-	last = self->entry == &cmd_last_window_entry;
-	if (args_has(self->args, 'l'))
-		last = 1;
-
-	if (next || previous || last)
-		cmdq->state.s = cmd_find_session(cmdq, args_get(args, 't'), 0);
-	else {
-		cmdq->state.wl = cmd_find_window(cmdq, args_get(args, 't'),
-		    &cmdq->state.s);
-	}
-}
-
 enum cmd_retval
 cmd_select_window_exec(struct cmd *self, struct cmd_q *cmdq)
 {
+	struct args	*args = self->args;
 	struct winlink	*wl;
 	struct session	*s;
 	int		 next, previous, last, activity;
@@ -126,7 +98,8 @@ cmd_select_window_exec(struct cmd *self, struct cmd_q *cmdq)
 		last = 1;
 
 	if (next || previous || last) {
-		if ((s = cmdq->state.s) == NULL)
+		s = cmd_find_session(cmdq, args_get(args, 't'), 0);
+		if (s == NULL)
 			return (CMD_RETURN_ERROR);
 
 		activity = args_has(self->args, 'a');
@@ -149,9 +122,9 @@ cmd_select_window_exec(struct cmd *self, struct cmd_q *cmdq)
 
 		server_redraw_session(s);
 	} else {
-		if ((wl = cmdq->state.wl) == NULL)
+		wl = cmd_find_window(cmdq, args_get(args, 't'), &s);
+		if (wl == NULL)
 			return (CMD_RETURN_ERROR);
-		s = cmdq->state.s;
 
 		/*
 		 * If -T and select-window is invoked on same window as

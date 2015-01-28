@@ -28,16 +28,14 @@
 
 void		 cmd_resize_pane_key_binding(struct cmd *, int);
 enum cmd_retval	 cmd_resize_pane_exec(struct cmd *, struct cmd_q *);
-void		 cmd_resize_pane_prepare(struct cmd *, struct cmd_q *);
 
 const struct cmd_entry cmd_resize_pane_entry = {
 	"resize-pane", "resizep",
 	"DLRt:Ux:y:Z", 0, 1,
 	"[-DLRUZ] [-x width] [-y height] " CMD_TARGET_PANE_USAGE " [adjustment]",
-	CMD_PREPAREPANE,
+	0,
 	cmd_resize_pane_key_binding,
-	cmd_resize_pane_exec,
-	NULL
+	cmd_resize_pane_exec
 };
 
 void
@@ -98,10 +96,9 @@ cmd_resize_pane_exec(struct cmd *self, struct cmd_q *cmdq)
 	u_int			 adjust;
 	int			 x, y;
 
-	if ((wl = cmdq->state.wl) == NULL)
+	if ((wl = cmd_find_pane(cmdq, args_get(args, 't'), NULL, &wp)) == NULL)
 		return (CMD_RETURN_ERROR);
 	w = wl->window;
-	wp = cmdq->state.wp;
 
 	if (args_has(args, 'Z')) {
 		if (w->flags & WINDOW_ZOOMED)

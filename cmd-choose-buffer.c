@@ -28,16 +28,14 @@
  */
 
 enum cmd_retval	 cmd_choose_buffer_exec(struct cmd *, struct cmd_q *);
-void		 cmd_choose_buffer_prepare(struct cmd *, struct cmd_q *);
 
 const struct cmd_entry cmd_choose_buffer_entry = {
 	"choose-buffer", NULL,
 	"F:t:", 0, 1,
 	CMD_TARGET_WINDOW_USAGE " [-F format] [template]",
-	CMD_PREPAREWINDOW,
+	0,
 	NULL,
-	cmd_choose_buffer_exec,
-	NULL
+	cmd_choose_buffer_exec
 };
 
 enum cmd_retval
@@ -52,7 +50,7 @@ cmd_choose_buffer_exec(struct cmd *self, struct cmd_q *cmdq)
 	const char			*template;
 	u_int				 idx;
 
-	if ((c = cmdq->state.c) == NULL) {
+	if ((c = cmd_current_client(cmdq)) == NULL) {
 		cmdq_error(cmdq, "no client available");
 		return (CMD_RETURN_ERROR);
 	}
@@ -60,7 +58,7 @@ cmd_choose_buffer_exec(struct cmd *self, struct cmd_q *cmdq)
 	if ((template = args_get(args, 'F')) == NULL)
 		template = CHOOSE_BUFFER_TEMPLATE;
 
-	if ((wl = cmdq->state.wl) == NULL)
+	if ((wl = cmd_find_window(cmdq, args_get(args, 't'), NULL)) == NULL)
 		return (CMD_RETURN_ERROR);
 
 	if (paste_get_top(&global_buffers) == NULL)
