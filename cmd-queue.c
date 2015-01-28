@@ -33,20 +33,24 @@ void	cmdq_run_hook(struct hooks *, const char *, struct cmd *,
 void
 cmdq_set_state(struct cmd_q *cmdq)
 {
-	memset(&cmdq->state, 0, sizeof cmdq->state);
+	struct cmd_state	*state = &cmdq->state;
 
-	cmdq->state.c = cmdq->client;
-	cmdq->state.s = cmdq->client != NULL ? cmdq->client->session : NULL;
-	cmdq->state.s2 = NULL;
-	cmdq->state.w = NULL;
-	cmdq->state.wl = NULL;
-	cmdq->state.wp = NULL;
-	cmdq->state.tflag = NULL;
-	cmdq->state.idx = -1;
+	state->c = cmdq->client;
+
+	state->tflag.s = NULL;
+	state->tflag.wl = NULL;
+	state->tflag.wp = NULL;
+	state->tflag.idx = -1;
+	state->tflag.prior = args_get(cmdq->cmd->args, 't');
+
+	state->sflag.s = NULL;
+	state->sflag.wl = NULL;
+	state->sflag.wp = NULL;
+	state->sflag.idx = -1;
+	state->sflag.prior = args_get(cmdq->cmd->args, 's');
 
 	cmd_prepare(cmdq->cmd, cmdq);
 
-	cmdq->state.prior_tflag = args_get(cmdq->cmd->args, 't');
 }
 
 /* Create new command queue. */
@@ -226,8 +230,10 @@ cmdq_continue(struct cmd_q *cmdq)
 			 * command has any.
 			 */
 			cmdq_set_state(cmdq);
-			if (cmdq->state.s != NULL)
-				hooks = &cmdq->state.s->hooks;
+			if (cmdq->state.tflag.s != NULL)
+				hooks = &cmdq->state.tflag.s->hooks;
+			else if (cmdq->state.sflag.s != NULL)
+				hooks = &cmdq->state.sflag.s->hooks;
 			else
 				hooks = &global_hooks;
 

@@ -1362,23 +1362,25 @@ struct args {
 
 /* Context for a command about to be executed. */
 struct cmd_state {
-	struct client		*c;
+	struct client			*c;
 
-	struct session		*s;
-	struct session		*s2;
+	struct {
+		struct session		*s;
+		struct winlink		*wl;
+		struct window_pane	*wp;
+		int			 idx;
 
-	struct winlink		*wl;
-	struct winlink		*wl2;
+		const char		*prior;
+	} tflag;
 
-	struct window		*w;
+	struct {
+		struct session		*s;
+		struct winlink		*wl;
+		struct window_pane	*wp;
+		int			 idx;
 
-	struct window_pane	*wp;
-	struct window_pane	*wp2;
-
-	int			 idx;
-
-	const char		*tflag;
-	const char		*prior_tflag;
+		const char		*prior;
+	} sflag;
 };
 
 /* Command and list of commands. */
@@ -1450,17 +1452,24 @@ struct cmd_entry {
 #define CMD_STARTSERVER 0x1
 #define CMD_CANTNEST 0x2
 #define CMD_READONLY 0x4
-#define CMD_PREPARESESSION 0x8
-#define CMD_PREPARESESSION2 0x10
-#define CMD_PREPAREWINDOW 0x20
-#define CMD_PREPAREPANE 0x40
-#define CMD_PREPAREPANE2 0x80
-#define CMD_PREPARECLIENT 0x100
-#define CMD_PREPAREIDX 0x200
+#define CMD_PREP_SESSION_T 0x8
+#define CMD_PREP_SESSION_S 0x10
+#define CMD_PREP_WINDOW_T 0x20
+#define CMD_PREP_WINDOW_S 0x40
+#define CMD_PREP_PANE_T 0x80
+#define CMD_PREP_PANE_S 0x100
+#define CMD_PREP_CLIENT_T 0x200
+#define CMD_PREP_CLIENT_C 0x400
+#define CMD_PREP_INDEX_T 0x800
+#define CMD_PREP_INDEX_S 0x1000
 	int		 flags;
 
 	enum cmd_retval	 (*exec)(struct cmd *, struct cmd_q *);
 };
+#define CMD_PREP_ALL_T (CMD_PREP_SESSION_T|CMD_PREP_WINDOW_T|CMD_PREP_PANE_T| \
+    CMD_PREP_CLIENT_T|CMD_PREP_INDEX_T)
+#define CMD_PREP_ALL_S (CMD_PREP_SESSION_S|CMD_PREP_WINDOW_S|CMD_PREP_PANE_S| \
+    CMD_PREP_INDEX_S)
 
 /* Key binding. */
 struct key_binding {

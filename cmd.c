@@ -317,37 +317,69 @@ usage:
 void
 cmd_prepare(struct cmd *cmd, struct cmd_q *cmdq)
 {
-	struct args		*args = cmd->args;
-	const char		*tflag = args_get(args, 't');
-	const char		*sflag = args_get(args, 's');
 	struct cmd_state	*state = &cmdq->state;
+	struct args		*args = cmd->args;
+	const char		*tflag;
+	const char		*sflag;
 
 	/* FIXME:  Handle this!  What should happen during cfg_load? */
 	if (cfg_finished == 0)
 		return;
 
-	/*
-	 * Prepare the context for the command.  It might be the case that a
-	 * hooked command is being called.  If this command doesn't have a
-	 * tflag, use the same one as the command being hooked.
-	 */
-	if (tflag == NULL && cmdq->state.prior_tflag != NULL)
-		tflag = state->prior_tflag;
-
-	if (cmd->entry->flags & CMD_PREPARESESSION)
-		state->s = cmd_find_session(cmdq, tflag, 0);
-	if (cmd->entry->flags & CMD_PREPARESESSION2)
-		state->s2 = cmd_find_session(cmdq, sflag, 0);
-	if (cmd->entry->flags & CMD_PREPAREWINDOW)
-		state->wl = cmd_find_window(cmdq, tflag, NULL);
-	if (cmd->entry->flags & CMD_PREPAREPANE)
-		state->wl = cmd_find_pane(cmdq, tflag, &state->s, &state->wp);
-	if (cmd->entry->flags & CMD_PREPAREPANE2)
-		state->wl2 = cmd_find_pane(cmdq, sflag, &state->s, &state->wp);
-	if (cmd->entry->flags & CMD_PREPARECLIENT)
+	tflag = args_get(args, 't');
+	if (tflag == NULL)
+		tflag = state->tflag.prior;
+	switch (cmd->entry->flags & CMD_PREP_ALL_T) {
+	case 0:
+		break;
+	case CMD_PREP_SESSION_T:
+		state->tflag.s = cmd_find_session(cmdq, tflag, 0);
+		break;
+	case CMD_PREP_WINDOW_T:
+		state->tflag.wl = cmd_find_window(cmdq, tflag, &state->tflag.s);
+		break;
+	case CMD_PREP_PANE_T:
+		state->tflag.wl = cmd_find_pane(cmdq, tflag, &state->tflag.s,
+		    &state->tflag.wp);
+		break;
+	case CMD_PREP_CLIENT_T:
 		state->c = cmd_find_client(cmdq, tflag, 0);
-	if (cmd->entry->flags & CMD_PREPAREIDX)
-		state->idx = cmd_find_index(cmdq, tflag, &state->s);
+		break;
+	case CMD_PREP_INDEX_T:
+		state->tflag.idx = cmd_find_index(cmdq, tflag, &state->tflag.s);
+		break;
+	default:
+		log_fatalx("too many -t flags for %s", cmd->entry->name);
+	}
+
+	sflag = args_get(args, 't');
+	if (sflag == NULL)
+		sflag = state->sflag.prior;
+	switch (cmd->entry->flags & CMD_PREP_ALL_S) {
+	case 0:
+		break;
+	case CMD_PREP_SESSION_S:
+		state->sflag.s = cmd_find_session(cmdq, sflag, 0);
+		break;
+	case CMD_PREP_WINDOW_S:
+		state->sflag.wl = cmd_find_window(cmdq, sflag, &state->sflag.s);
+		break;
+	case CMD_PREP_PANE_S:
+		state->sflag.wl = cmd_find_pane(cmdq, sflag, &state->sflag.s,
+		    &state->sflag.wp);
+		break;
+	case CMD_PREP_INDEX_S:
+		state->sflag.idx = cmd_find_index(cmdq, sflag, &state->sflag.s);
+		break;
+	default:
+		log_fatalx("too many -s flags for %s", cmd->entry->name);
+	}
+
+	if (cmd->entry->flags & CMD_PREP_CLIENT_C) {
+		if (cmd->entry->flags & CMD_PREP_CLIENT_T)
+			log_fatalx("both -t and -c for %s", cmd->entry->name);
+		state->c = cmd_find_client(cmdq, args_get(args, 'c'), 0);
+	}
 }
 
 size_t
