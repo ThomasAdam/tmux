@@ -1,4 +1,4 @@
-/* $Id$ */
+/* $OpenBSD$ */
 
 /*
  * Copyright (c) 2009 Tiago Cunha <me@tiagocunha.org>
@@ -30,6 +30,7 @@
  */
 
 enum cmd_retval	 cmd_if_shell_exec(struct cmd *, struct cmd_q *);
+void		 cmd_if_shell_prepare(struct cmd *, struct cmd_q *);
 
 void	cmd_if_shell_callback(struct job *);
 void	cmd_if_shell_done(struct cmd_q *);
@@ -37,11 +38,11 @@ void	cmd_if_shell_free(void *);
 
 const struct cmd_entry cmd_if_shell_entry = {
 	"if-shell", "if",
-	"bt:", 2, 3,
-	"[-b] " CMD_TARGET_PANE_USAGE " shell-command command [command]",
+	"bFt:", 2, 3,
+	"[-bF] " CMD_TARGET_PANE_USAGE " shell-command command [command]",
 	0,
-	NULL,
-	cmd_if_shell_exec
+	cmd_if_shell_exec,
+	NULL
 };
 
 struct cmd_if_shell_data {
@@ -52,27 +53,40 @@ struct cmd_if_shell_data {
 	int		 started;
 };
 
+void
+cmd_if_shell_prepare(struct cmd *self, struct cmd_q *cmdq)
+{
+	struct args	*args = self->args;
+
+	if (args_has(args, 't')) {
+		cmdq->state.wl = cmd_find_pane(cmdq, args_get(args, 't'),
+		    &cmdq->state.s, &cmdq->state.wp);
+	} else
+		cmdq->state.c = cmd_find_client(cmdq, NULL, 1);
+}
+
 enum cmd_retval
 cmd_if_shell_exec(struct cmd *self, struct cmd_q *cmdq)
 {
 	struct args			*args = self->args;
 	struct cmd_if_shell_data	*cdata;
-	char				*shellcmd;
+	char				*shellcmd, *cmd, *cause;
+	struct cmd_list			*cmdlist;
 	struct client			*c;
 	struct session			*s = NULL;
 	struct winlink			*wl = NULL;
 	struct window_pane		*wp = NULL;
 	struct format_tree		*ft;
 
-	if (args_has(args, 't'))
-		wl = cmd_find_pane(cmdq, args_get(args, 't'), &s, &wp);
-	else {
-		c = cmd_find_client(cmdq, NULL, 1);
-		if (c != NULL && c->session != NULL) {
-			s = c->session;
-			wl = s->curw;
-			wp = wl->window->active;
-		}
+	wl = cmdq->state.wl;
+	s = cmdq->state.s;
+	wp = cmdq->state.wp;
+	c = cmdq->state.c;
+
+	if (!args_has(args, 't') && c != NULL && c->session != NULL) {
+		s = c->session;
+		wl = s->curw;
+		wp = wl->window->active;
 	}
 
 	ft = format_create();
@@ -84,6 +98,26 @@ cmd_if_shell_exec(struct cmd *self, struct cmd_q *cmdq)
 		format_window_pane(ft, wp);
 	shellcmd = format_expand(ft, args->argv[0]);
 	format_free(ft);
+
+	if (args_has(args, 'F')) {
+		cmd = NULL;
+		if (*shellcmd != '0' && *shellcmd != '\0')
+			cmd = args->argv[1];
+		else if (args->argc == 3)
+			cmd = args->argv[2];
+		if (cmd == NULL)
+			return (CMD_RETURN_NORMAL);
+		if (cmd_string_parse(cmd, &cmdlist, NULL, 0, &cause) != 0) {
+			if (cause != NULL) {
+				cmdq_error(cmdq, "%s", cause);
+				free(cause);
+			}
+			return (CMD_RETURN_ERROR);
+		}
+		cmdq_run(cmdq, cmdlist);
+		cmd_list_free(cmdlist);
+		return (CMD_RETURN_NORMAL);
+	}
 
 	cdata = xmalloc(sizeof *cdata);
 	cdata->cmd_if = xstrdup(args->argv[1]);

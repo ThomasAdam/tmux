@@ -1,4 +1,4 @@
-/* $Id$ */
+/* $OpenBSD$ */
 
 /*
  * Copyright (c) 2007 Nicholas Marriott <nicm@users.sourceforge.net>
@@ -34,14 +34,24 @@ const struct cmd_entry cmd_kill_server_entry = {
 	"", 0, 0,
 	"",
 	0,
-	NULL,
-	cmd_kill_server_exec
+	cmd_kill_server_exec,
+	NULL
+};
+
+const struct cmd_entry cmd_start_server_entry = {
+	"start-server", "start",
+	"", 0, 0,
+	"",
+	CMD_STARTSERVER,
+	cmd_kill_server_exec,
+	NULL
 };
 
 enum cmd_retval
-cmd_kill_server_exec(unused struct cmd *self, unused struct cmd_q *cmdq)
+cmd_kill_server_exec(struct cmd *self, unused struct cmd_q *cmdq)
 {
-	kill(getpid(), SIGTERM);
+	if (self->entry == &cmd_kill_server_entry)
+		kill(getpid(), SIGTERM);
 
 	return (CMD_RETURN_NORMAL);
 }

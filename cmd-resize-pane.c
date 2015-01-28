@@ -1,4 +1,4 @@
-/* $Id$ */
+/* $OpenBSD$ */
 
 /*
  * Copyright (c) 2009 Nicholas Marriott <nicm@users.sourceforge.net>
@@ -26,63 +26,16 @@
  * Increase or decrease pane size.
  */
 
-void		 cmd_resize_pane_key_binding(struct cmd *, int);
 enum cmd_retval	 cmd_resize_pane_exec(struct cmd *, struct cmd_q *);
 
 const struct cmd_entry cmd_resize_pane_entry = {
 	"resize-pane", "resizep",
 	"DLRt:Ux:y:Z", 0, 1,
 	"[-DLRUZ] [-x width] [-y height] " CMD_TARGET_PANE_USAGE " [adjustment]",
-	0,
-	cmd_resize_pane_key_binding,
-	cmd_resize_pane_exec
+	CMD_PREPAREPANE,
+	cmd_resize_pane_exec,
+	NULL
 };
-
-void
-cmd_resize_pane_key_binding(struct cmd *self, int key)
-{
-	switch (key) {
-	case KEYC_UP | KEYC_CTRL:
-		self->args = args_create(0);
-		args_set(self->args, 'U', NULL);
-		break;
-	case KEYC_DOWN | KEYC_CTRL:
-		self->args = args_create(0);
-		args_set(self->args, 'D', NULL);
-		break;
-	case KEYC_LEFT | KEYC_CTRL:
-		self->args = args_create(0);
-		args_set(self->args, 'L', NULL);
-		break;
-	case KEYC_RIGHT | KEYC_CTRL:
-		self->args = args_create(0);
-		args_set(self->args, 'R', NULL);
-		break;
-	case KEYC_UP | KEYC_ESCAPE:
-		self->args = args_create(1, "5");
-		args_set(self->args, 'U', NULL);
-		break;
-	case KEYC_DOWN | KEYC_ESCAPE:
-		self->args = args_create(1, "5");
-		args_set(self->args, 'D', NULL);
-		break;
-	case KEYC_LEFT | KEYC_ESCAPE:
-		self->args = args_create(1, "5");
-		args_set(self->args, 'L', NULL);
-		break;
-	case KEYC_RIGHT | KEYC_ESCAPE:
-		self->args = args_create(1, "5");
-		args_set(self->args, 'R', NULL);
-		break;
-	case 'z':
-		self->args = args_create(0);
-		args_set(self->args, 'Z', NULL);
-		break;
-	default:
-		self->args = args_create(0);
-		break;
-	}
-}
 
 enum cmd_retval
 cmd_resize_pane_exec(struct cmd *self, struct cmd_q *cmdq)
@@ -96,9 +49,10 @@ cmd_resize_pane_exec(struct cmd *self, struct cmd_q *cmdq)
 	u_int			 adjust;
 	int			 x, y;
 
-	if ((wl = cmd_find_pane(cmdq, args_get(args, 't'), NULL, &wp)) == NULL)
+	if ((wl = cmdq->state.wl) == NULL)
 		return (CMD_RETURN_ERROR);
 	w = wl->window;
+	wp = cmdq->state.wp;
 
 	if (args_has(args, 'Z')) {
 		if (w->flags & WINDOW_ZOOMED)

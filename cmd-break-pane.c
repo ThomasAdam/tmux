@@ -1,4 +1,4 @@
-/* $Id$ */
+/* $OpenBSD$ */
 
 /*
  * Copyright (c) 2009 Nicholas Marriott <nicm@users.sourceforge.net>
@@ -26,15 +26,17 @@
  * Break pane off into a window.
  */
 
+#define BREAK_PANE_TEMPLATE "#{session_name}:#{window_index}.#{pane_index}"
+
 enum cmd_retval	 cmd_break_pane_exec(struct cmd *, struct cmd_q *);
 
 const struct cmd_entry cmd_break_pane_entry = {
 	"break-pane", "breakp",
 	"dPF:t:", 0, 0,
 	"[-dP] [-F format] " CMD_TARGET_PANE_USAGE,
-	0,
-	NULL,
-	cmd_break_pane_exec
+	CMD_PREPAREPANE,
+	cmd_break_pane_exec,
+	NULL
 };
 
 enum cmd_retval
@@ -53,8 +55,10 @@ cmd_break_pane_exec(struct cmd *self, struct cmd_q *cmdq)
 	const char		*template;
 	char			*cp;
 
-	if ((wl = cmd_find_pane(cmdq, args_get(args, 't'), &s, &wp)) == NULL)
+	if ((wl = cmdq->state.wl) == NULL)
 		return (CMD_RETURN_ERROR);
+	wp = cmdq->state.wp;
+	s = cmdq->state.s;
 
 	if (window_count_panes(wl->window) == 1) {
 		cmdq_error(cmdq, "can't break with only one pane");
@@ -65,16 +69,7 @@ cmd_break_pane_exec(struct cmd *self, struct cmd_q *cmdq)
 	server_unzoom_window(w);
 
 	TAILQ_REMOVE(&w->panes, wp, entry);
-	if (wp == w->active) {
-		w->active = w->last;
-		w->last = NULL;
-		if (w->active == NULL) {
-			w->active = TAILQ_PREV(wp, window_panes, entry);
-			if (w->active == NULL)
-				w->active = TAILQ_NEXT(wp, entry);
-		}
-	} else if (wp == w->last)
-		w->last = NULL;
+	window_lost_pane(w, wp);
 	layout_close_pane(wp);
 
 	w = wp->window = window_create1(s->sx, s->sy);

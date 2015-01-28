@@ -1,4 +1,4 @@
-/* $Id$ */
+/* $OpenBSD$ */
 
 /*
  * Copyright (c) 2007 Nicholas Marriott <nicm@users.sourceforge.net>
@@ -31,7 +31,7 @@ void		server_callback_identify(int, short, void *);
 void
 server_fill_environ(struct session *s, struct environ *env)
 {
-	char	var[MAXPATHLEN], *term;
+	char	var[PATH_MAX], *term;
 	u_int	idx;
 	long	pid;
 
@@ -270,6 +270,7 @@ server_kill_window(struct window *w)
 
 		if (session_has(s, w) == NULL)
 			continue;
+		server_unzoom_window(w);
 		while ((wl = winlink_find_by_window(&s->windows, w)) != NULL) {
 			if (session_detach(s, wl)) {
 				server_destroy_session_group(s);
@@ -291,7 +292,8 @@ server_kill_window(struct window *w)
 
 int
 server_link_window(struct session *src, struct winlink *srcwl,
-    struct session *dst, int dstidx, int killflag, int selectflag, char **cause)
+    struct session *dst, int dstidx, int killflag, int selectflag,
+    char **cause)
 {
 	struct winlink		*dstwl;
 	struct session_group	*srcsg, *dstsg;
@@ -361,6 +363,9 @@ server_destroy_pane(struct window_pane *wp)
 
 	old_fd = wp->fd;
 	if (wp->fd != -1) {
+#ifdef HAVE_UTEMPTER
+		utempter_remove_record(wp->fd);
+#endif
 		bufferevent_free(wp->event);
 		close(wp->fd);
 		wp->fd = -1;
@@ -454,7 +459,7 @@ server_destroy_session(struct session *s)
 }
 
 void
-server_check_unattached (void)
+server_check_unattached(void)
 {
 	struct session	*s;
 
@@ -480,7 +485,7 @@ server_set_identify(struct client *c)
 	tv.tv_sec = delay / 1000;
 	tv.tv_usec = (delay % 1000) * 1000L;
 
-	if (event_initialized (&c->identify_timer))
+	if (event_initialized(&c->identify_timer))
 		evtimer_del(&c->identify_timer);
 	evtimer_set(&c->identify_timer, server_callback_identify, c);
 	evtimer_add(&c->identify_timer, &tv);
@@ -592,7 +597,7 @@ server_set_stdin_callback(struct client *c, void (*cb)(struct client *, int,
 	c->references++;
 
 	if (c->stdin_closed)
-		c->stdin_callback (c, 1, c->stdin_callback_data);
+		c->stdin_callback(c, 1, c->stdin_callback_data);
 
 	server_write_client(c, MSG_STDIN, NULL, 0);
 

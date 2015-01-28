@@ -1,4 +1,4 @@
-/* $Id$ */
+/* $OpenBSD$ */
 
 /*
  * Copyright (c) 2007 Nicholas Marriott <nicm@users.sourceforge.net>
@@ -28,6 +28,7 @@
  */
 
 enum cmd_retval	 cmd_show_options_exec(struct cmd *, struct cmd_q *);
+void		 cmd_show_options_prepare(struct cmd *, struct cmd_q *);
 
 enum cmd_retval	cmd_show_options_one(struct cmd *, struct cmd_q *,
 		    struct options *, int);
@@ -38,9 +39,9 @@ const struct cmd_entry cmd_show_options_entry = {
 	"show-options", "show",
 	"gqst:vw", 0, 1,
 	"[-gqsvw] [-t target-session|target-window] [option]",
-	0,
-	NULL,
-	cmd_show_options_exec
+	CMD_PREPARESESSION|CMD_PREPAREWINDOW,
+	cmd_show_options_exec,
+	cmd_show_options_prepare
 };
 
 const struct cmd_entry cmd_show_window_options_entry = {
@@ -48,9 +49,22 @@ const struct cmd_entry cmd_show_window_options_entry = {
 	"gvt:", 0, 1,
 	"[-gv] " CMD_TARGET_WINDOW_USAGE " [option]",
 	0,
-	NULL,
-	cmd_show_options_exec
+	cmd_show_options_exec,
+	cmd_show_options_prepare
 };
+
+void
+cmd_show_options_prepare(struct cmd *self, struct cmd_q *cmdq)
+{
+	struct args	*args = self->args;
+
+	if (args_has(args, 'g') && args_has(args, 'w') &&
+	    self->entry == &cmd_show_window_options_entry) {
+		cmdq->state.wl = cmd_find_window(cmdq, args_get(args, 't'),
+		    NULL);
+	} else
+		cmdq->state.s = cmd_find_session(cmdq, args_get(args, 't'), 0);
+}
 
 enum cmd_retval
 cmd_show_options_exec(struct cmd *self, struct cmd_q *cmdq)
@@ -71,8 +85,7 @@ cmd_show_options_exec(struct cmd *self, struct cmd_q *cmdq)
 		if (args_has(self->args, 'g'))
 			oo = &global_w_options;
 		else {
-			wl = cmd_find_window(cmdq, args_get(args, 't'), NULL);
-			if (wl == NULL)
+			if ((wl = cmdq->state.wl) == NULL)
 				return (CMD_RETURN_ERROR);
 			oo = &wl->window->options;
 		}
@@ -81,8 +94,7 @@ cmd_show_options_exec(struct cmd *self, struct cmd_q *cmdq)
 		if (args_has(self->args, 'g'))
 			oo = &global_s_options;
 		else {
-			s = cmd_find_session(cmdq, args_get(args, 't'), 0);
-			if (s == NULL)
+			if ((s = cmdq->state.s) == NULL)
 				return (CMD_RETURN_ERROR);
 			oo = &s->options;
 		}
@@ -100,15 +112,17 @@ cmd_show_options_one(struct cmd *self, struct cmd_q *cmdq,
     struct options *oo, int quiet)
 {
 	struct args				*args = self->args;
+	const char				*name = args->argv[0];
 	const struct options_table_entry	*table, *oe;
 	struct options_entry			*o;
 	const char				*optval;
 
-	if (*args->argv[0] == '@') {
-		if ((o = options_find1(oo, args->argv[0])) == NULL) {
+retry:
+	if (*name == '@') {
+		if ((o = options_find1(oo, name)) == NULL) {
 			if (quiet)
 				return (CMD_RETURN_NORMAL);
-			cmdq_error(cmdq, "unknown option: %s", args->argv[0]);
+			cmdq_error(cmdq, "unknown option: %s", name);
 			return (CMD_RETURN_ERROR);
 		}
 		if (args_has(self->args, 'v'))
@@ -119,15 +133,19 @@ cmd_show_options_one(struct cmd *self, struct cmd_q *cmdq,
 	}
 
 	table = oe = NULL;
-	if (options_table_find(args->argv[0], &table, &oe) != 0) {
-		cmdq_error(cmdq, "ambiguous option: %s", args->argv[0]);
+	if (options_table_find(name, &table, &oe) != 0) {
+		cmdq_error(cmdq, "ambiguous option: %s", name);
 		return (CMD_RETURN_ERROR);
 	}
 	if (oe == NULL) {
 		if (quiet)
 		    return (CMD_RETURN_NORMAL);
-		cmdq_error(cmdq, "unknown option: %s", args->argv[0]);
+		cmdq_error(cmdq, "unknown option: %s", name);
 		return (CMD_RETURN_ERROR);
+	}
+	if (oe->style != NULL) {
+		name = oe->style;
+		goto retry;
 	}
 	if ((o = options_find1(oo, oe->name)) == NULL)
 		return (CMD_RETURN_NORMAL);
@@ -157,6 +175,8 @@ cmd_show_options_all(struct cmd *self, struct cmd_q *cmdq,
 	}
 
 	for (oe = table; oe->name != NULL; oe++) {
+		if (oe->style != NULL)
+			continue;
 		if ((o = options_find1(oo, oe->name)) == NULL)
 			continue;
 		optval = options_table_print_entry(oe, o,

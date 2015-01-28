@@ -1,4 +1,4 @@
-/* $Id$ */
+/* $OpenBSD$ */
 
 /*
  * Copyright (c) 2009 Nicholas Marriott <nicm@users.sourceforge.net>
@@ -98,7 +98,7 @@ window_choose_add(struct window_pane *wp, struct window_choose_data *wcd)
 	item->pos = ARRAY_LENGTH(&data->list) - 1;
 	item->state = 0;
 
-	data->width = xsnprintf (tmp, sizeof tmp , "%u", item->pos);
+	data->width = xsnprintf(tmp, sizeof tmp , "%u", item->pos);
 }
 
 void
@@ -317,7 +317,7 @@ window_choose_prompt_input(enum window_choose_input_type input_type,
 	data->input_prompt = prompt;
 	input_len = strlen(data->input_str) + 2;
 
-	data->input_str = xrealloc(data->input_str, 1, input_len);
+	data->input_str = xrealloc(data->input_str, input_len);
 	data->input_str[input_len - 2] = key;
 	data->input_str[input_len - 1] = '\0';
 
@@ -330,14 +330,12 @@ window_choose_collapse(struct window_pane *wp, struct session *s)
 	struct window_choose_mode_data	*data = wp->modedata;
 	struct window_choose_mode_item	*item, *chosen;
 	struct window_choose_data	*wcd;
-	u_int				 i, pos;
+	u_int				 i;
 
 	ARRAY_DECL(, struct window_choose_mode_item) list_copy;
 	ARRAY_INIT(&list_copy);
 
-	pos = data->selected;
-
-	chosen = &ARRAY_ITEM(&data->list, pos);
+	chosen = &ARRAY_ITEM(&data->list, data->selected);
 	chosen->state &= ~TREE_EXPANDED;
 
 	/*
@@ -345,8 +343,7 @@ window_choose_collapse(struct window_pane *wp, struct session *s)
 	 * assign the actual result we want to render and copy the new one over
 	 * the top of it.
 	 */
-	for (i = 0; i < ARRAY_LENGTH(&data->list); i++)
-	{
+	for (i = 0; i < ARRAY_LENGTH(&data->list); i++) {
 		item = &ARRAY_ITEM(&data->list, i);
 		wcd = item->wcd;
 
@@ -354,9 +351,8 @@ window_choose_collapse(struct window_pane *wp, struct session *s)
 			/* We only show the session when collapsed. */
 			if (wcd->type & TREE_SESSION) {
 				item->state &= ~TREE_EXPANDED;
+				ARRAY_ADD(&list_copy, *item);
 
-				ARRAY_ADD(&list_copy,
-						ARRAY_ITEM(&data->list, i));
 				/*
 				 * Update the selection to this session item so
 				 * we don't end up highlighting a non-existent
@@ -680,6 +676,29 @@ window_choose_key(struct window_pane *wp, unused struct session *sess, int key)
 		window_choose_prompt_input(WINDOW_CHOOSE_GOTO_ITEM,
 		    "Goto Item", wp, key);
 		break;
+	case MODEKEYCHOICE_STARTOFLIST:
+		data->selected = 0;
+		data->top = 0;
+		window_choose_redraw_screen(wp);
+		break;
+	case MODEKEYCHOICE_TOPLINE:
+		data->selected = data->top;
+		window_choose_redraw_screen(wp);
+		break;
+	case MODEKEYCHOICE_BOTTOMLINE:
+		data->selected = data->top + screen_size_y(s) - 1;
+		if (data->selected > items - 1)
+			data->selected = items - 1;
+		window_choose_redraw_screen(wp);
+		break;
+	case MODEKEYCHOICE_ENDOFLIST:
+		data->selected = items - 1;
+		if (screen_size_y(s) < items)
+			data->top = items - screen_size_y(s);
+		else
+			data->top = 0;
+		window_choose_redraw_screen(wp);
+		break;
 	default:
 		idx = window_choose_index_key(data, key);
 		if (idx < 0 || (u_int) idx >= ARRAY_LENGTH(&data->list))
@@ -693,13 +712,30 @@ window_choose_key(struct window_pane *wp, unused struct session *sess, int key)
 }
 
 void
-window_choose_mouse(
-    struct window_pane *wp, unused struct session *sess, struct mouse_event *m)
+window_choose_mouse(struct window_pane *wp, struct session *sess,
+    struct mouse_event *m)
 {
 	struct window_choose_mode_data	*data = wp->modedata;
 	struct screen			*s = &data->screen;
 	struct window_choose_mode_item	*item;
-	u_int				 idx;
+	u_int				 idx, i, n;
+
+	if (m->event == MOUSE_EVENT_WHEEL) {
+		/*
+		 * Multiple line scrolling by default is annoying, so scale
+		 * m->scroll back down.
+		 */
+		n = m->scroll;
+		if (n >= MOUSE_WHEEL_SCALE)
+			n /= MOUSE_WHEEL_SCALE;
+		for (i = 0; i < n; i++) {
+			if (m->wheel == MOUSE_WHEEL_UP)
+				window_choose_key(wp, sess, KEYC_UP);
+			else
+				window_choose_key(wp, sess, KEYC_DOWN);
+		}
+		return;
+	}
 
 	if (~m->event & MOUSE_EVENT_CLICK)
 		return;
@@ -737,7 +773,7 @@ window_choose_write_line(
 	utf8flag = options_get_number(&wp->window->options, "utf8");
 	memcpy(&gc, &grid_default_cell, sizeof gc);
 	if (data->selected == data->top + py)
-		window_mode_attrs(&gc, oo);
+		style_apply(&gc, oo, "mode-style");
 
 	screen_write_cursormove(ctx, 0, py);
 	if (data->top + py  < ARRAY_LENGTH(&data->list)) {
@@ -748,9 +784,9 @@ window_choose_write_line(
 
 		key = window_choose_key_index(data, data->top + py);
 		if (key != -1)
-			xsnprintf (label, sizeof label, "(%c)", key);
+			xsnprintf(label, sizeof label, "(%c)", key);
 		else
-			xsnprintf (label, sizeof label, "(%d)", item->pos);
+			xsnprintf(label, sizeof label, "(%d)", item->pos);
 		screen_write_nputs(ctx, screen_size_x(s) - 1, &gc, utf8flag,
 		    "%*s %s %s", data->width + 2, label,
 		    /*
@@ -764,7 +800,7 @@ window_choose_write_line(
 		screen_write_putc(ctx, &gc, ' ');
 
 	if (data->input_type != WINDOW_CHOOSE_NORMAL) {
-		window_mode_attrs(&gc, oo);
+		style_apply(&gc, oo, "mode-style");
 
 		xoff = xsnprintf(hdr, sizeof hdr,
 			"%s: %s", data->input_prompt, data->input_str);
@@ -890,36 +926,6 @@ window_choose_add_session(struct window_pane *wp, struct client *c,
 	window_choose_add(wp, wcd);
 
 	return (wcd);
-}
-
-struct window_choose_data *
-window_choose_add_item(struct window_pane *wp, struct client *c,
-    struct winlink *wl, const char *template, const char *action, u_int idx)
-{
-	struct window_choose_data	*wcd;
-	char				*expanded;
-
-	wcd = window_choose_data_create(TREE_OTHER, c, c->session);
-	wcd->idx = wl->idx;
-
-	wcd->ft_template = xstrdup(template);
-	format_add(wcd->ft, "line", "%u", idx);
-	format_session(wcd->ft, wcd->start_session);
-	format_winlink(wcd->ft, wcd->start_session, wl);
-	format_window_pane(wcd->ft, wl->window->active);
-
-	/*
-	 * Interpolate action here, since the data we pass back is the expanded
-	 * template itself.
-	 */
-	xasprintf(&expanded, "%s", format_expand(wcd->ft, wcd->ft_template));
-	wcd->command = cmd_template_replace(action, expanded, 1);
-	free(expanded);
-
-	window_choose_add(wp, wcd);
-
-	return (wcd);
-
 }
 
 struct window_choose_data *

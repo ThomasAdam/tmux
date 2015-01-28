@@ -1,4 +1,4 @@
-/* $Id$ */
+/* $OpenBSD$ */
 
 /*
  * Copyright (c) 2007 Nicholas Marriott <nicm@users.sourceforge.net>
@@ -27,20 +27,42 @@
  * List windows on given session.
  */
 
+#define LIST_WINDOWS_TEMPLATE					\
+	"#{window_index}: #{window_name}#{window_flags} "	\
+	"(#{window_panes} panes) "				\
+	"[#{window_width}x#{window_height}] "			\
+	"[layout #{window_layout}] #{window_id}"		\
+	"#{?window_active, (active),}";
+#define LIST_WINDOWS_WITH_SESSION_TEMPLATE			\
+	"#{session_name}:"					\
+	"#{window_index}: #{window_name}#{window_flags} "	\
+	"(#{window_panes} panes) "				\
+	"[#{window_width}x#{window_height}] "
+
 enum cmd_retval	 cmd_list_windows_exec(struct cmd *, struct cmd_q *);
+void		 cmd_list_windows_prepare(struct cmd *, struct cmd_q *);
 
 void	cmd_list_windows_server(struct cmd *, struct cmd_q *);
-void	cmd_list_windows_session(
-	    struct cmd *, struct session *, struct cmd_q *, int);
+void	cmd_list_windows_session(struct cmd *, struct session *,
+	    struct cmd_q *, int);
 
 const struct cmd_entry cmd_list_windows_entry = {
 	"list-windows", "lsw",
 	"F:at:", 0, 0,
 	"[-a] [-F format] " CMD_TARGET_SESSION_USAGE,
-	0,
-	NULL,
-	cmd_list_windows_exec
+	CMD_PREPARESESSION,
+	cmd_list_windows_exec,
+	cmd_list_windows_prepare
 };
+
+void
+cmd_list_windows_prepare(struct cmd *self, struct cmd_q *cmdq)
+{
+	struct args	*args = self->args;
+
+	if (!args_has(args, 'a'))
+		cmdq->state.s = cmd_find_session(cmdq, args_get(args, 't'), 0);
+}
 
 enum cmd_retval
 cmd_list_windows_exec(struct cmd *self, struct cmd_q *cmdq)
@@ -51,8 +73,7 @@ cmd_list_windows_exec(struct cmd *self, struct cmd_q *cmdq)
 	if (args_has(args, 'a'))
 		cmd_list_windows_server(self, cmdq);
 	else {
-		s = cmd_find_session(cmdq, args_get(args, 't'), 0);
-		if (s == NULL)
+		if ((s = cmdq->state.s) == NULL)
 			return (CMD_RETURN_ERROR);
 		cmd_list_windows_session(self, s, cmdq, 0);
 	}

@@ -1,4 +1,4 @@
-/* $Id$ */
+/* $OpenBSD$ */
 
 /*
  * Copyright (c) 2007 Nicholas Marriott <nicm@users.sourceforge.net>
@@ -25,13 +25,13 @@
 
 void	screen_write_initctx(struct screen_write_ctx *, struct tty_ctx *, int);
 void	screen_write_overwrite(struct screen_write_ctx *, u_int);
-int	screen_write_combine(
-	    struct screen_write_ctx *, const struct utf8_data *);
+int	screen_write_combine(struct screen_write_ctx *,
+	    const struct utf8_data *);
 
 /* Initialise writing with a window. */
 void
-screen_write_start(
-    struct screen_write_ctx *ctx, struct window_pane *wp, struct screen *s)
+screen_write_start(struct screen_write_ctx *ctx, struct window_pane *wp,
+    struct screen *s)
 {
 	ctx->wp = wp;
 	if (wp != NULL && s == NULL)
@@ -65,14 +65,15 @@ screen_write_reset(struct screen_write_ctx *ctx)
 
 /* Write character. */
 void
-screen_write_putc(struct screen_write_ctx *ctx, struct grid_cell *gc, u_char ch)
+screen_write_putc(struct screen_write_ctx *ctx, struct grid_cell *gc,
+    u_char ch)
 {
 	grid_cell_one(gc, ch);
 	screen_write_cell(ctx, gc);
 }
 
 /* Calculate string length, with embedded formatting. */
-size_t printflike2
+size_t
 screen_write_cstrlen(int utf8flag, const char *fmt, ...)
 {
 	va_list	ap;
@@ -107,7 +108,7 @@ screen_write_cstrlen(int utf8flag, const char *fmt, ...)
 }
 
 /* Calculate string length. */
-size_t printflike2
+size_t
 screen_write_strlen(int utf8flag, const char *fmt, ...)
 {
 	va_list			ap;
@@ -144,9 +145,9 @@ screen_write_strlen(int utf8flag, const char *fmt, ...)
 }
 
 /* Write simple string (no UTF-8 or maximum length). */
-void printflike3
-screen_write_puts(
-    struct screen_write_ctx *ctx, struct grid_cell *gc, const char *fmt, ...)
+void
+screen_write_puts(struct screen_write_ctx *ctx, struct grid_cell *gc,
+    const char *fmt, ...)
 {
 	va_list	ap;
 
@@ -156,9 +157,9 @@ screen_write_puts(
 }
 
 /* Write string with length limit (-1 for unlimited). */
-void printflike5
-screen_write_nputs(struct screen_write_ctx *ctx,
-    ssize_t maxlen, struct grid_cell *gc, int utf8flag, const char *fmt, ...)
+void
+screen_write_nputs(struct screen_write_ctx *ctx, ssize_t maxlen,
+    struct grid_cell *gc, int utf8flag, const char *fmt, ...)
 {
 	va_list	ap;
 
@@ -220,7 +221,7 @@ screen_write_vnputs(struct screen_write_ctx *ctx, ssize_t maxlen,
 }
 
 /* Write string, similar to nputs, but with embedded formatting (#[]). */
-void printflike5
+void
 screen_write_cnputs(struct screen_write_ctx *ctx,
     ssize_t maxlen, struct grid_cell *gc, int utf8flag, const char *fmt, ...)
 {
@@ -248,7 +249,7 @@ screen_write_cnputs(struct screen_write_ctx *ctx,
 			}
 			*last = '\0';
 
-			screen_write_parsestyle(gc, &lgc, ptr);
+			style_parse(gc, &lgc, ptr);
 			ptr = last + 1;
 			continue;
 		}
@@ -286,89 +287,6 @@ screen_write_cnputs(struct screen_write_ctx *ctx,
 	}
 
 	free(msg);
-}
-
-/* Parse an embedded style of the form "fg=colour,bg=colour,bright,...". */
-void
-screen_write_parsestyle(
-    struct grid_cell *defgc, struct grid_cell *gc, const char *in)
-{
-	const char	delimiters[] = " ,";
-	char		tmp[32];
-	int		val;
-	size_t		end;
-	u_char		fg, bg, attr, flags;
-
-	if (*in == '\0')
-		return;
-	if (strchr(delimiters, in[strlen(in) - 1]) != NULL)
-		return;
-
-	fg = gc->fg;
-	bg = gc->bg;
-	attr = gc->attr;
-	flags = gc->flags;
-	do {
-		end = strcspn(in, delimiters);
-		if (end > (sizeof tmp) - 1)
-			return;
-		memcpy(tmp, in, end);
-		tmp[end] = '\0';
-
-		if (strcasecmp(tmp, "default") == 0) {
-			fg = defgc->fg;
-			bg = defgc->bg;
-			attr = defgc->attr;
-			flags &= ~(GRID_FLAG_FG256|GRID_FLAG_BG256);
-			flags |=
-			    defgc->flags & (GRID_FLAG_FG256|GRID_FLAG_BG256);
-		} else if (end > 3 && strncasecmp(tmp + 1, "g=", 2) == 0) {
-			if ((val = colour_fromstring(tmp + 3)) == -1)
-				return;
-			if (*in == 'f' || *in == 'F') {
-				if (val != 8) {
-					if (val & 0x100) {
-						flags |= GRID_FLAG_FG256;
-						val &= ~0x100;
-					} else
-						flags &= ~GRID_FLAG_FG256;
-					fg = val;
-				} else {
-					fg = defgc->fg;
-					flags &= ~GRID_FLAG_FG256;
-					flags |= defgc->flags & GRID_FLAG_FG256;
-				}
-			} else if (*in == 'b' || *in == 'B') {
-				if (val != 8) {
-					if (val & 0x100) {
-						flags |= GRID_FLAG_BG256;
-						val &= ~0x100;
-					} else
-						flags &= ~GRID_FLAG_BG256;
-					bg = val;
-				} else {
-					bg = defgc->bg;
-					flags &= ~GRID_FLAG_BG256;
-					flags |= defgc->flags & GRID_FLAG_BG256;
-				}
-			} else
-				return;
-		} else if (end > 2 && strncasecmp(tmp, "no", 2) == 0) {
-			if ((val = attributes_fromstring(tmp + 2)) == -1)
-				return;
-			attr &= ~val;
-		} else {
-			if ((val = attributes_fromstring(tmp)) == -1)
-				return;
-			attr |= val;
-		}
-
-		in += end + strspn(in + end, delimiters);
-	} while (*in != '\0');
-	gc->fg = fg;
-	gc->bg = bg;
-	gc->attr = attr;
-	gc->flags = flags;
 }
 
 /* Copy from another screen. */
@@ -877,8 +795,6 @@ screen_write_linefeed(struct screen_write_ctx *ctx, int wrapped)
 	gl = &s->grid->linedata[s->grid->hsize + s->cy];
 	if (wrapped)
 		gl->flags |= GRID_LINE_WRAPPED;
-	else
-		gl->flags &= ~GRID_LINE_WRAPPED;
 
 	if (s->cy == s->rlower)
 		grid_view_scroll_region_up(s->grid, s->rupper, s->rlower);
@@ -1072,6 +988,8 @@ screen_write_cell(struct screen_write_ctx *ctx, const struct grid_cell *gc)
 		memcpy(&tmp_gc, &s->sel.cell, sizeof tmp_gc);
 		grid_cell_get(gc, &ud);
 		grid_cell_set(&tmp_gc, &ud);
+		tmp_gc.attr = tmp_gc.attr & ~GRID_ATTR_CHARSET;
+		tmp_gc.attr |= gc->attr & GRID_ATTR_CHARSET;
 		tmp_gc.flags = gc->flags & ~(GRID_FLAG_FG256|GRID_FLAG_BG256);
 		tmp_gc.flags |= s->sel.cell.flags &
 		    (GRID_FLAG_FG256|GRID_FLAG_BG256);

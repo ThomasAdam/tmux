@@ -1,4 +1,4 @@
-/* $Id$ */
+/* $OpenBSD$ */
 
 /*
  * Copyright (c) 2007 Nicholas Marriott <nicm@users.sourceforge.net>
@@ -50,11 +50,12 @@ recalculate_sizes(void)
 	struct window		*w;
 	struct window_pane	*wp;
 	u_int			 i, j, ssx, ssy, has, limit;
-	int			 flag, has_status, is_zoomed;
+	int			 flag, has_status, is_zoomed, forced;
 
 	RB_FOREACH(s, sessions, &sessions) {
 		has_status = options_get_number(&s->options, "status");
 
+		s->attached = 0;
 		ssx = ssy = UINT_MAX;
 		for (j = 0; j < ARRAY_LENGTH(&clients); j++) {
 			c = ARRAY_ITEM(&clients, j);
@@ -69,6 +70,7 @@ recalculate_sizes(void)
 					ssy = c->tty.sy - 1;
 				else if (c->tty.sy < ssy)
 					ssy = c->tty.sy;
+				s->attached++;
 			}
 		}
 		if (ssx == UINT_MAX || ssy == UINT_MAX) {
@@ -114,17 +116,25 @@ recalculate_sizes(void)
 		if (ssx == UINT_MAX || ssy == UINT_MAX)
 			continue;
 
+		forced = 0;
 		limit = options_get_number(&w->options, "force-width");
-		if (limit != 0 && ssx > limit)
+		if (limit >= PANE_MINIMUM && ssx > limit) {
 			ssx = limit;
+			forced |= WINDOW_FORCEWIDTH;
+		}
 		limit = options_get_number(&w->options, "force-height");
-		if (limit != 0 && ssy > limit)
+		if (limit >= PANE_MINIMUM && ssy > limit) {
 			ssy = limit;
+			forced |= WINDOW_FORCEHEIGHT;
+		}
 
 		if (w->sx == ssx && w->sy == ssy)
 			continue;
 		log_debug("window size %u,%u (was %u,%u)", ssx, ssy, w->sx,
 		    w->sy);
+
+		w->flags &= ~(WINDOW_FORCEWIDTH|WINDOW_FORCEHEIGHT);
+		w->flags |= forced;
 
 		is_zoomed = w->flags & WINDOW_ZOOMED;
 		if (is_zoomed)

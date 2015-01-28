@@ -1,4 +1,4 @@
-/* $Id$ */
+/* $OpenBSD$ */
 
 /*
  * Copyright (c) 2007 Nicholas Marriott <nicm@users.sourceforge.net>
@@ -29,15 +29,15 @@
 
 enum cmd_retval	 cmd_bind_key_exec(struct cmd *, struct cmd_q *);
 
-enum cmd_retval	 cmd_bind_key_table(struct cmd *, struct cmd_q *, int);
+enum cmd_retval	 cmd_bind_key_mode_table(struct cmd *, struct cmd_q *, int);
 
 const struct cmd_entry cmd_bind_key_entry = {
 	"bind-key", "bind",
 	"cnrt:", 1, -1,
-	"[-cnr] [-t key-table] key command [arguments]",
+	"[-cnr] [-t mode-table] key command [arguments]",
 	0,
-	NULL,
-	cmd_bind_key_exec
+	cmd_bind_key_exec,
+	NULL
 };
 
 enum cmd_retval
@@ -67,7 +67,7 @@ cmd_bind_key_exec(struct cmd *self, struct cmd_q *cmdq)
 	}
 
 	if (args_has(args, 't'))
-		return (cmd_bind_key_table(self, cmdq, key));
+		return (cmd_bind_key_mode_table(self, cmdq, key));
 
 	cmdlist = cmd_list_parse(args->argc - 1, args->argv + 1, NULL, 0,
 	    &cause);
@@ -84,7 +84,7 @@ cmd_bind_key_exec(struct cmd *self, struct cmd_q *cmdq)
 }
 
 enum cmd_retval
-cmd_bind_key_table(struct cmd *self, struct cmd_q *cmdq, int key)
+cmd_bind_key_mode_table(struct cmd *self, struct cmd_q *cmdq, int key)
 {
 	struct args			*args = self->args;
 	const char			*tablename;

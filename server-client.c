@@ -1,4 +1,4 @@
-/* $Id$ */
+/* $OpenBSD$ */
 
 /*
  * Copyright (c) 2009 Nicholas Marriott <nicm@users.sourceforge.net>
@@ -67,9 +67,9 @@ server_client_create(int fd)
 	c->cmdq = cmdq_new(c);
 	c->cmdq->client_exit = 1;
 
-	c->stdin_data = evbuffer_new ();
-	c->stdout_data = evbuffer_new ();
-	c->stderr_data = evbuffer_new ();
+	c->stdin_data = evbuffer_new();
+	c->stdout_data = evbuffer_new();
+	c->stderr_data = evbuffer_new();
 
 	c->tty.fd = -1;
 	c->title = NULL;
@@ -113,21 +113,22 @@ server_client_create(int fd)
 
 /* Open client terminal if needed. */
 int
-server_client_open(struct client *c, struct session *s, char **cause)
+server_client_open(struct client *c, char **cause)
 {
-	struct options	*oo = s != NULL ? &s->options : &global_s_options;
-	char		*overrides;
-
 	if (c->flags & CLIENT_CONTROL)
 		return (0);
 
-	if (!(c->flags & CLIENT_TERMINAL)) {
-		*cause = xstrdup ("not a terminal");
+	if (strcmp(c->ttyname, "/dev/tty") == 0) {
+		*cause = xstrdup("can't use /dev/tty");
 		return (-1);
 	}
 
-	overrides = options_get_string(oo, "terminal-overrides");
-	if (tty_open(&c->tty, overrides, cause) != 0)
+	if (!(c->flags & CLIENT_TERMINAL)) {
+		*cause = xstrdup("not a terminal");
+		return (-1);
+	}
+
+	if (tty_open(&c->tty, cause) != 0)
 		return (-1);
 
 	return (0);
@@ -155,10 +156,10 @@ server_client_lost(struct client *c)
 	free(c->ttyname);
 	free(c->term);
 
-	evbuffer_free (c->stdin_data);
-	evbuffer_free (c->stdout_data);
+	evbuffer_free(c->stdin_data);
+	evbuffer_free(c->stdout_data);
 	if (c->stderr_data != c->stdout_data)
-		evbuffer_free (c->stderr_data);
+		evbuffer_free(c->stderr_data);
 
 	status_free_jobs(&c->status_new);
 	status_free_jobs(&c->status_old);
@@ -173,7 +174,7 @@ server_client_lost(struct client *c)
 		evtimer_del(&c->identify_timer);
 
 	free(c->message_string);
-	if (event_initialized (&c->message_timer))
+	if (event_initialized(&c->message_timer))
 		evtimer_del(&c->message_timer);
 	for (i = 0; i < ARRAY_LENGTH(&c->message_log); i++) {
 		msg = &ARRAY_ITEM(&c->message_log, i);
@@ -222,7 +223,8 @@ server_client_callback(int fd, short events, void *data)
 		return;
 
 	if (fd == c->ibuf.fd) {
-		if (events & EV_WRITE && msgbuf_write(&c->ibuf.w) < 0)
+		if (events & EV_WRITE && msgbuf_write(&c->ibuf.w) <= 0 &&
+		    errno != EAGAIN)
 			goto client_lost;
 
 		if (c->flags & CLIENT_BAD) {
@@ -278,7 +280,7 @@ server_client_status_timer(void)
 		interval = options_get_number(&s->options, "status-interval");
 
 		difference = tv.tv_sec - c->status_timer.tv_sec;
-		if (difference >= interval) {
+		if (interval != 0 && difference >= interval) {
 			status_update_jobs(c);
 			c->flags |= CLIENT_STATUS;
 		}
@@ -322,10 +324,11 @@ server_client_check_mouse(struct client *c, struct window_pane *wp)
 	else if (statusat > 0 && m->y >= (u_int)statusat)
 		m->y = statusat - 1;
 
-	/* Is this a pane selection? Allow down only in copy mode. */
+	/* Is this a pane selection? */
 	if (options_get_number(oo, "mouse-select-pane") &&
-	    (m->event == MOUSE_EVENT_DOWN || wp->mode != &window_copy_mode)) {
+	    (m->event == MOUSE_EVENT_DOWN || m->event == MOUSE_EVENT_WHEEL)) {
 		window_set_active_at(wp->window, m->x, m->y);
+		server_status_window(wp->window);
 		server_redraw_window_borders(wp->window);
 		wp = wp->window->active; /* may have changed */
 	}
@@ -539,8 +542,18 @@ server_client_check_resize(struct window_pane *wp)
 	ws.ws_col = wp->sx;
 	ws.ws_row = wp->sy;
 
-	if (ioctl(wp->fd, TIOCSWINSZ, &ws) == -1)
+	if (ioctl(wp->fd, TIOCSWINSZ, &ws) == -1) {
+#ifdef __sun
+		/*
+		 * Some versions of Solaris apparently can return an error when
+		 * resizing; don't know why this happens, can't reproduce on
+		 * other platforms and ignoring it doesn't seem to cause any
+		 * issues.
+		 */
+		if (errno != EINVAL && errno != ENXIO)
+#endif
 		fatal("ioctl failed");
+	}
 
 	wp->flags &= ~PANE_RESIZE;
 }
@@ -634,7 +647,7 @@ server_client_reset_state(struct client *c)
 	if (!window_pane_visible(wp) || wp->yoff + s->cy >= c->tty.sy - status)
 		tty_cursor(&c->tty, 0, 0);
 	else {
-		o = status && options_get_number (oo, "status-position") == 0;
+		o = status && options_get_number(oo, "status-position") == 0;
 		tty_cursor(&c->tty, wp->xoff + s->cx, o + wp->yoff + s->cy);
 	}
 
@@ -644,7 +657,7 @@ server_client_reset_state(struct client *c)
 	 */
 	mode = s->mode;
 	if ((c->tty.mouse.flags & MOUSE_RESIZE_PANE) &&
-	    !(mode & (MODE_MOUSE_BUTTON|MODE_MOUSE_ANY)))
+	    !(mode & MODE_MOUSE_BUTTON))
 		mode |= MODE_MOUSE_BUTTON;
 
 	/*
@@ -741,7 +754,7 @@ server_client_check_redraw(struct client *c)
 	}
 
 	if (c->flags & CLIENT_REDRAW) {
-		screen_redraw_screen(c, 0, 0);
+		screen_redraw_screen(c, 1, 1, 1);
 		c->flags &= ~(CLIENT_STATUS|CLIENT_BORDERS);
 	} else if (c->flags & CLIENT_REDRAWWINDOW) {
 		TAILQ_FOREACH(wp, &c->session->curw->window->panes, entry)
@@ -755,10 +768,10 @@ server_client_check_redraw(struct client *c)
 	}
 
 	if (c->flags & CLIENT_BORDERS)
-		screen_redraw_screen(c, 0, 1);
+		screen_redraw_screen(c, 0, 0, 1);
 
 	if (c->flags & CLIENT_STATUS)
-		screen_redraw_screen(c, 1, 0);
+		screen_redraw_screen(c, 0, 1, 0);
 
 	c->tty.flags |= flags;
 
@@ -872,6 +885,9 @@ server_client_msg_dispatch(struct client *c)
 				break;
 			c->flags &= ~CLIENT_SUSPENDED;
 
+			if (c->tty.fd == -1) /* exited in the meantime */
+				break;
+
 			if (gettimeofday(&c->activity_time, NULL) != 0)
 				fatal("gettimeofday");
 			if (c->session != NULL)
@@ -908,7 +924,7 @@ server_client_msg_command(struct client *c, struct imsg *imsg)
 		fatalx("bad MSG_COMMAND size");
 	memcpy(&data, imsg->data, sizeof data);
 
-	buf = (char*)imsg->data + sizeof data;
+	buf = (char *)imsg->data + sizeof data;
 	len = imsg->hdr.len  - IMSG_HEADER_SIZE - sizeof data;
 	if (len > 0 && buf[len - 1] != '\0')
 		fatalx("bad MSG_COMMAND string");
@@ -932,7 +948,10 @@ server_client_msg_command(struct client *c, struct imsg *imsg)
 	}
 	cmd_free_argv(argc, argv);
 
-	cmdq_run(c->cmdq, cmdlist);
+	if (c != cfg_client || cfg_finished)
+		cmdq_run(c->cmdq, cmdlist);
+	else
+		cmdq_append(c->cmdq, cmdlist);
 	cmd_list_free(cmdlist);
 	return;
 

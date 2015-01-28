@@ -1,4 +1,4 @@
-/* $Id$ */
+/* $OpenBSD$ */
 
 /*
  * Copyright (c) 2013 Nicholas Marriott <nicm@users.sourceforge.net>
@@ -21,8 +21,35 @@
 #include <ctype.h>
 #include <stdlib.h>
 #include <time.h>
+#include <string.h>
 
 #include "tmux.h"
+
+void	cmdq_set_state(struct cmd_q *);
+void	cmdq_run_hook(struct hooks *, const char *, struct cmd *,
+	    struct cmd_q *);
+
+/* Fill in state members. */
+void
+cmdq_set_state(struct cmd_q *cmdq)
+{
+	memset(&cmdq->state, 0, sizeof cmdq->state);
+
+	cmdq->state.c = cmdq->client;
+
+	cmdq->state.s = cmdq->client != NULL ?
+		cmdq->client->session : NULL;
+	cmdq->state.s2 = NULL;
+	cmdq->state.w = NULL;
+	cmdq->state.wl = NULL;
+	cmdq->state.wp = NULL;
+	cmdq->state.tflag = NULL;
+	cmdq->state.sflag = NULL;
+
+	cmd_prepare(cmdq->cmd, cmdq);
+
+	cmdq->state.prior_tflag = args_get(cmdq->cmd->args, 't');
+}
 
 /* Create new command queue. */
 struct cmd_q *
@@ -57,7 +84,7 @@ cmdq_free(struct cmd_q *cmdq)
 }
 
 /* Show message from command. */
-void printflike2
+void
 cmdq_print(struct cmd_q *cmdq, const char *fmt, ...)
 {
 	struct client	*c = cmdq->client;
@@ -69,9 +96,7 @@ cmdq_print(struct cmd_q *cmdq, const char *fmt, ...)
 	if (c == NULL)
 		/* nothing */;
 	else if (c->session == NULL || (c->flags & CLIENT_CONTROL)) {
-		va_start(ap, fmt);
 		evbuffer_add_vprintf(c->stdout_data, fmt, ap);
-		va_end(ap);
 
 		evbuffer_add(c->stdout_data, "\n", 1);
 		server_push_stdout(c);
@@ -88,57 +113,23 @@ cmdq_print(struct cmd_q *cmdq, const char *fmt, ...)
 	va_end(ap);
 }
 
-/* Show info from command. */
-void printflike2
-cmdq_info(struct cmd_q *cmdq, const char *fmt, ...)
-{
-	struct client	*c = cmdq->client;
-	va_list		 ap;
-	char		*msg;
-
-	if (options_get_number(&global_options, "quiet"))
-		return;
-
-	va_start(ap, fmt);
-
-	if (c == NULL)
-		/* nothing */;
-	else if (c->session == NULL || (c->flags & CLIENT_CONTROL)) {
-		va_start(ap, fmt);
-		evbuffer_add_vprintf(c->stdout_data, fmt, ap);
-		va_end(ap);
-
-		evbuffer_add(c->stdout_data, "\n", 1);
-		server_push_stdout(c);
-	} else {
-		xvasprintf(&msg, fmt, ap);
-		*msg = toupper((u_char) *msg);
-		status_message_set(c, "%s", msg);
-		free(msg);
-	}
-
-	va_end(ap);
-
-}
-
 /* Show error from command. */
-void printflike2
+void
 cmdq_error(struct cmd_q *cmdq, const char *fmt, ...)
 {
 	struct client	*c = cmdq->client;
 	struct cmd	*cmd = cmdq->cmd;
 	va_list		 ap;
-	char		*msg, *cause;
+	char		*msg;
 	size_t		 msglen;
 
 	va_start(ap, fmt);
 	msglen = xvasprintf(&msg, fmt, ap);
 	va_end(ap);
 
-	if (c == NULL) {
-		xasprintf(&cause, "%s:%u: %s", cmd->file, cmd->line, msg);
-		ARRAY_ADD(&cfg_causes, cause);
-	} else if (c->session == NULL || (c->flags & CLIENT_CONTROL)) {
+	if (c == NULL)
+		cfg_add_cause("%s:%u: %s", cmd->file, cmd->line, msg);
+	else if (c->session == NULL || (c->flags & CLIENT_CONTROL)) {
 		evbuffer_add(c->stderr_data, msg, msglen);
 		evbuffer_add(c->stderr_data, "\n", 1);
 
@@ -159,14 +150,14 @@ cmdq_guard(struct cmd_q *cmdq, const char *guard, int flags)
 	struct client	*c = cmdq->client;
 
 	if (c == NULL)
-		return 0;
+		return (0);
 	if (!(c->flags & CLIENT_CONTROL))
-		return 0;
+		return (0);
 
 	evbuffer_add_printf(c->stdout_data, "%%%s %ld %u %d\n", guard,
 	    (long) cmdq->time, cmdq->number, flags);
 	server_push_stdout(c);
-	return 1;
+	return (1);
 }
 
 /* Add command list to queue and begin processing if needed. */
@@ -179,6 +170,20 @@ cmdq_run(struct cmd_q *cmdq, struct cmd_list *cmdlist)
 		cmdq->cmd = NULL;
 		cmdq_continue(cmdq);
 	}
+}
+
+/* Run hooks based on the hooks prefix (before/after). */
+void
+cmdq_run_hook(struct hooks *hooks, const char *prefix, struct cmd *cmd,
+    struct cmd_q *cmdq)
+{
+	struct hook     *hook;
+	char            *s;
+
+	xasprintf(&s, "%s-%s", prefix, cmd->entry->name);
+	if ((hook = hooks_find(hooks, s)) != NULL)
+		hooks_run(hook, cmdq);
+	free(s);
 }
 
 /* Add command list to queue. */
@@ -198,6 +203,7 @@ int
 cmdq_continue(struct cmd_q *cmdq)
 {
 	struct cmd_q_item	*next;
+	struct hooks		*hooks;
 	enum cmd_retval		 retval;
 	int			 empty, guard, flags;
 	char			 s[1024];
@@ -215,9 +221,18 @@ cmdq_continue(struct cmd_q *cmdq)
 		cmdq->cmd = TAILQ_NEXT(cmdq->cmd, qentry);
 
 	do {
-		next = TAILQ_NEXT(cmdq->item, qentry);
-
 		while (cmdq->cmd != NULL) {
+			/*
+			 * Set the execution context for this command.  This
+			 * then allows for session hooks to be used if this
+			 * command has any.
+			 */
+			cmdq_set_state(cmdq);
+			if (cmdq->state.s != NULL)
+				hooks = &cmdq->state.s->hooks;
+			else
+				hooks = &global_hooks;
+
 			cmd_print(cmdq->cmd, s, sizeof s);
 			log_debug("cmdq %p: %s (client %d)", cmdq, s,
 			    cmdq->client != NULL ? cmdq->client->ibuf.fd : -1);
@@ -228,7 +243,13 @@ cmdq_continue(struct cmd_q *cmdq)
 			flags = !!(cmdq->cmd->flags & CMD_CONTROL);
 			guard = cmdq_guard(cmdq, "begin", flags);
 
+			cmdq_run_hook(hooks, "before", cmdq->cmd, cmdq);
+
 			retval = cmdq->cmd->entry->exec(cmdq->cmd, cmdq);
+			if (retval == CMD_RETURN_ERROR)
+				break;
+
+			cmdq_run_hook(hooks, "after", cmdq->cmd, cmdq);
 
 			if (guard) {
 				if (retval == CMD_RETURN_ERROR)
@@ -248,6 +269,7 @@ cmdq_continue(struct cmd_q *cmdq)
 
 			cmdq->cmd = TAILQ_NEXT(cmdq->cmd, qentry);
 		}
+		next = TAILQ_NEXT(cmdq->item, qentry);
 
 		TAILQ_REMOVE(&cmdq->queue, cmdq->item, qentry);
 		cmd_list_free(cmdq->item->cmdlist);

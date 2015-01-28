@@ -1,4 +1,4 @@
-/* $Id$ */
+/* $OpenBSD$ */
 
 /*
  * Copyright (c) 2009 Tiago Cunha <me@tiagocunha.org>
@@ -39,9 +39,9 @@ const struct cmd_entry cmd_run_shell_entry = {
 	"run-shell", "run",
 	"bt:", 1, 1,
 	"[-b] " CMD_TARGET_PANE_USAGE " shell-command",
-	0,
-	NULL,
-	cmd_run_shell_exec
+	CMD_PREPAREPANE|CMD_PREPARESESSION,
+	cmd_run_shell_exec,
+	NULL
 };
 
 struct cmd_run_shell_data {
@@ -76,21 +76,17 @@ cmd_run_shell_exec(struct cmd *self, struct cmd_q *cmdq)
 	struct args			*args = self->args;
 	struct cmd_run_shell_data	*cdata;
 	char				*shellcmd;
-	struct client			*c;
 	struct session			*s = NULL;
 	struct winlink			*wl = NULL;
 	struct window_pane		*wp = NULL;
 	struct format_tree		*ft;
 
 	if (args_has(args, 't'))
-		wl = cmd_find_pane(cmdq, args_get(args, 't'), &s, &wp);
+		wl = cmdq->state.wl;
 	else {
-		c = cmd_find_client(cmdq, NULL, 1);
-		if (c != NULL && c->session != NULL) {
-			s = c->session;
-			wl = s->curw;
-			wp = wl->window->active;
-		}
+		s = cmdq->state.s;
+		wl = cmdq->state.wl;
+		wp = cmdq->state.wp;
 	}
 
 	ft = format_create();
@@ -161,13 +157,9 @@ cmd_run_shell_callback(struct job *job)
 		retcode = WTERMSIG(job->status);
 		xasprintf(&msg, "'%s' terminated by signal %d", cmd, retcode);
 	}
-	if (msg != NULL) {
-		if (lines == 0)
-			cmdq_info(cmdq, "%s", msg);
-		else
-			cmd_run_shell_print(job, msg);
-		free(msg);
-	}
+	if (msg != NULL)
+		cmd_run_shell_print(job, msg);
+	free(msg);
 }
 
 void

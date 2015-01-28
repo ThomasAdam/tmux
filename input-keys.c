@@ -1,4 +1,4 @@
-/* $Id$ */
+/* $OpenBSD$ */
 
 /*
  * Copyright (c) 2007 Nicholas Marriott <nicm@users.sourceforge.net>
@@ -56,14 +56,14 @@ const struct input_key_ent input_keys[] = {
 	{ KEYC_F10,		"\033[21~",	0 },
 	{ KEYC_F11,		"\033[23~",	0 },
 	{ KEYC_F12,		"\033[24~",	0 },
-	{ KEYC_F13,		"\033[25~",	0 },
-	{ KEYC_F14,		"\033[26~",	0 },
-	{ KEYC_F15,		"\033[28~",	0 },
-	{ KEYC_F16,		"\033[29~",	0 },
-	{ KEYC_F17,		"\033[31~",	0 },
-	{ KEYC_F18,		"\033[32~",	0 },
-	{ KEYC_F19,		"\033[33~",	0 },
-	{ KEYC_F20,		"\033[34~",	0 },
+	{ KEYC_F1|KEYC_SHIFT,	"\033[25~",	0 },
+	{ KEYC_F2|KEYC_SHIFT,	"\033[26~",	0 },
+	{ KEYC_F3|KEYC_SHIFT,	"\033[28~",	0 },
+	{ KEYC_F4|KEYC_SHIFT,	"\033[29~",	0 },
+	{ KEYC_F5|KEYC_SHIFT,	"\033[31~",	0 },
+	{ KEYC_F6|KEYC_SHIFT,	"\033[32~",	0 },
+	{ KEYC_F7|KEYC_SHIFT,	"\033[33~",	0 },
+	{ KEYC_F8|KEYC_SHIFT,	"\033[34~",	0 },
 	{ KEYC_IC,		"\033[2~",	0 },
 	{ KEYC_DC,		"\033[3~",	0 },
 	{ KEYC_HOME,		"\033[1~",	0 },
@@ -142,7 +142,7 @@ input_key(struct window_pane *wp, int key)
 	char			       *out;
 	u_char				ch;
 
-	log_debug2("writing key 0x%x", key);
+	log_debug("writing key 0x%x", key);
 
 	/*
 	 * If this is a normal 7-bit key, just send it, with a leading escape
@@ -185,11 +185,11 @@ input_key(struct window_pane *wp, int key)
 			break;
 	}
 	if (i == nitems(input_keys)) {
-		log_debug2("key 0x%x missing", key);
+		log_debug("key 0x%x missing", key);
 		return;
 	}
 	dlen = strlen(ike->data);
-	log_debug2("found key 0x%x: \"%s\"", key, ike->data);
+	log_debug("found key 0x%x: \"%s\"", key, ike->data);
 
 	/* Prefix a \033 for escape. */
 	if (key & KEYC_ESCAPE)
@@ -204,6 +204,7 @@ input_mouse(struct window_pane *wp, struct session *s, struct mouse_event *m)
 	char			 buf[40];
 	size_t			 len;
 	struct paste_buffer	*pb;
+	int			 event;
 
 	if (wp->screen->mode & ALL_MOUSE_MODES) {
 		/*
@@ -237,19 +238,16 @@ input_mouse(struct window_pane *wp, struct session *s, struct mouse_event *m)
 		return;
 	}
 
-	if (m->button == 1 && (m->event & MOUSE_EVENT_CLICK) &&
-	    options_get_number(&wp->window->options, "mode-mouse") == 1) {
-		pb = paste_get_top(&global_buffers);
-		if (pb != NULL) {
-			paste_send_pane(pb, wp, "\r",
-			    wp->screen->mode & MODE_BRACKETPASTE);
-		}
-	} else if ((m->xb & 3) != 1 &&
-	    options_get_number(&wp->window->options, "mode-mouse") == 1) {
-		if (window_pane_set_mode(wp, &window_copy_mode) == 0) {
-			window_copy_init_from_pane(wp);
-			if (wp->mode->mouse != NULL)
-				wp->mode->mouse(wp, s, m);
-		}
+	if (options_get_number(&wp->window->options, "mode-mouse") != 1)
+		return;
+	event = m->event & (MOUSE_EVENT_CLICK|MOUSE_EVENT_WHEEL);
+	if (wp->mode == NULL && m->button == 1 && event == MOUSE_EVENT_CLICK) {
+		pb = paste_get_top();
+		if (pb != NULL)
+			paste_send_pane(pb, wp, "\r", 1);
+	} else if (window_pane_set_mode(wp, &window_copy_mode) == 0) {
+		window_copy_init_from_pane(wp);
+		if (wp->mode->mouse != NULL)
+			wp->mode->mouse(wp, s, m);
 	}
 }

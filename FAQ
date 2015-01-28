@@ -95,9 +95,6 @@ aware of are (bearing in mind I haven't used screen for a few years now):
 - screen has builtin serial and telnet support; this is bloat and is unlikely
   to be added to tmux.
 
-- screen has support for updating utmp. Nobody has really come up with a clean,
-  portable way to do this without making tmux setuid or setgid yet.
-
 - Environment handling is different.
 
 - tmux tends to be more demanding on the terminal so tends to show up terminal
@@ -106,6 +103,10 @@ aware of are (bearing in mind I haven't used screen for a few years now):
 - screen has wider platform support, for example IRIX, and for odd terminals.
 
 * I found a bug! What do I do?
+
+Check the latest version of tmux from Git to see if the problem is still
+reproducible.  Sometimes the length of time between releases means a lot of
+fixes can be sitting in Git and the problem might already be fixed.
 
 Please send bug reports by email to nicm@users.sourceforge.net or
 tmux-users@lists.sourceforge.net. Please include as much of the following
@@ -237,6 +238,31 @@ it may be possible to configure vim to accept these, an example of how to do so
 would be welcome.
 
 vim users may also want to set the "ttyfast" option inside tmux.
+
+* How do I make ctrl and shift arrow keys work in emacs?
+
+The terminal-init-screen function in term/screen.el is called for new frames,
+but it doesn't configure any function keys.
+
+If the tmux xterm-keys option is on, it is enough to define the same keys as
+xterm. Add the following to init.el or .emacs to do this:
+
+(defadvice terminal-init-screen
+  ;; The advice is named `tmux', and is run before `terminal-init-screen' runs.
+  (before tmux activate)
+  ;; Docstring.  This describes the advice and is made available inside emacs;
+  ;; for example when doing C-h f terminal-init-screen RET
+  "Apply xterm keymap, allowing use of keys passed through tmux."
+  ;; This is the elisp code that is run before `terminal-init-screen'.
+  (if (getenv "TMUX")
+    (let ((map (copy-keymap xterm-function-map)))
+    (set-keymap-parent map (keymap-parent input-decode-map))
+    (set-keymap-parent input-decode-map map))))
+
+And ensure .tmux.conf contains "set -g xterm-keys on".
+
+Alternatively, the screen.el file can be copied to the load path and
+customized.
 
 * Why doesn't elinks set the window title inside tmux?
 
@@ -377,7 +403,7 @@ always (or ever) be added to the scrollback.
 You can make tmux use the normal screen by telling it that your terminal does
 not have an alternate screen. Put the following in ~/.tmux.conf:
 
-        set -g terminal-overrides 'xterm*:smcup@:rmcup@'
+        set -ga terminal-overrides ',xterm*:smcup@:rmcup@'
 
 Adjust if your $TERM does not start with xterm.
 

@@ -1,4 +1,4 @@
-/* $Id$ */
+/* $OpenBSD$ */
 
 /*
  * Copyright (c) 2009 Tiago Cunha <me@tiagocunha.org>
@@ -16,6 +16,8 @@
  * OUT OF OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  */
 
+#include <sys/types.h>
+
 #include <ctype.h>
 #include <stdlib.h>
 #include <string.h>
@@ -26,7 +28,6 @@
  * Asks for confirmation before executing a command.
  */
 
-void		 cmd_confirm_before_key_binding(struct cmd *, int);
 enum cmd_retval	 cmd_confirm_before_exec(struct cmd *, struct cmd_q *);
 
 int		 cmd_confirm_before_callback(void *, const char *);
@@ -36,33 +37,15 @@ const struct cmd_entry cmd_confirm_before_entry = {
 	"confirm-before", "confirm",
 	"p:t:", 1, 1,
 	"[-p prompt] " CMD_TARGET_CLIENT_USAGE " command",
-	0,
-	cmd_confirm_before_key_binding,
-	cmd_confirm_before_exec
+	CMD_PREPARECLIENT,
+	cmd_confirm_before_exec,
+	NULL
 };
 
 struct cmd_confirm_before_data {
 	char		*cmd;
 	struct client	*client;
 };
-
-void
-cmd_confirm_before_key_binding(struct cmd *self, int key)
-{
-	switch (key) {
-	case '&':
-		self->args = args_create(1, "kill-window");
-		args_set(self->args, 'p', "kill-window #W? (y/n)");
-		break;
-	case 'x':
-		self->args = args_create(1, "kill-pane");
-		args_set(self->args, 'p', "kill-pane #P? (y/n)");
-		break;
-	default:
-		self->args = args_create(0);
-		break;
-	}
-}
 
 enum cmd_retval
 cmd_confirm_before_exec(struct cmd *self, struct cmd_q *cmdq)
@@ -73,7 +56,7 @@ cmd_confirm_before_exec(struct cmd *self, struct cmd_q *cmdq)
 	char				*cmd, *copy, *new_prompt, *ptr;
 	const char			*prompt;
 
-	if ((c = cmd_find_client(cmdq, args_get(args, 't'), 0)) == NULL)
+	if ((c = cmdq->state.c) == NULL)
 		return (CMD_RETURN_ERROR);
 
 	if ((prompt = args_get(args, 'p')) != NULL)

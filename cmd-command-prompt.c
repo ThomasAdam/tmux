@@ -1,4 +1,4 @@
-/* $Id$ */
+/* $OpenBSD$ */
 
 /*
  * Copyright (c) 2008 Nicholas Marriott <nicm@users.sourceforge.net>
@@ -29,7 +29,6 @@
  * Prompt for command in client.
  */
 
-void	cmd_command_prompt_key_binding(struct cmd *, int);
 enum cmd_retval	cmd_command_prompt_exec(struct cmd *, struct cmd_q *);
 
 int	cmd_command_prompt_callback(void *, const char *);
@@ -39,9 +38,9 @@ const struct cmd_entry cmd_command_prompt_entry = {
 	"command-prompt", NULL,
 	"I:p:t:", 0, 1,
 	"[-I inputs] [-p prompts] " CMD_TARGET_CLIENT_USAGE " [template]",
-	0,
-	cmd_command_prompt_key_binding,
-	cmd_command_prompt_exec
+	CMD_PREPARECLIENT,
+	cmd_command_prompt_exec,
+	NULL
 };
 
 struct cmd_command_prompt_cdata {
@@ -54,34 +53,6 @@ struct cmd_command_prompt_cdata {
 	int		 idx;
 };
 
-void
-cmd_command_prompt_key_binding(struct cmd *self, int key)
-{
-	switch (key) {
-	case '$':
-		self->args = args_create(1, "rename-session '%%'");
-		args_set(self->args, 'I', "#S");
-		break;
-	case ',':
-		self->args = args_create(1, "rename-window '%%'");
-		args_set(self->args, 'I', "#W");
-		break;
-	case '.':
-		self->args = args_create(1, "move-window -t '%%'");
-		break;
-	case 'f':
-		self->args = args_create(1, "find-window '%%'");
-		break;
-	case '\'':
-		self->args = args_create(1, "select-window -t ':%%'");
-		args_set(self->args, 'p', "index");
-		break;
-	default:
-		self->args = args_create(0);
-		break;
-	}
-}
-
 enum cmd_retval
 cmd_command_prompt_exec(struct cmd *self, struct cmd_q *cmdq)
 {
@@ -92,7 +63,7 @@ cmd_command_prompt_exec(struct cmd *self, struct cmd_q *cmdq)
 	char				*prompt, *ptr, *input = NULL;
 	size_t				 n;
 
-	if ((c = cmd_find_client(cmdq, args_get(args, 't'), 0)) == NULL)
+	if ((c = cmdq->state.c) == NULL)
 		return (CMD_RETURN_ERROR);
 
 	if (c->prompt_string != NULL)

@@ -1,4 +1,4 @@
-/* $Id$ */
+/* $OpenBSD$ */
 
 /*
  * Copyright (c) 2008 Nicholas Marriott <nicm@users.sourceforge.net>
@@ -17,7 +17,6 @@
  */
 
 #include <sys/types.h>
-#include <sys/stat.h>
 
 #include <ctype.h>
 #include <errno.h>
@@ -30,15 +29,17 @@
 struct cmd_q		*cfg_cmd_q;
 int			 cfg_finished;
 int			 cfg_references;
-struct causelist	 cfg_causes;
+ARRAY_DECL (, char *)	 cfg_causes = ARRAY_INITIALIZER;
+struct client		*cfg_client;
 
 int
 load_cfg(const char *path, struct cmd_q *cmdq, char **cause)
 {
 	FILE		*f;
-	u_int		 n, found;
-	char		*buf, *copy, *line, *cause1, *msg;
-	size_t		 len, oldlen;
+	char		 delim[3] = { '\\', '\\', '\0' };
+	u_int		 found;
+	size_t		 line = 0;
+	char		*buf, *cause1, *p;
 	struct cmd_list	*cmdlist;
 
 	log_debug("loading %s", path);
@@ -47,60 +48,29 @@ load_cfg(const char *path, struct cmd_q *cmdq, char **cause)
 		return (-1);
 	}
 
-	n = found = 0;
-	line = NULL;
-	while ((buf = fgetln(f, &len))) {
-		/* Trim \n. */
-		if (buf[len - 1] == '\n')
-			len--;
-		log_debug("%s: %.*s", path, (int)len, buf);
-
-		/* Current line is the continuation of the previous one. */
-		if (line != NULL) {
-			oldlen = strlen(line);
-			line = xrealloc(line, 1, oldlen + len + 1);
-		} else {
-			oldlen = 0;
-			line = xmalloc(len + 1);
-		}
-
-		/* Append current line to the previous. */
-		memcpy(line + oldlen, buf, len);
-		line[oldlen + len] = '\0';
-		n++;
-
-		/* Continuation: get next line? */
-		len = strlen(line);
-		if (len > 0 && line[len - 1] == '\\') {
-			line[len - 1] = '\0';
-
-			/* Ignore escaped backslash at EOL. */
-			if (len > 1 && line[len - 2] != '\\')
-				continue;
-		}
-		copy = line;
-		line = NULL;
+	found = 0;
+	while ((buf = fparseln(f, NULL, &line, delim, 0))) {
+		log_debug("%s: %s", path, buf);
 
 		/* Skip empty lines. */
-		buf = copy;
-		while (isspace((u_char)*buf))
-			buf++;
-		if (*buf == '\0') {
-			free(copy);
+		p = buf;
+		while (isspace((u_char) *p))
+			p++;
+		if (*p == '\0') {
+			free(buf);
 			continue;
 		}
 
 		/* Parse and run the command. */
-		if (cmd_string_parse(buf, &cmdlist, path, n, &cause1) != 0) {
-			free(copy);
+		if (cmd_string_parse(p, &cmdlist, path, line, &cause1) != 0) {
+			free(buf);
 			if (cause1 == NULL)
 				continue;
-			xasprintf(&msg, "%s:%u: %s", path, n, cause1);
-			ARRAY_ADD(&cfg_causes, msg);
+			cfg_add_cause("%s:%zu: %s", path, line, cause1);
 			free(cause1);
 			continue;
 		}
-		free(copy);
+		free(buf);
 
 		if (cmdlist == NULL)
 			continue;
@@ -108,8 +78,6 @@ load_cfg(const char *path, struct cmd_q *cmdq, char **cause)
 		cmd_list_free(cmdlist);
 		found++;
 	}
-	if (line != NULL)
-		free(line);
 	fclose(f);
 
 	return (found);
@@ -127,6 +95,47 @@ cfg_default_done(unused struct cmd_q *cmdq)
 
 	cmdq_free(cfg_cmd_q);
 	cfg_cmd_q = NULL;
+
+	if (cfg_client != NULL) {
+		/*
+		 * The client command queue starts with client_exit set to 1 so
+		 * only continue if not empty (that is, we have been delayed
+		 * during configuration parsing for long enough that the
+		 * MSG_COMMAND has arrived), else the client will exit before
+		 * the MSG_COMMAND which might tell it not to.
+		 */
+		if (!TAILQ_EMPTY(&cfg_client->cmdq->queue))
+			cmdq_continue(cfg_client->cmdq);
+		cfg_client->references--;
+		cfg_client = NULL;
+	}
+}
+
+void
+cfg_add_cause(const char* fmt, ...)
+{
+	va_list	ap;
+	char*	msg;
+
+	va_start(ap, fmt);
+	xvasprintf(&msg, fmt, ap);
+	va_end (ap);
+
+	ARRAY_ADD(&cfg_causes, msg);
+}
+
+void
+cfg_print_causes(struct cmd_q *cmdq)
+{
+	char	*cause;
+	u_int	 i;
+
+	for (i = 0; i < ARRAY_LENGTH(&cfg_causes); i++) {
+		cause = ARRAY_ITEM(&cfg_causes, i);
+		cmdq_print(cmdq, "%s", cause);
+		free(cause);
+	}
+	ARRAY_FREE(&cfg_causes);
 }
 
 void

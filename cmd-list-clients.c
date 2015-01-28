@@ -1,4 +1,4 @@
-/* $Id$ */
+/* $OpenBSD$ */
 
 /*
  * Copyright (c) 2007 Nicholas Marriott <nicm@users.sourceforge.net>
@@ -28,15 +28,20 @@
  * List all clients.
  */
 
+#define LIST_CLIENTS_TEMPLATE					\
+	"#{client_tty}: #{session_name} "			\
+	"[#{client_width}x#{client_height} #{client_termname}]"	\
+	"#{?client_utf8, (utf8),} #{?client_readonly, (ro),}"
+
 enum cmd_retval	cmd_list_clients_exec(struct cmd *, struct cmd_q *);
 
 const struct cmd_entry cmd_list_clients_entry = {
 	"list-clients", "lsc",
 	"F:t:", 0, 0,
 	"[-F format] " CMD_TARGET_SESSION_USAGE,
-	CMD_READONLY,
-	NULL,
-	cmd_list_clients_exec
+	CMD_READONLY|CMD_PREPARESESSION,
+	cmd_list_clients_exec,
+	NULL
 };
 
 enum cmd_retval
@@ -50,12 +55,9 @@ cmd_list_clients_exec(struct cmd *self, struct cmd_q *cmdq)
 	u_int			 i;
 	char			*line;
 
-	if (args_has(args, 't')) {
-		s = cmd_find_session(cmdq, args_get(args, 't'), 0);
-		if (s == NULL)
-			return (CMD_RETURN_ERROR);
-	} else
-		s = NULL;
+	s = cmdq->state.s;
+	if (args_has(args, 't') && s == NULL)
+		return (CMD_RETURN_ERROR);
 
 	if ((template = args_get(args, 'F')) == NULL)
 		template = LIST_CLIENTS_TEMPLATE;

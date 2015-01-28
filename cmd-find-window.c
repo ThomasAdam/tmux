@@ -1,4 +1,4 @@
-/* $Id$ */
+/* $OpenBSD$ */
 
 /*
  * Copyright (c) 2009 Nicholas Marriott <nicm@users.sourceforge.net>
@@ -28,6 +28,11 @@
  * Find window containing text.
  */
 
+#define FIND_WINDOW_TEMPLATE					\
+	"#{window_index}: #{window_name} "			\
+	"[#{window_width}x#{window_height}] "			\
+	"(#{window_panes} panes) #{window_find_matches}"
+
 enum cmd_retval	 cmd_find_window_exec(struct cmd *, struct cmd_q *);
 
 void	cmd_find_window_callback(struct window_choose_data *);
@@ -46,9 +51,9 @@ const struct cmd_entry cmd_find_window_entry = {
 	"find-window", "findw",
 	"F:CNt:T", 1, 4,
 	"[-CNT] [-F format] " CMD_TARGET_WINDOW_USAGE " match-string",
-	0,
-	NULL,
-	cmd_find_window_exec
+	CMD_PREPAREWINDOW,
+	cmd_find_window_exec,
+	NULL
 };
 
 struct cmd_find_window_data {
@@ -84,7 +89,8 @@ cmd_find_window_match_flags(struct args *args)
 
 void
 cmd_find_window_match(struct cmd_find_window_data_list *find_list,
-    int match_flags, struct winlink *wl, const char *str, const char *searchstr)
+    int match_flags, struct winlink *wl, const char *str,
+    const char *searchstr)
 {
 	struct cmd_find_window_data	 find_data;
 	struct window_pane		*wp;
@@ -138,13 +144,13 @@ cmd_find_window_exec(struct cmd *self, struct cmd_q *cmdq)
 	const char			*template;
 	u_int				 i, match_flags;
 
-	if ((c = cmd_current_client(cmdq)) == NULL) {
+	if ((c = cmdq->state.c) == NULL) {
 		cmdq_error(cmdq, "no client available");
 		return (CMD_RETURN_ERROR);
 	}
 	s = c->session;
 
-	if ((wl = cmd_find_window(cmdq, args_get(args, 't'), NULL)) == NULL)
+	if ((wl = cmdq->state.wl) == NULL)
 		return (CMD_RETURN_ERROR);
 
 	if ((template = args_get(args, 'F')) == NULL)
@@ -157,7 +163,7 @@ cmd_find_window_exec(struct cmd *self, struct cmd_q *cmdq)
 
 	xasprintf(&searchstr, "*%s*", str);
 	RB_FOREACH(wm, winlinks, &s->windows)
-	    cmd_find_window_match (&find_list, match_flags, wm, str, searchstr);
+	    cmd_find_window_match(&find_list, match_flags, wm, str, searchstr);
 	free(searchstr);
 
 	if (ARRAY_LENGTH(&find_list) == 0) {
@@ -199,6 +205,8 @@ cmd_find_window_exec(struct cmd *self, struct cmd_q *cmdq)
 	window_choose_ready(wl->window->active, 0, cmd_find_window_callback);
 
 out:
+	for (i = 0; i < ARRAY_LENGTH(&find_list); i++)
+		free(ARRAY_ITEM(&find_list, i).list_ctx);
 	ARRAY_FREE(&find_list);
 	return (CMD_RETURN_NORMAL);
 }

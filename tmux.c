@@ -1,4 +1,4 @@
-/* $Id$ */
+/* $OpenBSD$ */
 
 /*
  * Copyright (c) 2007 Nicholas Marriott <nicm@users.sourceforge.net>
@@ -22,6 +22,7 @@
 #include <errno.h>
 #include <event.h>
 #include <fcntl.h>
+#include <getopt.h>
 #include <locale.h>
 #include <pwd.h>
 #include <stdlib.h>
@@ -38,6 +39,7 @@ struct options	 global_options;	/* server options */
 struct options	 global_s_options;	/* session options */
 struct options	 global_w_options;	/* window options */
 struct environ	 global_environ;
+struct hooks	 global_hooks;
 
 struct event_base *ev_base;
 
@@ -45,7 +47,7 @@ char		*cfg_file;
 char		*shell_cmd;
 int		 debug_level;
 time_t		 start_time;
-char		 socket_path[MAXPATHLEN];
+char		 socket_path[PATH_MAX];
 int		 login_shell;
 char		*environ_path;
 
@@ -60,7 +62,7 @@ __dead void
 usage(void)
 {
 	fprintf(stderr,
-	    "usage: %s [-28lquvV] [-c shell-command] [-f file] [-L socket-name]\n"
+	    "usage: %s [-2lquvV] [-c shell-command] [-f file] [-L socket-name]\n"
 	    "            [-S socket-path] [command [flags]]\n",
 	    __progname);
 	exit(1);
@@ -73,7 +75,7 @@ logfile(const char *name)
 
 	if (debug_level > 0) {
 		xasprintf(&path, "tmux-%s-%ld.log", name, (long) getpid());
-		log_open(debug_level, path);
+		log_open(path);
 		free(path);
 	}
 }
@@ -127,7 +129,7 @@ areshell(const char *shell)
 char *
 makesocketpath(const char *label)
 {
-	char		base[MAXPATHLEN], realbase[MAXPATHLEN], *path, *s;
+	char		base[PATH_MAX], realbase[PATH_MAX], *path, *s;
 	struct stat	sb;
 	u_int		uid;
 
@@ -205,10 +207,11 @@ int
 main(int argc, char **argv)
 {
 	struct passwd	*pw;
-	char		*s, *path, *label, *home, **var, tmp[MAXPATHLEN];
+	char		*s, *path, *label, **var, tmp[PATH_MAX];
 	char		 in[256];
+	const char	*home;
 	long long	 pid;
-	int	 	 opt, flags, quiet, keys, session;
+	int	 	 opt, flags, keys, session;
 
 #if defined(DEBUG) && defined(__OpenBSD__)
 	malloc_options = (char *) "AFGJPX";
@@ -216,7 +219,7 @@ main(int argc, char **argv)
 
 	setlocale(LC_TIME, "");
 
-	quiet = flags = 0;
+	flags = 0;
 	label = path = NULL;
 	login_shell = (**argv == '-');
 	while ((opt = getopt(argc, argv, "2c:Cdf:lL:qS:uUVv")) != -1) {
@@ -249,7 +252,6 @@ main(int argc, char **argv)
 			label = xstrdup(optarg);
 			break;
 		case 'q':
-			quiet = 1;
 			break;
 		case 'S':
 			free(path);
@@ -288,6 +290,7 @@ main(int argc, char **argv)
 			flags |= CLIENT_UTF8;
 	}
 
+	hooks_init(&global_hooks, NULL);
 	environ_init(&global_environ);
 	for (var = environ; *var != NULL; var++)
 		environ_put(&global_environ, *var);
@@ -296,11 +299,11 @@ main(int argc, char **argv)
 
 	options_init(&global_options, NULL);
 	options_table_populate_tree(server_options_table, &global_options);
-	options_set_number(&global_options, "quiet", quiet);
 
 	options_init(&global_s_options, NULL);
 	options_table_populate_tree(session_options_table, &global_s_options);
-	options_set_string(&global_s_options, "default-shell", "%s", getshell());
+	options_set_string(&global_s_options, "default-shell", "%s",
+	    getshell());
 
 	options_init(&global_w_options, NULL);
 	options_table_populate_tree(window_options_table, &global_w_options);
@@ -331,11 +334,15 @@ main(int argc, char **argv)
 			pw = getpwuid(getuid());
 			if (pw != NULL)
 				home = pw->pw_dir;
+			else
+				home = NULL;
 		}
-		xasprintf(&cfg_file, "%s/.tmux.conf", home);
-		if (access(cfg_file, R_OK) != 0 && errno == ENOENT) {
-			free(cfg_file);
-			cfg_file = NULL;
+		if (home != NULL) {
+			xasprintf(&cfg_file, "%s/.tmux.conf", home);
+			if (access(cfg_file, R_OK) != 0 && errno == ENOENT) {
+				free(cfg_file);
+				cfg_file = NULL;
+			}
 		}
 	}
 
@@ -367,7 +374,11 @@ main(int argc, char **argv)
 		}
 	}
 	free(label);
-	strlcpy(socket_path, path, sizeof socket_path);
+
+	if (strlcpy(socket_path, path, sizeof socket_path) >= sizeof socket_path) {
+		fprintf(stderr, "socket path too long: %s\n", path);
+		exit(1);
+	}
 	free(path);
 
 #ifdef HAVE_SETPROCTITLE

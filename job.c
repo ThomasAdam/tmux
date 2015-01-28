@@ -1,4 +1,4 @@
-/* $Id$ */
+/* $OpenBSD$ */
 
 /*
  * Copyright (c) 2009 Nicholas Marriott <nicm@users.sourceforge.net>
@@ -23,6 +23,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
+#include <signal.h>
 
 #include "tmux.h"
 
@@ -59,6 +60,8 @@ job_run(const char *cmd, struct session *s,
 	switch (pid = fork()) {
 	case -1:
 		environ_free(&env);
+		close(out[0]);
+		close(out[1]);
 		return (NULL);
 	case 0:		/* child */
 		clear_signals(1);

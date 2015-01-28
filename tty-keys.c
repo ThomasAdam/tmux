@@ -1,4 +1,4 @@
-/* $Id$ */
+/* $OpenBSD$ */
 
 /*
  * Copyright (c) 2007 Nicholas Marriott <nicm@users.sourceforge.net>
@@ -113,14 +113,6 @@ const struct tty_default_key_raw tty_default_raw_keys[] = {
 	{ "\033[21^", KEYC_F10|KEYC_CTRL },
 	{ "\033[23^", KEYC_F11|KEYC_CTRL },
 	{ "\033[24^", KEYC_F12|KEYC_CTRL },
-	{ "\033[25^", KEYC_F13|KEYC_CTRL },
-	{ "\033[26^", KEYC_F14|KEYC_CTRL },
-	{ "\033[28^", KEYC_F15|KEYC_CTRL },
-	{ "\033[29^", KEYC_F16|KEYC_CTRL },
-	{ "\033[31^", KEYC_F17|KEYC_CTRL },
-	{ "\033[32^", KEYC_F18|KEYC_CTRL },
-	{ "\033[33^", KEYC_F19|KEYC_CTRL },
-	{ "\033[34^", KEYC_F20|KEYC_CTRL },
 	{ "\033[2^", KEYC_IC|KEYC_CTRL },
 	{ "\033[3^", KEYC_DC|KEYC_CTRL },
 	{ "\033[7^", KEYC_HOME|KEYC_CTRL },
@@ -140,14 +132,6 @@ const struct tty_default_key_raw tty_default_raw_keys[] = {
 	{ "\033[21$", KEYC_F10|KEYC_SHIFT },
 	{ "\033[23$", KEYC_F11|KEYC_SHIFT },
 	{ "\033[24$", KEYC_F12|KEYC_SHIFT },
-	{ "\033[25$", KEYC_F13|KEYC_SHIFT },
-	{ "\033[26$", KEYC_F14|KEYC_SHIFT },
-	{ "\033[28$", KEYC_F15|KEYC_SHIFT },
-	{ "\033[29$", KEYC_F16|KEYC_SHIFT },
-	{ "\033[31$", KEYC_F17|KEYC_SHIFT },
-	{ "\033[32$", KEYC_F18|KEYC_SHIFT },
-	{ "\033[33$", KEYC_F19|KEYC_SHIFT },
-	{ "\033[34$", KEYC_F20|KEYC_SHIFT },
 	{ "\033[2$", KEYC_IC|KEYC_SHIFT },
 	{ "\033[3$", KEYC_DC|KEYC_SHIFT },
 	{ "\033[7$", KEYC_HOME|KEYC_SHIFT },
@@ -167,14 +151,6 @@ const struct tty_default_key_raw tty_default_raw_keys[] = {
 	{ "\033[21@", KEYC_F10|KEYC_CTRL|KEYC_SHIFT },
 	{ "\033[23@", KEYC_F11|KEYC_CTRL|KEYC_SHIFT },
 	{ "\033[24@", KEYC_F12|KEYC_CTRL|KEYC_SHIFT },
-	{ "\033[25@", KEYC_F13|KEYC_CTRL|KEYC_SHIFT },
-	{ "\033[26@", KEYC_F14|KEYC_CTRL|KEYC_SHIFT },
-	{ "\033[28@", KEYC_F15|KEYC_CTRL|KEYC_SHIFT },
-	{ "\033[29@", KEYC_F16|KEYC_CTRL|KEYC_SHIFT },
-	{ "\033[31@", KEYC_F17|KEYC_CTRL|KEYC_SHIFT },
-	{ "\033[32@", KEYC_F18|KEYC_CTRL|KEYC_SHIFT },
-	{ "\033[33@", KEYC_F19|KEYC_CTRL|KEYC_SHIFT },
-	{ "\033[34@", KEYC_F20|KEYC_CTRL|KEYC_SHIFT },
 	{ "\033[2@", KEYC_IC|KEYC_CTRL|KEYC_SHIFT },
 	{ "\033[3@", KEYC_DC|KEYC_CTRL|KEYC_SHIFT },
 	{ "\033[7@", KEYC_HOME|KEYC_CTRL|KEYC_SHIFT },
@@ -206,14 +182,63 @@ const struct tty_default_key_code tty_default_code_keys[] = {
 	{ TTYC_KF10, KEYC_F10 },
 	{ TTYC_KF11, KEYC_F11 },
 	{ TTYC_KF12, KEYC_F12 },
-	{ TTYC_KF13, KEYC_F13 },
-	{ TTYC_KF14, KEYC_F14 },
-	{ TTYC_KF15, KEYC_F15 },
-	{ TTYC_KF16, KEYC_F16 },
-	{ TTYC_KF17, KEYC_F17 },
-	{ TTYC_KF18, KEYC_F18 },
-	{ TTYC_KF19, KEYC_F19 },
-	{ TTYC_KF20, KEYC_F20 },
+
+	{ TTYC_KF13, KEYC_F1|KEYC_SHIFT },
+	{ TTYC_KF14, KEYC_F2|KEYC_SHIFT },
+	{ TTYC_KF15, KEYC_F3|KEYC_SHIFT },
+	{ TTYC_KF16, KEYC_F4|KEYC_SHIFT },
+	{ TTYC_KF17, KEYC_F5|KEYC_SHIFT },
+	{ TTYC_KF18, KEYC_F6|KEYC_SHIFT },
+	{ TTYC_KF19, KEYC_F7|KEYC_SHIFT },
+	{ TTYC_KF20, KEYC_F8|KEYC_SHIFT },
+	{ TTYC_KF21, KEYC_F9|KEYC_SHIFT },
+	{ TTYC_KF22, KEYC_F10|KEYC_SHIFT },
+	{ TTYC_KF23, KEYC_F11|KEYC_SHIFT },
+	{ TTYC_KF24, KEYC_F12|KEYC_SHIFT },
+
+	{ TTYC_KF25, KEYC_F1|KEYC_CTRL },
+	{ TTYC_KF26, KEYC_F2|KEYC_CTRL },
+	{ TTYC_KF27, KEYC_F3|KEYC_CTRL },
+	{ TTYC_KF28, KEYC_F4|KEYC_CTRL },
+	{ TTYC_KF29, KEYC_F5|KEYC_CTRL },
+	{ TTYC_KF30, KEYC_F6|KEYC_CTRL },
+	{ TTYC_KF31, KEYC_F7|KEYC_CTRL },
+	{ TTYC_KF32, KEYC_F8|KEYC_CTRL },
+	{ TTYC_KF33, KEYC_F9|KEYC_CTRL },
+	{ TTYC_KF34, KEYC_F10|KEYC_CTRL },
+	{ TTYC_KF35, KEYC_F11|KEYC_CTRL },
+	{ TTYC_KF36, KEYC_F12|KEYC_CTRL },
+
+	{ TTYC_KF37, KEYC_F1|KEYC_SHIFT|KEYC_CTRL },
+	{ TTYC_KF38, KEYC_F2|KEYC_SHIFT|KEYC_CTRL },
+	{ TTYC_KF39, KEYC_F3|KEYC_SHIFT|KEYC_CTRL },
+	{ TTYC_KF40, KEYC_F4|KEYC_SHIFT|KEYC_CTRL },
+	{ TTYC_KF41, KEYC_F5|KEYC_SHIFT|KEYC_CTRL },
+	{ TTYC_KF42, KEYC_F6|KEYC_SHIFT|KEYC_CTRL },
+	{ TTYC_KF43, KEYC_F7|KEYC_SHIFT|KEYC_CTRL },
+	{ TTYC_KF44, KEYC_F8|KEYC_SHIFT|KEYC_CTRL },
+	{ TTYC_KF45, KEYC_F9|KEYC_SHIFT|KEYC_CTRL },
+	{ TTYC_KF46, KEYC_F10|KEYC_SHIFT|KEYC_CTRL },
+	{ TTYC_KF47, KEYC_F11|KEYC_SHIFT|KEYC_CTRL },
+	{ TTYC_KF48, KEYC_F12|KEYC_SHIFT|KEYC_CTRL },
+
+	{ TTYC_KF49, KEYC_F1|KEYC_ESCAPE },
+	{ TTYC_KF50, KEYC_F2|KEYC_ESCAPE },
+	{ TTYC_KF51, KEYC_F3|KEYC_ESCAPE },
+	{ TTYC_KF52, KEYC_F4|KEYC_ESCAPE },
+	{ TTYC_KF53, KEYC_F5|KEYC_ESCAPE },
+	{ TTYC_KF54, KEYC_F6|KEYC_ESCAPE },
+	{ TTYC_KF55, KEYC_F7|KEYC_ESCAPE },
+	{ TTYC_KF56, KEYC_F8|KEYC_ESCAPE },
+	{ TTYC_KF57, KEYC_F9|KEYC_ESCAPE },
+	{ TTYC_KF58, KEYC_F10|KEYC_ESCAPE },
+	{ TTYC_KF59, KEYC_F11|KEYC_ESCAPE },
+	{ TTYC_KF60, KEYC_F12|KEYC_ESCAPE },
+
+	{ TTYC_KF61, KEYC_F1|KEYC_ESCAPE|KEYC_SHIFT },
+	{ TTYC_KF62, KEYC_F2|KEYC_ESCAPE|KEYC_SHIFT },
+	{ TTYC_KF63, KEYC_F3|KEYC_ESCAPE|KEYC_SHIFT },
+
 	{ TTYC_KICH1, KEYC_IC },
 	{ TTYC_KDCH1, KEYC_DC },
 	{ TTYC_KHOME, KEYC_HOME },
@@ -357,7 +382,7 @@ tty_keys_build(struct tty *tty)
 	const char				*s;
 
 	if (tty->key_tree != NULL)
-		tty_keys_free (tty);
+		tty_keys_free(tty);
 	tty->key_tree = NULL;
 
 	for (i = 0; i < nitems(tty_default_raw_keys); i++) {
@@ -475,17 +500,9 @@ tty_keys_next(struct tty *tty)
 		goto complete_key;
 	case -1:	/* no, or not valid */
 		break;
+	case -2:	/* yes, but we don't care. */
+		goto discard_key;
 	case 1:		/* partial */
-		goto partial_key;
-	}
-
-	/* Try to parse a key with an xterm-style modifier. */
-	switch (xterm_keys_find(buf, len, &size, &key)) {
-	case 0:		/* found */
-		goto complete_key;
-	case -1:	/* not found */
-		break;
-	case 1:
 		goto partial_key;
 	}
 
@@ -496,6 +513,16 @@ tty_keys_next(struct tty *tty)
 			goto partial_key;
 		key = tk->key;
 		goto complete_key;
+	}
+
+	/* Try to parse a key with an xterm-style modifier. */
+	switch (xterm_keys_find(buf, len, &size, &key)) {
+	case 0:		/* found */
+		goto complete_key;
+	case -1:	/* not found */
+		break;
+	case 1:
+		goto partial_key;
 	}
 
 first_key:
@@ -584,6 +611,14 @@ complete_key:
 	/* Fire the key. */
 	if (key != KEYC_NONE)
 		server_client_handle_key(tty->client, key);
+
+	return (1);
+
+discard_key:
+	log_debug("discard key %.*s %#x", (int) size, buf, key);
+
+	/* Remove data from buffer. */
+	evbuffer_drain(tty->event->input, size);
 
 	return (1);
 }
@@ -730,6 +765,15 @@ tty_keys_mouse(struct tty *tty, const char *buf, size_t len, size_t *size)
 		sgr = 1;
 		sgr_rel = (c == 'm');
 
+		/*
+		 * Some terminals (like PuTTY 0.63) mistakenly send
+		 * button-release events for scroll-wheel button-press event.
+		 * Discard it before it reaches any program running inside
+		 * tmux.
+		 */
+		if (sgr_rel && (sgr_b & 64))
+		    return (-2);
+
 		/* Figure out what b would be in old format. */
 		b = sgr_b;
 		if (sgr_rel)
@@ -748,33 +792,43 @@ tty_keys_mouse(struct tty *tty, const char *buf, size_t len, size_t *size)
 	m->sgr_rel = sgr_rel;
 	m->x = x;
 	m->y = y;
-	if (b & 64) { /* wheel button */
-		b &= 3;
+	if (b & MOUSE_MASK_WHEEL) {
+		if (b & MOUSE_MASK_SHIFT)
+			m->scroll = 1;
+		else
+			m->scroll = MOUSE_WHEEL_SCALE;
+		if (b & MOUSE_MASK_META)
+			m->scroll *= MOUSE_WHEEL_SCALE;
+		if (b & MOUSE_MASK_CTRL)
+			m->scroll *= MOUSE_WHEEL_SCALE;
+
+		b &= MOUSE_MASK_BUTTONS;
 		if (b == 0)
 			m->wheel = MOUSE_WHEEL_UP;
 		else if (b == 1)
 			m->wheel = MOUSE_WHEEL_DOWN;
 		m->event = MOUSE_EVENT_WHEEL;
-	} else if ((b & 3) == 3) {
-		if (~m->event & MOUSE_EVENT_DRAG && x == m->x && y == m->y) {
+
+		m->button = 3;
+	} else if ((b & MOUSE_MASK_BUTTONS) == 3) {
+		if (~m->event & MOUSE_EVENT_DRAG && x == m->sx && y == m->sy) {
 			m->event = MOUSE_EVENT_CLICK;
+			m->clicks = (m->clicks + 1) % 3;
 		} else
 			m->event = MOUSE_EVENT_DRAG;
 		m->event |= MOUSE_EVENT_UP;
 	} else {
-		if (b & 32) /* drag motion */
+		if (b & MOUSE_MASK_DRAG)
 			m->event = MOUSE_EVENT_DRAG;
 		else {
-			if (m->event & MOUSE_EVENT_UP && x == m->x && y == m->y)
-				m->clicks = (m->clicks + 1) % 3;
-			else
-				m->clicks = 0;
-			m->sx = x;
-			m->sy = y;
 			m->event = MOUSE_EVENT_DOWN;
+			if (x != m->sx || y != m->sy)
+				m->clicks = 0;
 		}
-		m->button = (b & 3);
+		m->button = (b & MOUSE_MASK_BUTTONS);
 	}
+	m->sx = x;
+	m->sy = y;
 
 	return (0);
 }

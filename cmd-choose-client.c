@@ -1,4 +1,4 @@
-/* $Id$ */
+/* $OpenBSD$ */
 
 /*
  * Copyright (c) 2009 Nicholas Marriott <nicm@users.sourceforge.net>
@@ -27,7 +27,14 @@
  * Enter choice mode to choose a client.
  */
 
+#define CHOOSE_CLIENT_TEMPLATE					\
+	"#{client_tty}: #{session_name} "			\
+	"[#{client_width}x#{client_height} #{client_termname}]"	\
+	"#{?client_utf8, (utf8),}#{?client_readonly, (ro),} "	\
+	"(last used #{client_activity_string})"
+
 enum cmd_retval	 cmd_choose_client_exec(struct cmd *, struct cmd_q *);
+void		 cmd_choose_client_prepare(struct cmd *, struct cmd_q *);
 
 void	cmd_choose_client_callback(struct window_choose_data *);
 
@@ -35,9 +42,9 @@ const struct cmd_entry cmd_choose_client_entry = {
 	"choose-client", NULL,
 	"F:t:", 0, 1,
 	CMD_TARGET_WINDOW_USAGE " [-F format] [template]",
-	0,
-	NULL,
-	cmd_choose_client_exec
+	CMD_PREPAREWINDOW,
+	cmd_choose_client_exec,
+	NULL
 };
 
 struct cmd_choose_client_data {
@@ -56,12 +63,12 @@ cmd_choose_client_exec(struct cmd *self, struct cmd_q *cmdq)
 	char				*action;
 	u_int			 	 i, idx, cur;
 
-	if ((c = cmd_current_client(cmdq)) == NULL) {
+	if ((c = cmdq->state.c) == NULL) {
 		cmdq_error(cmdq, "no client available");
 		return (CMD_RETURN_ERROR);
 	}
 
-	if ((wl = cmd_find_window(cmdq, args_get(args, 't'), NULL)) == NULL)
+	if ((wl = cmdq->state.wl) == NULL)
 		return (CMD_RETURN_ERROR);
 
 	if (window_pane_set_mode(wl->window->active, &window_choose_mode) != 0)

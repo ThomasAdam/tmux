@@ -1,4 +1,4 @@
-/* $Id$ */
+/* $OpenBSD$ */
 
 /*
  * Copyright (c) 2009 Nicholas Marriott <nicm@users.sourceforge.net>
@@ -24,60 +24,34 @@
  * Switch window to selected layout.
  */
 
-void		 cmd_select_layout_key_binding(struct cmd *, int);
 enum cmd_retval	 cmd_select_layout_exec(struct cmd *, struct cmd_q *);
 
 const struct cmd_entry cmd_select_layout_entry = {
 	"select-layout", "selectl",
 	"npt:", 0, 1,
 	"[-np] " CMD_TARGET_WINDOW_USAGE " [layout-name]",
-	0,
-	cmd_select_layout_key_binding,
-	cmd_select_layout_exec
+	CMD_PREPAREWINDOW,
+	cmd_select_layout_exec,
+	NULL
 };
 
 const struct cmd_entry cmd_next_layout_entry = {
 	"next-layout", "nextl",
 	"t:", 0, 0,
 	CMD_TARGET_WINDOW_USAGE,
-	0,
-	NULL,
-	cmd_select_layout_exec
+	CMD_PREPAREWINDOW,
+	cmd_select_layout_exec,
+	NULL
 };
 
 const struct cmd_entry cmd_previous_layout_entry = {
 	"previous-layout", "prevl",
 	"t:", 0, 0,
 	CMD_TARGET_WINDOW_USAGE,
-	0,
-	NULL,
-	cmd_select_layout_exec
+	CMD_PREPAREWINDOW,
+	cmd_select_layout_exec,
+	NULL
 };
-
-void
-cmd_select_layout_key_binding(struct cmd *self, int key)
-{
-	switch (key) {
-	case '1' | KEYC_ESCAPE:
-		self->args = args_create(1, "even-horizontal");
-		break;
-	case '2' | KEYC_ESCAPE:
-		self->args = args_create(1, "even-vertical");
-		break;
-	case '3' | KEYC_ESCAPE:
-		self->args = args_create(1, "main-horizontal");
-		break;
-	case '4' | KEYC_ESCAPE:
-		self->args = args_create(1, "main-vertical");
-		break;
-	case '5' | KEYC_ESCAPE:
-		self->args = args_create(1, "tiled");
-		break;
-	default:
-		self->args = args_create(0);
-		break;
-	}
-}
 
 enum cmd_retval
 cmd_select_layout_exec(struct cmd *self, struct cmd_q *cmdq)
@@ -87,7 +61,7 @@ cmd_select_layout_exec(struct cmd *self, struct cmd_q *cmdq)
 	const char	*layoutname;
 	int		 next, previous, layout;
 
-	if ((wl = cmd_find_window(cmdq, args_get(args, 't'), NULL)) == NULL)
+	if ((wl = cmdq->state.wl) == NULL)
 		return (CMD_RETURN_ERROR);
 	server_unzoom_window(wl->window);
 
@@ -104,7 +78,6 @@ cmd_select_layout_exec(struct cmd *self, struct cmd_q *cmdq)
 		else
 			layout = layout_set_previous(wl->window);
 		server_redraw_window(wl->window);
-		cmdq_info(cmdq, "arranging in: %s", layout_set_name(layout));
 		return (CMD_RETURN_NORMAL);
 	}
 
@@ -115,7 +88,6 @@ cmd_select_layout_exec(struct cmd *self, struct cmd_q *cmdq)
 	if (layout != -1) {
 		layout = layout_set_select(wl->window, layout);
 		server_redraw_window(wl->window);
-		cmdq_info(cmdq, "arranging in: %s", layout_set_name(layout));
 		return (CMD_RETURN_NORMAL);
 	}
 
@@ -126,7 +98,6 @@ cmd_select_layout_exec(struct cmd *self, struct cmd_q *cmdq)
 			return (CMD_RETURN_ERROR);
 		}
 		server_redraw_window(wl->window);
-		cmdq_info(cmdq, "arranging in: %s", layoutname);
 	}
 	return (CMD_RETURN_NORMAL);
 }

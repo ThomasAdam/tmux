@@ -1,7 +1,7 @@
 /* $Id$ */
 
 /*
- * Copyright (c) 2007 Nicholas Marriott <nicm@users.sourceforge.net>
+ * Copyright (c) 2012 Thomas Adam <thomas@xteddy.org>
  *
  * Permission to use, copy, modify, and distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -19,46 +19,44 @@
 #include <sys/types.h>
 
 #include <stdlib.h>
+#include <string.h>
 
 #include "tmux.h"
 
 /*
- * Link a window into another session.
+ * Show global or session hooks.
  */
 
-enum cmd_retval	 cmd_link_window_exec(struct cmd *, struct cmd_q *);
+enum cmd_retval cmd_show_hooks_exec(struct cmd *, struct cmd_q *);
 
-const struct cmd_entry cmd_link_window_entry = {
-	"link-window", "linkw",
-	"dks:t:", 0, 0,
-	"[-dk] " CMD_SRCDST_WINDOW_USAGE,
-	0,
-	NULL,
-	cmd_link_window_exec
+const struct cmd_entry cmd_show_hooks_entry = {
+	"show-hooks", NULL,
+	"gt:", 0, 1,
+	"[-g] " CMD_TARGET_SESSION_USAGE,
+	CMD_PREPARESESSION,
+	cmd_show_hooks_exec,
+	NULL
 };
 
 enum cmd_retval
-cmd_link_window_exec(struct cmd *self, struct cmd_q *cmdq)
+cmd_show_hooks_exec(struct cmd *self, struct cmd_q *cmdq)
 {
 	struct args	*args = self->args;
-	struct session	*src, *dst;
-	struct winlink	*wl;
-	char		*cause;
-	int		 idx, kflag, dflag;
+	struct session	*s;
+	struct hooks	*hooks;
+	struct hook	*hook;
+	char		 tmp[BUFSIZ];
+	size_t		 used;
 
-	if ((wl = cmd_find_window(cmdq, args_get(args, 's'), &src)) == NULL)
+	if ((s = cmdq->state.s) == NULL)
 		return (CMD_RETURN_ERROR);
-	if ((idx = cmd_find_index(cmdq, args_get(args, 't'), &dst)) == -2)
-		return (CMD_RETURN_ERROR);
+	hooks = args_has(args, 'g') ? &global_hooks : &s->hooks;
 
-	kflag = args_has(self->args, 'k');
-	dflag = args_has(self->args, 'd');
-	if (server_link_window(src, wl, dst, idx, kflag, !dflag, &cause) != 0) {
-		cmdq_error(cmdq, "can't link window: %s", cause);
-		free(cause);
-		return (CMD_RETURN_ERROR);
+	RB_FOREACH(hook, hooks_tree, &hooks->tree) {
+		used = xsnprintf(tmp, sizeof tmp, "%s -> ", hook->name);
+		cmd_list_print(hook->cmdlist, tmp + used, (sizeof tmp) - used);
+		cmdq_print(cmdq, "%s", tmp);
 	}
-	recalculate_sizes();
 
 	return (CMD_RETURN_NORMAL);
 }
