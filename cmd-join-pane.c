@@ -44,7 +44,7 @@ const struct cmd_entry cmd_move_pane_entry = {
 	"move-pane", "movep",
 	"bdhvp:l:s:t:", 0, 0,
 	"[-bdhv] [-p percentage|-l size] [-s src-pane] [-t dst-pane]",
-	CMD_PREPAREWINDOW|CMD_PREPAREPANE2,
+	CMD_PREPAREPANE|CMD_PREPAREPANE2,
 	cmd_join_pane_exec
 };
 
