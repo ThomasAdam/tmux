@@ -33,7 +33,7 @@ const struct cmd_entry cmd_set_hook_entry = {
 	"set-hook", NULL,
 	"gt:u", 1, 2,
 	"[-gu]" CMD_TARGET_SESSION_USAGE " hook-name [command]",
-	CMD_PREPARESESSION,
+	CMD_PREP_SESSION_T,
 	cmd_set_hook_exec
 };
 
@@ -48,11 +48,9 @@ cmd_set_hook_exec(struct cmd *self, struct cmd_q *cmdq)
 	char		*cause;
 	const char	*name, *cmd;
 
-	s = cmdq->state.s;
-	if (s == NULL || args_has(args, 'g'))
-		hooks = &global_hooks;
-	else
-		hooks = &s->hooks;
+	if ((s = cmdq->state.tflag.s) == NULL)
+		return (CMD_RETURN_ERROR);
+	hooks = args_has(args, 'g') ? &global_hooks : &s->hooks;
 
 	name = args->argv[0];
 	if (*name == '\0') {
