@@ -34,7 +34,7 @@ const struct cmd_entry cmd_break_pane_entry = {
 	"break-pane", "breakp",
 	"dPF:t:", 0, 0,
 	"[-dP] [-F format] " CMD_TARGET_PANE_USAGE,
-	0,
+	CMD_PREP_PANE_T,
 	cmd_break_pane_exec
 };
 
@@ -42,27 +42,23 @@ enum cmd_retval
 cmd_break_pane_exec(struct cmd *self, struct cmd_q *cmdq)
 {
 	struct args		*args = self->args;
-	struct winlink		*wl;
-	struct session		*s;
-	struct window_pane	*wp;
-	struct window		*w;
+	struct winlink		*wl = cmdq->state.tflag.wl;
+	struct session		*s = cmdq->state.tflag.s;
+	struct window_pane	*wp = cmdq->state.tflag.wp;
+	struct window		*w = wl->window;
 	char			*name;
 	char			*cause;
 	int			 base_idx;
-	struct client		*c;
+	struct client		*c = cmdq->state.c;
 	struct format_tree	*ft;
 	const char		*template;
 	char			*cp;
-
-	if ((wl = cmd_find_pane(cmdq, args_get(args, 't'), &s, &wp)) == NULL)
-		return (CMD_RETURN_ERROR);
 
 	if (window_count_panes(wl->window) == 1) {
 		cmdq_error(cmdq, "can't break with only one pane");
 		return (CMD_RETURN_ERROR);
 	}
 
-	w = wl->window;
 	server_unzoom_window(w);
 
 	TAILQ_REMOVE(&w->panes, wp, entry);
@@ -90,8 +86,7 @@ cmd_break_pane_exec(struct cmd *self, struct cmd_q *cmdq)
 			template = BREAK_PANE_TEMPLATE;
 
 		ft = format_create();
-		if ((c = cmd_find_client(cmdq, NULL, 1)) != NULL)
-			format_client(ft, c);
+		format_client(ft, c);
 		format_session(ft, s);
 		format_winlink(ft, s, wl);
 		format_window_pane(ft, wp);
