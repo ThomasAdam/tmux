@@ -1365,7 +1365,6 @@ struct cmd_state {
 	struct client			*c;
 
 	struct {
-		int			 error;
 		struct session		*s;
 		struct winlink		*wl;
 		struct window_pane	*wp;
@@ -1373,7 +1372,6 @@ struct cmd_state {
 	} tflag;
 
 	struct {
-		int			 error;
 		struct session		*s;
 		struct winlink		*wl;
 		struct window_pane	*wp;
@@ -1775,7 +1773,7 @@ char	       **cmd_copy_argv(int, char **);
 void		 cmd_free_argv(int, char **);
 char		*cmd_stringify_argv(int, char **);
 struct cmd	*cmd_parse(int, char **, const char *, u_int, char **);
-void		 cmd_prepare_state(struct cmd *, struct cmd_q *);
+int		 cmd_prepare_state(struct cmd *, struct cmd_q *);
 size_t		 cmd_print(struct cmd *, char *, size_t);
 struct session	*cmd_current_session(struct cmd_q *, int);
 struct client	*cmd_current_client(struct cmd_q *);

@@ -119,8 +119,8 @@ const struct cmd_entry *cmd_table[] = {
 
 void		 cmd_clear_state(struct cmd_state *);
 struct client	*cmd_get_state_client(struct cmd_q *);
-void		 cmd_set_state_tflag(struct cmd *, struct cmd_q *, int);
-void		 cmd_set_state_sflag(struct cmd *, struct cmd_q *, int);
+int		 cmd_set_state_tflag(struct cmd *, struct cmd_q *, int);
+int		 cmd_set_state_sflag(struct cmd *, struct cmd_q *, int);
 int		 cmd_session_better(struct session *, struct session *, int);
 struct session	*cmd_choose_session_list(struct sessionslist *);
 struct session	*cmd_choose_session(int);
@@ -323,13 +323,11 @@ cmd_clear_state(struct cmd_state *state)
 {
 	state->c = NULL;
 
-	state->tflag.error = 0;
 	state->tflag.s = NULL;
 	state->tflag.wl = NULL;
 	state->tflag.wp = NULL;
 	state->tflag.idx = -1;
 
-	state->sflag.error = 0;
 	state->sflag.s = NULL;
 	state->sflag.wl = NULL;
 	state->sflag.wp = NULL;
@@ -354,7 +352,7 @@ cmd_get_state_client(struct cmd_q *cmdq)
 	}
 }
 
-void
+int
 cmd_set_state_tflag(struct cmd *cmd, struct cmd_q *cmdq, int everything)
 {
 	struct cmd_state	*state = &cmdq->state;
@@ -363,7 +361,7 @@ cmd_set_state_tflag(struct cmd *cmd, struct cmd_q *cmdq, int everything)
 
 	tflag = args_get(args, 't');
 	if (tflag == NULL && !everything)
-		return;
+		return (0);
 
 	switch (cmd->entry->flags & CMD_PREP_ALL_T) {
 	case 0:
@@ -371,29 +369,29 @@ cmd_set_state_tflag(struct cmd *cmd, struct cmd_q *cmdq, int everything)
 	case CMD_PREP_SESSION_T:
 		state->tflag.s = cmd_find_session(cmdq, tflag, 0);
 		if (state->tflag.s == NULL)
-			state->tflag.error = 1;
+			return (-1);
 		break;
 	case CMD_PREP_WINDOW_T:
 		state->tflag.wl = cmd_find_window(cmdq, tflag, &state->tflag.s);
 		if (state->tflag.wl == NULL)
-			state->tflag.error = 1;
+			return (-1);
 		break;
 	case CMD_PREP_PANE_T:
 		state->tflag.wl = cmd_find_pane(cmdq, tflag, &state->tflag.s,
 		    &state->tflag.wp);
 		if (state->tflag.wl == NULL)
-			state->tflag.error = 1;
+			return (-1);
 		break;
 	case CMD_PREP_INDEX_T:
 		state->tflag.idx = cmd_find_index(cmdq, tflag, &state->tflag.s);
 		if (state->tflag.idx == -2)
-			state->tflag.error = 1;
+			return (-1);
 		break;
 	default:
 		log_fatalx("too many -t for %s", cmd->entry->name);
 	}
 
-	if (!state->tflag.error && everything) {
+	if (everything) {
 		if (state->tflag.s == NULL)
 			state->tflag.s = state->c->session;
 		if (state->tflag.wl == NULL)
@@ -401,9 +399,10 @@ cmd_set_state_tflag(struct cmd *cmd, struct cmd_q *cmdq, int everything)
 		if (state->tflag.wp == NULL)
 			state->tflag.wp = state->tflag.wl->window->active;
 	}
+	return (0);
 }
 
-void
+int
 cmd_set_state_sflag(struct cmd *cmd, struct cmd_q *cmdq, int everything)
 {
 	struct cmd_state	*state = &cmdq->state;
@@ -412,7 +411,7 @@ cmd_set_state_sflag(struct cmd *cmd, struct cmd_q *cmdq, int everything)
 
 	sflag = args_get(args, 's');
 	if (sflag == NULL && !everything)
-		return;
+		return (0);
 
 	switch (cmd->entry->flags & CMD_PREP_ALL_S) {
 	case 0:
@@ -420,29 +419,29 @@ cmd_set_state_sflag(struct cmd *cmd, struct cmd_q *cmdq, int everything)
 	case CMD_PREP_SESSION_S:
 		state->sflag.s = cmd_find_session(cmdq, sflag, 0);
 		if (state->sflag.s == NULL)
-			state->sflag.error = 1;
+			return (-1);
 		break;
 	case CMD_PREP_WINDOW_S:
 		state->sflag.wl = cmd_find_window(cmdq, sflag, &state->sflag.s);
 		if (state->sflag.wl == NULL)
-			state->sflag.error = 1;
+			return (-1);
 		break;
 	case CMD_PREP_PANE_S:
 		state->sflag.wl = cmd_find_pane(cmdq, sflag, &state->sflag.s,
 		    &state->sflag.wp);
 		if (state->sflag.wl == NULL)
-			state->sflag.error = 1;
+			return (-1);
 		break;
 	case CMD_PREP_INDEX_S:
 		state->sflag.idx = cmd_find_index(cmdq, sflag, &state->sflag.s);
 		if (state->sflag.idx == -2)
-			state->sflag.error = 1;
+			return (-1);
 		break;
 	default:
 		log_fatalx("too many -s for %s", cmd->entry->name);
 	}
 
-	if (!state->sflag.error && everything) {
+	if (everything) {
 		if (state->sflag.s == NULL)
 			state->sflag.s = state->c->session;
 		if (state->sflag.wl == NULL)
@@ -450,9 +449,10 @@ cmd_set_state_sflag(struct cmd *cmd, struct cmd_q *cmdq, int everything)
 		if (state->sflag.wp == NULL)
 			state->sflag.wp = state->sflag.wl->window->active;
 	}
+	return (0);
 }
 
-void
+int
 cmd_prepare_state(struct cmd *cmd, struct cmd_q *cmdq)
 {
 	struct cmd_state	*state = &cmdq->state;
@@ -461,6 +461,7 @@ cmd_prepare_state(struct cmd *cmd, struct cmd_q *cmdq)
 	const char		*tflag;
 	const char		*sflag;
 	char                     tmp[BUFSIZ];
+	int			 error;
 
 	cmd_print(cmd, tmp, sizeof tmp);
 	log_debug("preparing state for: %s (client %p)", tmp, cmdq->client);
@@ -470,7 +471,7 @@ cmd_prepare_state(struct cmd *cmd, struct cmd_q *cmdq)
 
 	/* FIXME:  Handle this!  What should happen during cfg_load? */
 	if (cfg_finished == 0)
-		return;
+		return (0);
 
 	/*
 	 * If the command wants a client and provides -c or -t, use it. If not,
@@ -479,6 +480,13 @@ cmd_prepare_state(struct cmd *cmd, struct cmd_q *cmdq)
 	switch (cmd->entry->flags & (CMD_PREP_CLIENT_C|CMD_PREP_CLIENT_T)) {
 	case 0:
 		state->c = cmd_get_state_client(cmdq);
+		if (state->c == NULL) {
+			if ((cmd->entry->flags & CMD_PREP_ALL_T) != 0)
+				return (-1);
+			if ((cmd->entry->flags & CMD_PREP_ALL_S) != 0)
+				return (-1);
+			return (0);
+		}
 		break;
 	case CMD_PREP_CLIENT_C:
 		cflag = args_get(args, 'c');
@@ -486,6 +494,8 @@ cmd_prepare_state(struct cmd *cmd, struct cmd_q *cmdq)
 			state->c = cmd_get_state_client(cmdq);
 		else
 			state->c = cmd_find_client(cmdq, cflag, 0);
+		if (state->c == NULL)
+			return (-1);
 		break;
 	case CMD_PREP_CLIENT_T:
 		tflag = args_get(args, 't');
@@ -493,16 +503,11 @@ cmd_prepare_state(struct cmd *cmd, struct cmd_q *cmdq)
 			state->c = cmd_get_state_client(cmdq);
 		else
 			state->c = cmd_find_client(cmdq, tflag, 0);
+		if (state->c == NULL)
+			return (-1);
 		break;
 	default:
 		log_fatalx("both -c and -t for %s", cmd->entry->name);
-	}
-	if (state->c == NULL) {
-		if ((cmd->entry->flags & CMD_PREP_ALL_T) != 0)
-			state->tflag.error = 1;
-		if ((cmd->entry->flags & CMD_PREP_ALL_S) != 0)
-			state->sflag.error = 1;
-		return;
 	}
 
 	/*
@@ -511,14 +516,17 @@ cmd_prepare_state(struct cmd *cmd, struct cmd_q *cmdq)
 	 */
 	tflag = args_get(args, 't');
 	if (tflag == NULL && (cmd->entry->flags & CMD_PREP_ALL_T) != 0)
-		cmd_set_state_tflag(cmdq->cmd, cmdq, 1);
+		error = cmd_set_state_tflag(cmdq->cmd, cmdq, 1);
 	else
-		cmd_set_state_tflag(cmd, cmdq, 0);
+		error = cmd_set_state_tflag(cmd, cmdq, 0);
+	if (error != 0)
+		return (error);
 	sflag = args_get(args, 's');
 	if (sflag == NULL && (cmd->entry->flags & CMD_PREP_ALL_S) != 0)
-		cmd_set_state_sflag(cmdq->cmd, cmdq, 1);
+		error = cmd_set_state_sflag(cmdq->cmd, cmdq, 1);
 	else
-		cmd_set_state_sflag(cmd, cmdq, 0);
+		error = cmd_set_state_sflag(cmd, cmdq, 0);
+	return (error);
 }
 
 size_t

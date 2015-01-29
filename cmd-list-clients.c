@@ -54,9 +54,9 @@ cmd_list_clients_exec(struct cmd *self, struct cmd_q *cmdq)
 	u_int			 i;
 	char			*line;
 
-	if (args_has(args, 't')) {
+	if (args_has(args, 't'))
 		s = cmdq->state.tflag.s;
-	} else
+	else
 		s = NULL;
 
 	if ((template = args_get(args, 'F')) == NULL)

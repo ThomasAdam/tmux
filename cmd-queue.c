@@ -199,8 +199,7 @@ cmdq_continue(struct cmd_q *cmdq)
 
 	do {
 		while (cmdq->cmd != NULL) {
-			cmd_prepare_state(cmdq->cmd, cmdq);
-			if (cmdq->state.tflag.error || cmdq->state.sflag.error)
+			if (cmd_prepare_state(cmdq->cmd, cmdq) != 0)
 				break;
 
 			if (cmdq->state.tflag.s != NULL)
@@ -227,8 +226,7 @@ cmdq_continue(struct cmd_q *cmdq)
 			 * it needs to be restored afterwards. XXX not very
 			 * obvious how this works from here...
 			 */
-			cmd_prepare_state(cmdq->cmd, cmdq);
-			if (cmdq->state.tflag.error || cmdq->state.sflag.error)
+			if (cmd_prepare_state(cmdq->cmd, cmdq) != 0)
 				break;
 
 			retval = cmdq->cmd->entry->exec(cmdq->cmd, cmdq);
