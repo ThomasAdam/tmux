@@ -41,15 +41,15 @@ enum cmd_retval
 cmd_show_hooks_exec(struct cmd *self, struct cmd_q *cmdq)
 {
 	struct args	*args = self->args;
-	struct session	*s;
 	struct hooks	*hooks;
 	struct hook	*hook;
 	char		 tmp[BUFSIZ];
 	size_t		 used;
 
-	if ((s = cmdq->state.tflag.s) == NULL)
-		return (CMD_RETURN_ERROR);
-	hooks = args_has(args, 'g') ? &global_hooks : &s->hooks;
+	if (args_has(args, 'g'))
+		hooks = &global_hooks;
+	else
+		hooks = &cmdq->state.tflag.s->hooks;
 
 	RB_FOREACH(hook, hooks_tree, &hooks->tree) {
 		used = xsnprintf(tmp, sizeof tmp, "%s -> ", hook->name);

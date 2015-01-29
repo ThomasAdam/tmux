@@ -41,16 +41,16 @@ enum cmd_retval
 cmd_set_hook_exec(struct cmd *self, struct cmd_q *cmdq)
 {
 	struct args	*args = self->args;
-	struct session	*s;
 	struct cmd_list	*cmdlist;
 	struct hooks	*hooks;
 	struct hook	*hook;
 	char		*cause;
 	const char	*name, *cmd;
 
-	if ((s = cmdq->state.tflag.s) == NULL)
-		return (CMD_RETURN_ERROR);
-	hooks = args_has(args, 'g') ? &global_hooks : &s->hooks;
+	if (args_has(args, 'g'))
+		hooks = &global_hooks;
+	else
+		hooks = &cmdq->state.tflag.s->hooks;
 
 	name = args->argv[0];
 	if (*name == '\0') {
