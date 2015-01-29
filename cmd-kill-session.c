@@ -33,7 +33,7 @@ const struct cmd_entry cmd_kill_session_entry = {
 	"kill-session", NULL,
 	"at:", 0, 0,
 	"[-a] " CMD_TARGET_SESSION_USAGE,
-	0,
+	CMD_PREP_SESSION_T,
 	cmd_kill_session_exec
 };
 
@@ -41,16 +41,14 @@ enum cmd_retval
 cmd_kill_session_exec(struct cmd *self, struct cmd_q *cmdq)
 {
 	struct args	*args = self->args;
-	struct session	*s, *s2, *s3;
+	struct session	*s, *sloop, *stmp;
 
-	if ((s = cmd_find_session(cmdq, args_get(args, 't'), 0)) == NULL)
-		return (CMD_RETURN_ERROR);
-
+	s = cmdq->state.tflag.s;
 	if (args_has(args, 'a')) {
-		RB_FOREACH_SAFE(s2, sessions, &sessions, s3) {
-			if (s != s2) {
-				server_destroy_session(s2);
-				session_destroy(s2);
+		RB_FOREACH_SAFE(sloop, sessions, &sessions, stmp) {
+			if (sloop != s) {
+				server_destroy_session(sloop);
+				session_destroy(sloop);
 			}
 		}
 	} else {
