@@ -39,7 +39,7 @@ const struct cmd_entry cmd_pipe_pane_entry = {
 	"pipe-pane", "pipep",
 	"ot:", 0, 1,
 	"[-o] " CMD_TARGET_PANE_USAGE " [command]",
-	0,
+	CMD_PREP_PANE_T,
 	cmd_pipe_pane_exec
 };
 
@@ -47,14 +47,10 @@ enum cmd_retval
 cmd_pipe_pane_exec(struct cmd *self, struct cmd_q *cmdq)
 {
 	struct args		*args = self->args;
-	struct client		*c;
-	struct window_pane	*wp;
+	struct client		*c = cmdq->state.c;
+	struct window_pane	*wp = cmdq->state.tflag.wp;
 	char			*command;
 	int			 old_fd, pipe_fd[2], null_fd;
-
-	if (cmd_find_pane(cmdq, args_get(args, 't'), NULL, &wp) == NULL)
-		return (CMD_RETURN_ERROR);
-	c = cmd_find_client(cmdq, NULL, 1);
 
 	/* Destroy the old pipe. */
 	old_fd = wp->pipe_fd;
