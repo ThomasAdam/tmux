@@ -479,7 +479,8 @@ cmd_prepare_state(struct cmd *cmd, struct cmd_q *cmdq)
 	int			 error;
 
 	cmd_print(cmd, tmp, sizeof tmp);
-	log_debug("preparing state for: %s (client %p)", tmp, cmdq->client);
+	log_debug("preparing state for: %s (client %d)", tmp,
+	    cmdq->client != NULL ? cmdq->client->ibuf.fd : -1);
 
 	/* Start with an empty state. */
 	cmd_clear_state(state);
