@@ -38,7 +38,7 @@ const struct cmd_entry cmd_clock_mode_entry = {
 	"clock-mode", NULL,
 	"t:u", 0, 0,
 	"[-u] " CMD_TARGET_PANE_USAGE,
-	0,
+	CMD_PREP_PANE_T,
 	cmd_copy_mode_exec
 };
 
@@ -55,11 +55,8 @@ cmd_copy_mode_exec(struct cmd *self, struct cmd_q *cmdq)
 			return (CMD_RETURN_NORMAL);
 		if (c == NULL || c->session != s)
 			return (CMD_RETURN_NORMAL);
-	} else if (cmd_find_pane(cmdq, args_get(args, 't'), NULL, &wp) == NULL)
-	struct window_pane	*wp;
-
-	if (cmd_find_pane(cmdq, args_get(args, 't'), NULL, &wp) == NULL)
-		return (CMD_RETURN_ERROR);
+	}
+	*wp = cmdq->state.tflag.wp;
 
 	if (self->entry == &cmd_clock_mode_entry) {
 		window_pane_set_mode(wp, &window_clock_mode);

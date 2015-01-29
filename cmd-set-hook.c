@@ -24,7 +24,7 @@
 #include "tmux.h"
 
 /*
- * Set a global or session hook.
+ * Set or show global or session hooks.
  */
 
 enum cmd_retval cmd_set_hook_exec(struct cmd *, struct cmd_q *);
@@ -37,20 +37,40 @@ const struct cmd_entry cmd_set_hook_entry = {
 	cmd_set_hook_exec
 };
 
+const struct cmd_entry cmd_show_hooks_entry = {
+	"show-hooks", NULL,
+	"gt:", 0, 1,
+	"[-g] " CMD_TARGET_SESSION_USAGE,
+	CMD_PREP_SESSION_T,
+	cmd_set_hook_exec
+};
+
 enum cmd_retval
 cmd_set_hook_exec(struct cmd *self, struct cmd_q *cmdq)
 {
 	struct args	*args = self->args;
-	struct session	*s;
 	struct cmd_list	*cmdlist;
 	struct hooks	*hooks;
 	struct hook	*hook;
 	char		*cause;
 	const char	*name, *cmd;
+	char		 tmp[BUFSIZ];
+	size_t		 used;
 
-	if ((s = cmdq->state.tflag.s) == NULL)
-		return (CMD_RETURN_ERROR);
-	hooks = args_has(args, 'g') ? &global_hooks : &s->hooks;
+	if (args_has(args, 'g'))
+		hooks = &global_hooks;
+	else
+		hooks = &cmdq->state.tflag.s->hooks;
+
+	if (self->entry == &cmd_show_hooks_entry) {
+		RB_FOREACH(hook, hooks_tree, &hooks->tree) {
+			used = xsnprintf(tmp, sizeof tmp, "%s -> ", hook->name);
+			cmd_list_print(hook->cmdlist, tmp + used,
+			    (sizeof tmp) - used);
+			cmdq_print(cmdq, "%s", tmp);
+		}
+		return (CMD_RETURN_NORMAL);
+	}
 
 	name = args->argv[0];
 	if (*name == '\0') {

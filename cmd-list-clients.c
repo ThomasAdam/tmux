@@ -39,7 +39,7 @@ const struct cmd_entry cmd_list_clients_entry = {
 	"list-clients", "lsc",
 	"F:t:", 0, 0,
 	"[-F format] " CMD_TARGET_SESSION_USAGE,
-	CMD_READONLY,
+	CMD_READONLY|CMD_PREP_SESSION_T,
 	cmd_list_clients_exec
 };
 
@@ -54,9 +54,9 @@ cmd_list_clients_exec(struct cmd *self, struct cmd_q *cmdq)
 	u_int			 idx;
 	char			*line;
 
-	if (args_has(args, 't'))
+	if (args_has(args, 't')) {
 		s = cmdq->state.tflag.s;
-	else
+	} else
 		s = NULL;
 
 	if ((template = args_get(args, 'F')) == NULL)
