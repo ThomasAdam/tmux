@@ -57,16 +57,11 @@ enum cmd_retval
 cmd_list_windows_exec(struct cmd *self, struct cmd_q *cmdq)
 {
 	struct args	*args = self->args;
-	struct session	*s;
 
 	if (args_has(args, 'a'))
 		cmd_list_windows_server(self, cmdq);
-	else {
-		s = cmdq->state.tflag.s;
-		if (s == NULL)
-			return (CMD_RETURN_ERROR);
-		cmd_list_windows_session(self, s, cmdq, 0);
-	}
+	else
+		cmd_list_windows_session(self, cmdq->state.tflag.s, cmdq, 0);
 
 	return (CMD_RETURN_NORMAL);
 }
@@ -86,7 +81,7 @@ cmd_list_windows_session(struct cmd *self, struct session *s,
 {
 	struct args		*args = self->args;
 	struct winlink		*wl;
-	u_int			n;
+	u_int			 n;
 	struct format_tree	*ft;
 	const char		*template;
 	char			*line;

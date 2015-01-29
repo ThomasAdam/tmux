@@ -25,36 +25,8 @@
 
 #include "tmux.h"
 
-void	cmdq_set_state(struct cmd_q *);
 void	cmdq_run_hook(struct hooks *, const char *, struct cmd *,
 	    struct cmd_q *);
-
-/* Fill in state members. */
-void
-cmdq_set_state(struct cmd_q *cmdq)
-{
-	struct cmd_state	*state = &cmdq->state;
-	struct session		*s;
-
-	s = cmd_current_session(cmdq, 0);
-
-	state->c = cmdq->client;
-
-	state->tflag.s = s;
-	state->tflag.wl = NULL;
-	state->tflag.wp = NULL;
-	state->tflag.idx = -1;
-	state->tflag.prior = args_get(cmdq->cmd->args, 't');
-
-	state->sflag.s = s;
-	state->sflag.wl = NULL;
-	state->sflag.wp = NULL;
-	state->sflag.idx = -1;
-	state->sflag.prior = args_get(cmdq->cmd->args, 's');
-
-	cmd_prepare(cmdq->cmd, cmdq);
-
-}
 
 /* Create new command queue. */
 struct cmd_q *
@@ -227,12 +199,10 @@ cmdq_continue(struct cmd_q *cmdq)
 
 	do {
 		while (cmdq->cmd != NULL) {
-			/*
-			 * Set the execution context for this command.  This
-			 * then allows for session hooks to be used if this
-			 * command has any.
-			 */
-			cmdq_set_state(cmdq);
+			cmd_prepare_state(cmdq->cmd, cmdq);
+			if (cmdq->state.tflag.error || cmdq->state.sflag.error)
+				break;
+
 			if (cmdq->state.tflag.s != NULL)
 				hooks = &cmdq->state.tflag.s->hooks;
 			else if (cmdq->state.sflag.s != NULL)
@@ -252,11 +222,18 @@ cmdq_continue(struct cmd_q *cmdq)
 
 			cmdq_run_hook(hooks, "before", cmdq->cmd, cmdq);
 
-			cmdq_set_state(cmdq);
+			/*
+			 * hooks_run will change the state before each hook, so
+			 * it needs to be restored afterwards. XXX not very
+			 * obvious how this works from here...
+			 */
+			cmd_prepare_state(cmdq->cmd, cmdq);
+			if (cmdq->state.tflag.error || cmdq->state.sflag.error)
+				break;
+
 			retval = cmdq->cmd->entry->exec(cmdq->cmd, cmdq);
 			if (retval == CMD_RETURN_ERROR)
 				break;
-
 			cmdq_run_hook(hooks, "after", cmdq->cmd, cmdq);
 
 			if (guard) {

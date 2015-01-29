@@ -1365,21 +1365,19 @@ struct cmd_state {
 	struct client			*c;
 
 	struct {
+		int			 error;
 		struct session		*s;
 		struct winlink		*wl;
 		struct window_pane	*wp;
 		int			 idx;
-
-		const char		*prior;
 	} tflag;
 
 	struct {
+		int			 error;
 		struct session		*s;
 		struct winlink		*wl;
 		struct window_pane	*wp;
 		int			 idx;
-
-		const char		*prior;
 	} sflag;
 };
 
@@ -1427,6 +1425,7 @@ struct cmd_q {
 	struct cmd_q_items	 queue;
 	struct cmd_q_item	*item;
 	struct cmd		*cmd;
+
 	struct cmd_state	 state;
 
 	time_t			 time;
@@ -1467,7 +1466,7 @@ struct cmd_entry {
 	enum cmd_retval	 (*exec)(struct cmd *, struct cmd_q *);
 };
 #define CMD_PREP_ALL_T (CMD_PREP_SESSION_T|CMD_PREP_WINDOW_T|CMD_PREP_PANE_T| \
-    CMD_PREP_CLIENT_T|CMD_PREP_INDEX_T)
+    CMD_PREP_INDEX_T)
 #define CMD_PREP_ALL_S (CMD_PREP_SESSION_S|CMD_PREP_WINDOW_S|CMD_PREP_PANE_S| \
     CMD_PREP_INDEX_S)
 
@@ -1776,7 +1775,7 @@ char	       **cmd_copy_argv(int, char **);
 void		 cmd_free_argv(int, char **);
 char		*cmd_stringify_argv(int, char **);
 struct cmd	*cmd_parse(int, char **, const char *, u_int, char **);
-void		 cmd_prepare(struct cmd *, struct cmd_q *);
+void		 cmd_prepare_state(struct cmd *, struct cmd_q *);
 size_t		 cmd_print(struct cmd *, char *, size_t);
 struct session	*cmd_current_session(struct cmd_q *, int);
 struct client	*cmd_current_client(struct cmd_q *);

@@ -109,8 +109,8 @@ hooks_run(struct hook *hook, struct cmd_q *cmdq)
 	log_debug("entering hook %s: %s", hook->name, tmp);
 
 	TAILQ_FOREACH(cmd, &hook->cmdlist->list, qentry) {
-		cmd_prepare(cmd, cmdq);
 		/* TA:  FIXME:  How do we handle errors here, if at all??? */
+		cmd_prepare_state(cmd, cmdq);
 		cmd->entry->exec(cmd, cmdq);
 	}
 

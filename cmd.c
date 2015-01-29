@@ -117,6 +117,10 @@ const struct cmd_entry *cmd_table[] = {
 	NULL
 };
 
+void		 cmd_clear_state(struct cmd_state *);
+struct client	*cmd_get_state_client(struct cmd_q *);
+void		 cmd_set_state_tflag(struct cmd *, struct cmd_q *, int);
+void		 cmd_set_state_sflag(struct cmd *, struct cmd_q *, int);
 int		 cmd_session_better(struct session *, struct session *, int);
 struct session	*cmd_choose_session_list(struct sessionslist *);
 struct session	*cmd_choose_session(int);
@@ -315,71 +319,206 @@ usage:
 }
 
 void
-cmd_prepare(struct cmd *cmd, struct cmd_q *cmdq)
+cmd_clear_state(struct cmd_state *state)
+{
+	state->c = NULL;
+
+	state->tflag.error = 0;
+	state->tflag.s = NULL;
+	state->tflag.wl = NULL;
+	state->tflag.wp = NULL;
+	state->tflag.idx = -1;
+
+	state->sflag.error = 0;
+	state->sflag.s = NULL;
+	state->sflag.wl = NULL;
+	state->sflag.wp = NULL;
+	state->sflag.idx = -1;
+}
+
+struct client *
+cmd_get_state_client(struct cmd_q *cmdq)
+{
+	struct cmd	*cmd = cmdq->cmd;
+	struct args	*args = cmd->args;
+
+	switch (cmd->entry->flags & (CMD_PREP_CLIENT_C|CMD_PREP_CLIENT_T)) {
+	case 0:
+		return (cmd_current_client(cmdq));
+	case CMD_PREP_CLIENT_C:
+		return (cmd_find_client(cmdq, args_get(args, 'c'), 0));
+	case CMD_PREP_CLIENT_T:
+		return (cmd_find_client(cmdq, args_get(args, 't'), 0));
+	default:
+		log_fatalx("both -t and -c for %s", cmd->entry->name);
+	}
+}
+
+void
+cmd_set_state_tflag(struct cmd *cmd, struct cmd_q *cmdq, int everything)
 {
 	struct cmd_state	*state = &cmdq->state;
 	struct args		*args = cmd->args;
 	const char		*tflag;
-	const char		*sflag;
-
-	/* FIXME:  Handle this!  What should happen during cfg_load? */
-	if (cfg_finished == 0)
-		return;
 
 	tflag = args_get(args, 't');
-	if (tflag == NULL)
-		tflag = state->tflag.prior;
+	if (tflag == NULL && !everything)
+		return;
+
 	switch (cmd->entry->flags & CMD_PREP_ALL_T) {
 	case 0:
 		break;
 	case CMD_PREP_SESSION_T:
 		state->tflag.s = cmd_find_session(cmdq, tflag, 0);
+		if (state->tflag.s == NULL)
+			state->tflag.error = 1;
 		break;
 	case CMD_PREP_WINDOW_T:
 		state->tflag.wl = cmd_find_window(cmdq, tflag, &state->tflag.s);
+		if (state->tflag.wl == NULL)
+			state->tflag.error = 1;
 		break;
 	case CMD_PREP_PANE_T:
 		state->tflag.wl = cmd_find_pane(cmdq, tflag, &state->tflag.s,
 		    &state->tflag.wp);
-		break;
-	case CMD_PREP_CLIENT_T:
-		state->c = cmd_find_client(cmdq, tflag, 0);
+		if (state->tflag.wl == NULL)
+			state->tflag.error = 1;
 		break;
 	case CMD_PREP_INDEX_T:
 		state->tflag.idx = cmd_find_index(cmdq, tflag, &state->tflag.s);
+		if (state->tflag.idx == -2)
+			state->tflag.error = 1;
 		break;
 	default:
-		log_fatalx("too many -t flags for %s", cmd->entry->name);
+		log_fatalx("too many -t for %s", cmd->entry->name);
 	}
 
-	sflag = args_get(args, 't');
-	if (sflag == NULL)
-		sflag = state->sflag.prior;
+	if (!state->tflag.error && everything) {
+		if (state->tflag.s == NULL)
+			state->tflag.s = state->c->session;
+		if (state->tflag.wl == NULL)
+			state->tflag.wl = state->tflag.s->curw;
+		if (state->tflag.wp == NULL)
+			state->tflag.wp = state->tflag.wl->window->active;
+	}
+}
+
+void
+cmd_set_state_sflag(struct cmd *cmd, struct cmd_q *cmdq, int everything)
+{
+	struct cmd_state	*state = &cmdq->state;
+	struct args		*args = cmd->args;
+	const char		*sflag;
+
+	sflag = args_get(args, 's');
+	if (sflag == NULL && !everything)
+		return;
+
 	switch (cmd->entry->flags & CMD_PREP_ALL_S) {
 	case 0:
 		break;
 	case CMD_PREP_SESSION_S:
 		state->sflag.s = cmd_find_session(cmdq, sflag, 0);
+		if (state->sflag.s == NULL)
+			state->sflag.error = 1;
 		break;
 	case CMD_PREP_WINDOW_S:
 		state->sflag.wl = cmd_find_window(cmdq, sflag, &state->sflag.s);
+		if (state->sflag.wl == NULL)
+			state->sflag.error = 1;
 		break;
 	case CMD_PREP_PANE_S:
 		state->sflag.wl = cmd_find_pane(cmdq, sflag, &state->sflag.s,
 		    &state->sflag.wp);
+		if (state->sflag.wl == NULL)
+			state->sflag.error = 1;
 		break;
 	case CMD_PREP_INDEX_S:
 		state->sflag.idx = cmd_find_index(cmdq, sflag, &state->sflag.s);
+		if (state->sflag.idx == -2)
+			state->sflag.error = 1;
 		break;
 	default:
-		log_fatalx("too many -s flags for %s", cmd->entry->name);
+		log_fatalx("too many -s for %s", cmd->entry->name);
 	}
 
-	if (cmd->entry->flags & CMD_PREP_CLIENT_C) {
-		if (cmd->entry->flags & CMD_PREP_CLIENT_T)
-			log_fatalx("both -t and -c for %s", cmd->entry->name);
-		state->c = cmd_find_client(cmdq, args_get(args, 'c'), 0);
+	if (!state->sflag.error && everything) {
+		if (state->sflag.s == NULL)
+			state->sflag.s = state->c->session;
+		if (state->sflag.wl == NULL)
+			state->sflag.wl = state->sflag.s->curw;
+		if (state->sflag.wp == NULL)
+			state->sflag.wp = state->sflag.wl->window->active;
 	}
+}
+
+void
+cmd_prepare_state(struct cmd *cmd, struct cmd_q *cmdq)
+{
+	struct cmd_state	*state = &cmdq->state;
+	struct args		*args = cmd->args;
+	const char		*cflag;
+	const char		*tflag;
+	const char		*sflag;
+	char                     tmp[BUFSIZ];
+
+	cmd_print(cmd, tmp, sizeof tmp);
+	log_debug("preparing state for: %s (client %p)", tmp, cmdq->client);
+
+	/* Start with an empty state. */
+	cmd_clear_state(state);
+
+	/* FIXME:  Handle this!  What should happen during cfg_load? */
+	if (cfg_finished == 0)
+		return;
+
+	/*
+	 * If the command wants a client and provides -c or -t, use it. If not,
+	 * try the base command instead via cmd_get_state_client.
+	 */
+	switch (cmd->entry->flags & (CMD_PREP_CLIENT_C|CMD_PREP_CLIENT_T)) {
+	case 0:
+		state->c = cmd_get_state_client(cmdq);
+		break;
+	case CMD_PREP_CLIENT_C:
+		cflag = args_get(args, 'c');
+		if (cflag == NULL)
+			state->c = cmd_get_state_client(cmdq);
+		else
+			state->c = cmd_find_client(cmdq, cflag, 0);
+		break;
+	case CMD_PREP_CLIENT_T:
+		tflag = args_get(args, 't');
+		if (tflag == NULL)
+			state->c = cmd_get_state_client(cmdq);
+		else
+			state->c = cmd_find_client(cmdq, tflag, 0);
+		break;
+	default:
+		log_fatalx("both -c and -t for %s", cmd->entry->name);
+	}
+	if (state->c == NULL) {
+		if ((cmd->entry->flags & CMD_PREP_ALL_T) != 0)
+			state->tflag.error = 1;
+		if ((cmd->entry->flags & CMD_PREP_ALL_S) != 0)
+			state->sflag.error = 1;
+		return;
+	}
+
+	/*
+	 * If the command wants something for -t and no -t argument is present,
+	 * use it the base command's -t instead. Same for -s.
+	 */
+	tflag = args_get(args, 't');
+	if (tflag == NULL && (cmd->entry->flags & CMD_PREP_ALL_T) != 0)
+		cmd_set_state_tflag(cmdq->cmd, cmdq, 1);
+	else
+		cmd_set_state_tflag(cmd, cmdq, 0);
+	sflag = args_get(args, 's');
+	if (sflag == NULL && (cmd->entry->flags & CMD_PREP_ALL_S) != 0)
+		cmd_set_state_sflag(cmdq->cmd, cmdq, 1);
+	else
+		cmd_set_state_sflag(cmd, cmdq, 0);
 }
 
 size_t
