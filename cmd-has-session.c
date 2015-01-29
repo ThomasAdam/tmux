@@ -30,7 +30,7 @@ const struct cmd_entry cmd_has_session_entry = {
 	"has-session", "has",
 	"t:", 0, 0,
 	CMD_TARGET_SESSION_USAGE,
-	0,
+	CMD_PREP_SESSION_T,
 	cmd_has_session_exec
 };
 
@@ -39,7 +39,7 @@ cmd_has_session_exec(struct cmd *self, struct cmd_q *cmdq)
 {
 	struct args	*args = self->args;
 
-	if (cmd_find_session(cmdq, args_get(args, 't'), 0) == NULL)
+	if (cmd_find_session(cmdq, cmdq->state.tflag.s, 0) == NULL)
 		return (CMD_RETURN_ERROR);
 
 	return (CMD_RETURN_NORMAL);
