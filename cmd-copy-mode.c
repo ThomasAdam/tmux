@@ -37,7 +37,6 @@ const struct cmd_entry cmd_copy_mode_entry = {
 enum cmd_retval
 cmd_copy_mode_exec(struct cmd *self, struct cmd_q *cmdq)
 {
-	struct args		*args = self->args;
 	struct window_pane	*wp = cmdq->state.tflag.wp;
 
 	if (wp->mode != &window_copy_mode) {
