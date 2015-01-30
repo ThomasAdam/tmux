@@ -230,9 +230,8 @@ cmdq_continue(struct cmd_q *cmdq)
 				break;
 
 			retval = cmdq->cmd->entry->exec(cmdq->cmd, cmdq);
-			if (retval == CMD_RETURN_ERROR)
-				break;
-			cmdq_run_hook(hooks, "after", cmdq->cmd, cmdq);
+			if (retval != CMD_RETURN_ERROR)
+				cmdq_run_hook(hooks, "after", cmdq->cmd, cmdq);
 
 			if (guard) {
 				if (retval == CMD_RETURN_ERROR)
