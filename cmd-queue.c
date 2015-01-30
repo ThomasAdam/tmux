@@ -218,12 +218,12 @@ cmdq_continue(struct cmd_q *cmdq)
 			 * it needs to be restored afterwards. XXX not very
 			 * obvious how this works from here...
 			 */
-			if (cmd_prepare_state(cmd, cmdq) != 0)
-				retval = CMD_RETURN_ERROR;
-			else
-				retval = cmd->entry->exec(cmd, cmdq);
+			if (cmd_prepare_state(cmdq->cmd, cmdq) != 0)
+				break;
+
+			retval = cmdq->cmd->entry->exec(cmdq->cmd, cmdq);
 			if (retval != CMD_RETURN_ERROR)
-				cmdq_run_hook(hooks, "after", cmd, cmdq);
+				cmdq_run_hook(hooks, "after", cmdq->cmd, cmdq);
 
 			if (guard) {
 				if (retval == CMD_RETURN_ERROR)
