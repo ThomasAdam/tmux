@@ -67,7 +67,7 @@ struct options_entry *cmd_set_option_style(struct cmd *, struct cmd_q *,
 const struct cmd_entry cmd_set_option_entry = {
 	"set-option", "set",
 	"agoqst:uw", 1, 2,
-	"[-agosquw] [-t target-session|target-window] option [value]",
+	"[-agosquw] [-t target-window] option [value]",
 	CMD_PREP_WINDOW_T,
 	cmd_set_option_exec
 };
