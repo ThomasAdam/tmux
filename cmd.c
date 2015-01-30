@@ -119,8 +119,8 @@ const struct cmd_entry *cmd_table[] = {
 
 void		 cmd_clear_state(struct cmd_state *);
 struct client	*cmd_get_state_client(struct cmd_q *, int);
-int		 cmd_set_state_tflag(struct cmd *, struct cmd_q *, int);
-int		 cmd_set_state_sflag(struct cmd *, struct cmd_q *, int);
+int		 cmd_set_state_tflag(struct cmd *, struct cmd_q *);
+int		 cmd_set_state_sflag(struct cmd *, struct cmd_q *);
 int		 cmd_session_better(struct session *, struct session *, int);
 struct session	*cmd_choose_session_list(struct sessionslist *);
 struct session	*cmd_choose_session(int);
@@ -353,16 +353,34 @@ cmd_get_state_client(struct cmd_q *cmdq, int quiet)
 }
 
 int
-cmd_set_state_tflag(struct cmd *cmd, struct cmd_q *cmdq, int everything)
+cmd_set_state_tflag(struct cmd *cmd, struct cmd_q *cmdq)
 {
 	struct cmd_state	*state = &cmdq->state;
-	struct args		*args = cmd->args;
 	const char		*tflag;
+	int			 flags = cmd->entry->flags;
+	int			 everything = 0;
 
-	tflag = args_get(args, 't');
-	if (tflag == NULL && !everything)
-		return (0);
+	/*
+	 * If the command wants something for -t and no -t argument is present,
+	 * use the base command's -t instead.
+	 */
+	tflag = args_get(cmd->args, 't');
+	if (tflag == NULL) {
+		if ((flags & CMD_PREP_ALL_T) == 0)
+			return (0); /* doesn't care about -t */
+		cmd = cmdq->cmd;
+		everything = 1;
+		tflag = args_get(cmd->args, 't');
+	}
 
+	/*
+	 * If no -t and the current command is allowed to fail, just skip to
+	 * fill in as much we can. Otherwise continue and let cmd_find_* fail.
+	 */
+	if (tflag == NULL && (flags & CMD_PREP_CANFAIL))
+		goto complete_everything;
+
+	/* Fill in state using command (current or base) flags. */
 	switch (cmd->entry->flags & CMD_PREP_ALL_T) {
 	case 0:
 		break;
@@ -390,36 +408,64 @@ cmd_set_state_tflag(struct cmd *cmd, struct cmd_q *cmdq, int everything)
 	default:
 		log_fatalx("too many -t for %s", cmd->entry->name);
 	}
-	if (everything) {
+
+	/*
+	 * If this is still the current command, it wants what it asked for and
+	 * nothing more. If it's the base command, fill in as much as possible
+	 * because the current command may have different flags.
+	 */
+	if (!everything)
+		return (0);
+
+complete_everything:
+	if (state->tflag.s == NULL) {
+		if (state->c != NULL)
+			state->tflag.s = state->c->session;
+		if (state->tflag.s == NULL)
+			state->tflag.s = cmd_current_session(cmdq, 0);
 		if (state->tflag.s == NULL) {
-			if (state->c != NULL)
-				state->tflag.s = state->c->session;
-			if (state->tflag.s == NULL)
-				state->tflag.s = cmd_current_session(cmdq, 0);
-			if (state->tflag.s == NULL) {
-				cmdq_error(cmdq, "no current session");
-				return (-1);
-			}
+			if (flags & CMD_PREP_CANFAIL)
+				return (0);
+			cmdq_error(cmdq, "no current session");
+			return (-1);
 		}
-		if (state->tflag.wl == NULL)
-			state->tflag.wl = state->tflag.s->curw;
-		if (state->tflag.wp == NULL)
-			state->tflag.wp = state->tflag.wl->window->active;
 	}
+	if (state->tflag.wl == NULL)
+		state->tflag.wl = state->tflag.s->curw;
+	if (state->tflag.wp == NULL)
+		state->tflag.wp = state->tflag.wl->window->active;
 	return (0);
 }
 
 int
-cmd_set_state_sflag(struct cmd *cmd, struct cmd_q *cmdq, int everything)
+cmd_set_state_sflag(struct cmd *cmd, struct cmd_q *cmdq)
 {
 	struct cmd_state	*state = &cmdq->state;
-	struct args		*args = cmd->args;
 	const char		*sflag;
+	int			 flags = cmd->entry->flags;
+	int			 everything = 0;
 
-	sflag = args_get(args, 's');
-	if (sflag == NULL && !everything)
-		return (0);
+	/*
+	 * If the command wants something for -s and no -s argument is present,
+	 * use the base command's -s instead.
+	 */
+	sflag = args_get(cmd->args, 's');
+	if (sflag == NULL) {
+		if ((flags & CMD_PREP_ALL_S) == 0)
+			return (0); /* doesn't care about -s */
+		cmd = cmdq->cmd;
+		everything = 1;
+		sflag = args_get(cmd->args, 's');
+	}
 
+	/*
+	 * If no -s and the current command is allowed to fail, just skip to
+	 * fill in as much we can. Otherwise continue and let cmd_find_* fail.
+	 */
+	if (sflag == NULL && (flags & CMD_PREP_CANFAIL))
+		goto complete_everything;
+
+	/* Fill in state using command (current or base) flags. */
 	switch (cmd->entry->flags & CMD_PREP_ALL_S) {
 	case 0:
 		break;
@@ -448,22 +494,31 @@ cmd_set_state_sflag(struct cmd *cmd, struct cmd_q *cmdq, int everything)
 		log_fatalx("too many -s for %s", cmd->entry->name);
 	}
 
-	if (everything) {
+	/*
+	 * If this is still the current command, it wants what it asked for and
+	 * nothing more. If it's the base command, fill in as much as possible
+	 * because the current command may have different flags.
+	 */
+	if (!everything)
+		return (0);
+
+complete_everything:
+	if (state->sflag.s == NULL) {
+		if (state->c != NULL)
+			state->sflag.s = state->c->session;
+		if (state->sflag.s == NULL)
+			state->sflag.s = cmd_current_session(cmdq, 0);
 		if (state->sflag.s == NULL) {
-			if (state->c != NULL)
-				state->sflag.s = state->c->session;
-			if (state->sflag.s == NULL)
-				state->sflag.s = cmd_current_session(cmdq, 0);
-			if (state->sflag.s == NULL) {
-				cmdq_error(cmdq, "no current session");
-				return (-1);
-			}
+			if (flags & CMD_PREP_CANFAIL)
+				return (0);
+			cmdq_error(cmdq, "no current session");
+			return (-1);
 		}
-		if (state->sflag.wl == NULL)
-			state->sflag.wl = state->sflag.s->curw;
-		if (state->sflag.wp == NULL)
-			state->sflag.wp = state->sflag.wl->window->active;
 	}
+	if (state->sflag.wl == NULL)
+		state->sflag.wl = state->sflag.s->curw;
+	if (state->sflag.wp == NULL)
+		state->sflag.wp = state->sflag.wl->window->active;
 	return (0);
 }
 
@@ -474,7 +529,6 @@ cmd_prepare_state(struct cmd *cmd, struct cmd_q *cmdq)
 	struct args		*args = cmd->args;
 	const char		*cflag;
 	const char		*tflag;
-	const char		*sflag;
 	char                     tmp[BUFSIZ];
 	int			 error;
 
@@ -516,22 +570,9 @@ cmd_prepare_state(struct cmd *cmd, struct cmd_q *cmdq)
 		log_fatalx("both -c and -t for %s", cmd->entry->name);
 	}
 
-	/*
-	 * If the command wants something for -t and no -t argument is present,
-	 * use it the base command's -t instead. Same for -s.
-	 */
-	tflag = args_get(args, 't');
-	if (tflag == NULL && (cmd->entry->flags & CMD_PREP_ALL_T) != 0)
-		error = cmd_set_state_tflag(cmdq->cmd, cmdq, 1);
-	else
-		error = cmd_set_state_tflag(cmd, cmdq, 0);
-	if (error == 0) {
-		sflag = args_get(args, 's');
-		if (sflag == NULL && (cmd->entry->flags & CMD_PREP_ALL_S) != 0)
-			error = cmd_set_state_sflag(cmdq->cmd, cmdq, 1);
-		else
-			error = cmd_set_state_sflag(cmd, cmdq, 0);
-	}
+	error = cmd_set_state_tflag(cmd, cmdq);
+	if (error == 0)
+		error = cmd_set_state_sflag(cmd, cmdq);
 	return (error);
 }
 
