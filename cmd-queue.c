@@ -206,14 +206,17 @@ cmdq_continue(struct cmd_q *cmdq)
 			log_debug("cmdq %p: %s (client %d)", cmdq, s,
 			    cmdq->client != NULL ? cmdq->client->ibuf.fd : -1);
 
-			if (cmd_prepare_state(cmd, cmdq) != 0)
-				break;
-
 			cmdq->time = time(NULL);
 			cmdq->number++;
 
 			flags = !!(cmd->flags & CMD_CONTROL);
 			guard = cmdq_guard(cmdq, "begin", flags);
+
+			if (cmd_prepare_state(cmd, cmdq) != 0) {
+				if (guard)
+					cmdq_guard(cmdq, "error", flags);
+				break;
+			}
 
 			if (cmdq->state.tflag.s != NULL)
 				hooks = &cmdq->state.tflag.s->hooks;
@@ -232,18 +235,16 @@ cmdq_continue(struct cmd_q *cmdq)
 				retval = CMD_RETURN_ERROR;
 			else
 				retval = cmd->entry->exec(cmd, cmdq);
-			if (retval != CMD_RETURN_ERROR)
-				cmdq_run_hook(hooks, "after", cmd, cmdq);
-
-			if (guard) {
-				if (retval == CMD_RETURN_ERROR)
+			if (retval == CMD_RETURN_ERROR) {
+				if (guard)
 					cmdq_guard(cmdq, "error", flags);
-				else
-					cmdq_guard(cmdq, "end", flags);
-			}
-
-			if (retval == CMD_RETURN_ERROR)
 				break;
+			}
+			cmdq_run_hook(hooks, "after", cmd, cmdq);
+
+			if (guard)
+				cmdq_guard(cmdq, "end", flags);
+
 			if (retval == CMD_RETURN_WAIT)
 				goto out;
 			if (retval == CMD_RETURN_STOP) {
