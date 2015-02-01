@@ -49,7 +49,6 @@ cmd_break_pane_exec(struct cmd *self, struct cmd_q *cmdq)
 	char			*name;
 	char			*cause;
 	int			 base_idx;
-	struct client		*c = cmdq->state.c;
 	struct format_tree	*ft;
 	const char		*template;
 	char			*cp;
@@ -86,7 +85,8 @@ cmd_break_pane_exec(struct cmd *self, struct cmd_q *cmdq)
 			template = BREAK_PANE_TEMPLATE;
 
 		ft = format_create();
-		format_client(ft, c);
+		if (cmdq->state.c != NULL)
+			format_client(ft, cmdq->state.c);
 		format_session(ft, s);
 		format_winlink(ft, s, wl);
 		format_window_pane(ft, wp);
