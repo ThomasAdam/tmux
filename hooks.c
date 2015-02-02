@@ -59,9 +59,10 @@ hooks_add(struct hooks *hooks, const char *name, struct cmd_list *cmdlist)
 
 	hook = xcalloc(1, sizeof *hook);
 	hook->name = xstrdup(name);
-	hook->cmdlist = cmdlist;
-	hook->cmdlist->references++;
+	hook->cmdq = cmdq_new(NULL);
+	hook->cmdq->emptyfn = NULL;
 
+	cmdq_append(hook->cmdq, cmdlist);
 	RB_INSERT(hooks_tree, &hooks->tree, hook);
 }
 
@@ -69,7 +70,7 @@ void
 hooks_remove(struct hooks *hooks, struct hook *hook)
 {
 	RB_REMOVE(hooks_tree, &hooks->tree, hook);
-	cmd_list_free(hook->cmdlist);
+	cmdq_free(hook->cmdq);
 	free((char *) hook->name);
 	free(hook);
 }
@@ -100,19 +101,19 @@ hooks_find(struct hooks *hooks, const char *name)
 }
 
 void
-hooks_run(struct hook *hook, struct cmd_q *cmdq)
+hooks_run(struct hook *hook)
 {
-	struct cmd	*cmd;
-	char		 tmp[BUFSIZ];
+	struct cmd_q_item	*item;
+	char			 tmp[BUFSIZ];
+	size_t			 used = 0;
 
-	cmd_list_print(hook->cmdlist, tmp, sizeof tmp);
+	TAILQ_FOREACH(item, &hook->cmdq->queue, qentry) {
+		cmd_list_print(item->cmdlist, tmp + used,
+		    (sizeof tmp) - used);
+	}
 	log_debug("entering hook %s: %s", hook->name, tmp);
 
-	TAILQ_FOREACH(cmd, &hook->cmdlist->list, qentry) {
-		/* TA:  FIXME:  How do we handle errors here, if at all??? */
-		if (cmd_prepare_state(cmd, cmdq) == 0)
-			cmd->entry->exec(cmd, cmdq);
-	}
+	cmdq_continue(hook->cmdq);
 
 	log_debug("exiting hook %s", hook->name);
 }

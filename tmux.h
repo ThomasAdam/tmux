@@ -1030,7 +1030,7 @@ RB_HEAD(environ, environ_entry);
 /* Hooks. */
 struct hook {
 	const char	*name;
-	struct cmd_list	*cmdlist;
+	struct cmd_q	*cmdq;
 	RB_ENTRY(hook)	 entry;
 };
 
@@ -1433,6 +1433,10 @@ struct cmd_q {
 	void			*data;
 
 	TAILQ_ENTRY(cmd_q)       waitentry;
+
+	int			 mode;
+
+#define CMDQ_HOOKS 0x1
 };
 
 /* Command definition. */
@@ -1578,7 +1582,7 @@ void		 hooks_free(struct hooks *);
 void		 hooks_add(struct hooks *, const char *, struct cmd_list *);
 void		 hooks_copy(struct hooks *, struct hooks *);
 void		 hooks_remove(struct hooks *, struct hook *);
-void		 hooks_run(struct hook *, struct cmd_q *);
+void		 hooks_run(struct hook *);
 struct hook	*hooks_find(struct hooks *, const char *);
 
 /* mode-key.c */

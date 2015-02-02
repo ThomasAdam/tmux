@@ -40,11 +40,12 @@ const struct cmd_entry cmd_show_hooks_entry = {
 enum cmd_retval
 cmd_show_hooks_exec(struct cmd *self, struct cmd_q *cmdq)
 {
-	struct args	*args = self->args;
-	struct hooks	*hooks;
-	struct hook	*hook;
-	char		 tmp[BUFSIZ];
-	size_t		 used;
+	struct args		*args = self->args;
+	struct hooks		*hooks;
+	struct hook		*hook;
+	struct cmd_q_item	*item;
+	char			 tmp[BUFSIZ];
+	size_t			 used;
 
 	if (args_has(args, 'g'))
 		hooks = &global_hooks;
@@ -53,7 +54,10 @@ cmd_show_hooks_exec(struct cmd *self, struct cmd_q *cmdq)
 
 	RB_FOREACH(hook, hooks_tree, &hooks->tree) {
 		used = xsnprintf(tmp, sizeof tmp, "%s -> ", hook->name);
-		cmd_list_print(hook->cmdlist, tmp + used, (sizeof tmp) - used);
+		TAILQ_FOREACH(item, &hook->cmdq->queue, qentry) {
+			cmd_list_print(item->cmdlist, tmp + used,
+			    (sizeof tmp) - used);
+		}
 		cmdq_print(cmdq, "%s", tmp);
 	}
 

@@ -26,7 +26,7 @@
 #include "tmux.h"
 
 void	cmdq_run_hook(struct hooks *, const char *, struct cmd *,
-	    struct cmd_q *);
+	    struct cmd_q *cmdq);
 
 /* Create new command queue. */
 struct cmd_q *
@@ -158,8 +158,14 @@ cmdq_run_hook(struct hooks *hooks, const char *prefix, struct cmd *cmd,
 	char            *s;
 
 	xasprintf(&s, "%s-%s", prefix, cmd->entry->name);
-	if ((hook = hooks_find(hooks, s)) != NULL)
-		hooks_run(hook, cmdq);
+	if ((hook = hooks_find(hooks, s)) != NULL) {
+		if (!(cmdq->mode & CMDQ_HOOKS)) {
+			cmdq->mode |= CMDQ_HOOKS;
+			hook->cmdq->client = cmdq->client;
+			hooks_run(hook);
+			cmdq->mode &= ~CMDQ_HOOKS;
+		}
+	}
 	free(s);
 }
 
@@ -224,6 +230,7 @@ cmdq_continue(struct cmd_q *cmdq)
 				hooks = &cmdq->state.sflag.s->hooks;
 			else
 				hooks = &global_hooks;
+
 			cmdq_run_hook(hooks, "before", cmd, cmdq);
 
 			/*
