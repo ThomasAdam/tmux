@@ -32,8 +32,9 @@ enum cmd_retval	 cmd_switch_client_exec(struct cmd *, struct cmd_q *);
 const struct cmd_entry cmd_switch_client_entry = {
 	"switch-client", "switchc",
 	"lc:npt:r", 0, 0,
-	"[-lnpr] [-c target-client] [-t target-session]",
-	CMD_READONLY,
+	"[-lnpr] [-c target-client] " CMD_TARGET_SESSION_USAGE,
+	CMD_READONLY|CMD_PREP_CLIENT_C|CMD_PREP_PANE_T|CMD_PREP_SESSION_T|
+	CMD_PREP_PREFERUNATTACHED,
 	cmd_switch_client_exec
 };
 
@@ -41,15 +42,11 @@ enum cmd_retval
 cmd_switch_client_exec(struct cmd *self, struct cmd_q *cmdq)
 {
 	struct args		*args = self->args;
-	struct client		*c;
-	struct session		*s = NULL;
-	struct winlink		*wl = NULL;
-	struct window 		*w = NULL;
-	struct window_pane	*wp = NULL;
+	struct cmd_state	*state = &cmdq->state;
+	struct client		*c = state->c;
+	struct session		*s;
+	struct window_pane	*wp;
 	const char		*tflag;
-
-	if ((c = cmd_find_client(cmdq, args_get(args, 'c'), 0)) == NULL)
-		return (CMD_RETURN_ERROR);
 
 	if (args_has(args, 'r')) {
 		if (c->flags & CLIENT_READONLY)
@@ -58,7 +55,6 @@ cmd_switch_client_exec(struct cmd *self, struct cmd_q *cmdq)
 			c->flags |= CLIENT_READONLY;
 	}
 
-	tflag = args_get(args, 't');
 	if (args_has(args, 'n')) {
 		if ((s = session_next_session(c->session)) == NULL) {
 			cmdq_error(cmdq, "can't find next session");
@@ -77,30 +73,15 @@ cmd_switch_client_exec(struct cmd *self, struct cmd_q *cmdq)
 			return (CMD_RETURN_ERROR);
 		}
 	} else {
-		if (tflag == NULL) {
-			if ((s = cmd_find_session(cmdq, tflag, 1)) == NULL)
-				return (CMD_RETURN_ERROR);
-		} else if (tflag[strcspn(tflag, ":.")] != '\0') {
-			if ((wl = cmd_find_pane(cmdq, tflag, &s, &wp)) == NULL)
-				return (CMD_RETURN_ERROR);
-		} else {
-			if ((s = cmd_find_session(cmdq, tflag, 1)) == NULL)
-				return (CMD_RETURN_ERROR);
-			w = cmd_lookup_windowid(tflag);
-			if (w == NULL &&
-			    (wp = cmd_lookup_paneid(tflag)) != NULL)
-				w = wp->window;
-			if (w != NULL)
-				wl = winlink_find_by_window(&s->windows, w);
-		}
-
 		if (cmdq->client == NULL)
 			return (CMD_RETURN_NORMAL);
 
-		if (wl != NULL) {
+		s = state->tflag.s;
+		if (state->tflag.wl != NULL) {
+			wp = state->tflag.wp;
 			if (wp != NULL)
 				window_set_active_pane(wp->window, wp);
-			session_set_current(s, wl);
+			session_set_current(s, state->tflag.wl);
 		}
 	}
 

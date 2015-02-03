@@ -1460,6 +1460,7 @@ struct cmd_entry {
 #define CMD_PREP_INDEX_T 0x800
 #define CMD_PREP_INDEX_S 0x1000
 #define CMD_PREP_CANFAIL 0x2000
+#define CMD_PREP_PREFERUNATTACHED 0x4000
 	int		 flags;
 
 	enum cmd_retval	 (*exec)(struct cmd *, struct cmd_q *);

@@ -357,8 +357,12 @@ cmd_set_state_tflag(struct cmd *cmd, struct cmd_q *cmdq)
 {
 	struct cmd_state	*state = &cmdq->state;
 	const char		*tflag;
-	int			 flags = cmd->entry->flags;
-	int			 everything = 0;
+	int			 flags = cmd->entry->flags, everything = 0;
+	int			 prefer = !!(flags & CMD_PREP_PREFERUNATTACHED);
+	struct session		*s;
+	struct window		*w;
+	struct winlink		*wl;
+	struct window_pane	*wp;
 
 	/*
 	 * If the command wants something for -t and no -t argument is present,
@@ -384,8 +388,31 @@ cmd_set_state_tflag(struct cmd *cmd, struct cmd_q *cmdq)
 	switch (cmd->entry->flags & CMD_PREP_ALL_T) {
 	case 0:
 		break;
+	case CMD_PREP_SESSION_T|CMD_PREP_PANE_T:
+		if (tflag[strcspn(tflag, ":.")] != '\0') {
+			state->tflag.wl = cmd_find_pane(cmdq, tflag,
+			    &state->tflag.s, &state->tflag.wp);
+			if (state->tflag.wl == NULL)
+				return (-1);
+		} else {
+			state->tflag.s = cmd_find_session(cmdq, tflag, prefer);
+			if (state->tflag.s == NULL)
+				return (-1);
+
+			s = state->tflag.s;
+			if ((w = cmd_lookup_windowid(tflag)) != NULL)
+				wp = w->active;
+			else if ((wp = cmd_lookup_paneid(tflag)) != NULL)
+				w = wp->window;
+			wl = winlink_find_by_window(&s->windows, w);
+			if (wl != NULL) {
+				state->tflag.wl = wl;
+				state->tflag.wp = wp;
+			}
+		}
+		break;
 	case CMD_PREP_SESSION_T:
-		state->tflag.s = cmd_find_session(cmdq, tflag, 0);
+		state->tflag.s = cmd_find_session(cmdq, tflag, prefer);
 		if (state->tflag.s == NULL)
 			return (-1);
 		break;
@@ -422,7 +449,7 @@ complete_everything:
 		if (state->c != NULL)
 			state->tflag.s = state->c->session;
 		if (state->tflag.s == NULL)
-			state->tflag.s = cmd_current_session(cmdq, 0);
+			state->tflag.s = cmd_current_session(cmdq, prefer);
 		if (state->tflag.s == NULL) {
 			if (flags & CMD_PREP_CANFAIL)
 				return (0);
@@ -442,8 +469,12 @@ cmd_set_state_sflag(struct cmd *cmd, struct cmd_q *cmdq)
 {
 	struct cmd_state	*state = &cmdq->state;
 	const char		*sflag;
-	int			 flags = cmd->entry->flags;
-	int			 everything = 0;
+	int			 flags = cmd->entry->flags, everything = 0;
+	int			 prefer = !!(flags & CMD_PREP_PREFERUNATTACHED);
+	struct session		*s;
+	struct window		*w;
+	struct winlink		*wl;
+	struct window_pane	*wp;
 
 	/*
 	 * If the command wants something for -s and no -s argument is present,
@@ -469,8 +500,31 @@ cmd_set_state_sflag(struct cmd *cmd, struct cmd_q *cmdq)
 	switch (cmd->entry->flags & CMD_PREP_ALL_S) {
 	case 0:
 		break;
+	case CMD_PREP_SESSION_S|CMD_PREP_PANE_S:
+		if (sflag[strcspn(sflag, ":.")] != '\0') {
+			state->sflag.wl = cmd_find_pane(cmdq, sflag,
+			    &state->sflag.s, &state->sflag.wp);
+			if (state->sflag.wl == NULL)
+				return (-1);
+		} else {
+			state->sflag.s = cmd_find_session(cmdq, sflag, prefer);
+			if (state->sflag.s == NULL)
+				return (-1);
+
+			s = state->sflag.s;
+			if ((w = cmd_lookup_windowid(sflag)) != NULL)
+				wp = w->active;
+			else if ((wp = cmd_lookup_paneid(sflag)) != NULL)
+				w = wp->window;
+			wl = winlink_find_by_window(&s->windows, w);
+			if (wl != NULL) {
+				state->sflag.wl = wl;
+				state->sflag.wp = wp;
+			}
+		}
+		break;
 	case CMD_PREP_SESSION_S:
-		state->sflag.s = cmd_find_session(cmdq, sflag, 0);
+		state->sflag.s = cmd_find_session(cmdq, sflag, prefer);
 		if (state->sflag.s == NULL)
 			return (-1);
 		break;
@@ -507,7 +561,7 @@ complete_everything:
 		if (state->c != NULL)
 			state->sflag.s = state->c->session;
 		if (state->sflag.s == NULL)
-			state->sflag.s = cmd_current_session(cmdq, 0);
+			state->sflag.s = cmd_current_session(cmdq, prefer);
 		if (state->sflag.s == NULL) {
 			if (flags & CMD_PREP_CANFAIL)
 				return (0);
