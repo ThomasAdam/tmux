@@ -1057,6 +1057,19 @@ struct environ_entry {
 };
 RB_HEAD(environ, environ_entry);
 
+/* Hooks. */
+struct hook {
+	const char	*name;
+	struct cmd_q	*cmdq;
+	struct cmd_list	*cmdlist;
+	RB_ENTRY(hook)	 entry;
+};
+
+struct hooks {
+	RB_HEAD(hooks_tree, hook) tree;
+	struct hooks	*parent;
+};
+
 /* Client session. */
 struct session_group {
 	TAILQ_HEAD(, session) sessions;
@@ -1445,6 +1458,9 @@ struct cmd_q {
 	void			*data;
 
 	TAILQ_ENTRY(cmd_q)       waitentry;
+	struct cmd_q		*orig_cmdq;
+	int			 hooks_ran;
+	int			 during;
 };
 
 /* Command definition. */
@@ -1555,6 +1571,7 @@ extern time_t	 start_time;
 extern char	 socket_path[PATH_MAX];
 extern int	 login_shell;
 extern char	*environ_path;
+extern int	 running_hooks;
 void		 logfile(const char *);
 const char	*getshell(void);
 int		 checkshell(const char *);
@@ -1590,6 +1607,16 @@ void		 format_defaults_pane(struct format_tree *,
 void		 format_defaults_paste_buffer(struct format_tree *,
 		     struct paste_buffer *, int);
 
+/* hooks.c */
+int		 hooks_cmp(struct hook *, struct hook *);
+RB_PROTOTYPE(hooks_tree, hook, entry, hooks_cmp);
+void		 hooks_init(struct hooks *, struct hooks *);
+void		 hooks_free(struct hooks *);
+void		 hooks_add(struct hooks *, const char *, struct cmd_list *);
+void		 hooks_copy(struct hooks *, struct hooks *);
+void		 hooks_remove(struct hooks *, struct hook *);
+struct hook	*hooks_find(struct hooks *, const char *);
+void		 hooks_emptyfn(struct cmd_q *cmdq);
 /* mode-key.c */
 extern const struct mode_key_table mode_key_tables[];
 extern struct mode_key_tree mode_key_tree_vi_edit;

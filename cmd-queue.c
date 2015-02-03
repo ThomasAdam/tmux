@@ -25,9 +25,10 @@
 
 #include "tmux.h"
 
-void	cmdq_set_state(struct cmd_q *);
-void	cmdq_run_hook(struct hooks *, const char *, struct cmd *,
+int	cmdq_run_hook(struct hooks *, const char *, struct cmd *,
 	    struct cmd_q *);
+
+int	 running_hooks = 0;
 
 /* Create new command queue. */
 struct cmd_q *
@@ -147,6 +148,36 @@ cmdq_run(struct cmd_q *cmdq, struct cmd_list *cmdlist, struct mouse_event *m)
 	}
 }
 
+/* Run hooks based on the hooks prefix (before/after). */
+int
+cmdq_run_hook(struct hooks *hooks, const char *prefix, struct cmd *cmd,
+    struct cmd_q *cmdq)
+{
+	struct hook     *hook;
+	struct cmd_q	*hooks_cmdq;
+	char            *s;
+	int		 retval;
+
+	xasprintf(&s, "%s-%s", prefix, cmd->entry->name);
+	if ((hook = hooks_find(hooks, s)) == NULL) {
+		cmdq->hooks_ran = 0;
+		retval = 0;
+		goto done;
+	}
+
+	hooks_cmdq = cmdq_new(cmdq->client);
+	hooks_cmdq->orig_cmdq = cmdq;
+	hooks_cmdq->emptyfn = hooks_emptyfn;
+	hooks_cmdq->hooks_ran = 1;
+	cmdq->references++;
+	cmdq_run(hooks_cmdq, hook->cmdlist);
+	retval = 1;
+
+done:
+	free(s);
+	return (retval);
+}
+
 /* Add command list to queue. */
 void
 cmdq_append(struct cmd_q *cmdq, struct cmd_list *cmdlist, struct mouse_event *m)
@@ -182,11 +213,17 @@ cmdq_continue(struct cmd_q *cmdq)
 	if (empty)
 		goto empty;
 
-	if (cmdq->item == NULL) {
-		cmdq->item = TAILQ_FIRST(&cmdq->queue);
-		cmdq->cmd = TAILQ_FIRST(&cmdq->item->cmdlist->list);
-	} else
-		cmdq->cmd = TAILQ_NEXT(cmdq->cmd, qentry);
+	/* If the command isn't in the middle of running hooks (due to
+	 * CMD_RETURN_WAIT), move onto the next command; otherwise, leave the
+	 * state of the queue as is; we're already in the correct place.
+	 */
+	if (cmdq->during == 0) {
+		if (cmdq->item == NULL) {
+			cmdq->item = TAILQ_FIRST(&cmdq->queue);
+			cmdq->cmd = TAILQ_FIRST(&cmdq->item->cmdlist->list);
+		} else
+			cmdq->cmd = TAILQ_NEXT(cmdq->cmd, qentry);
+	}
 
 	do {
 		while (cmdq->cmd != NULL) {
@@ -200,6 +237,14 @@ cmdq_continue(struct cmd_q *cmdq)
 			cmdq->number++;
 
 			flags = !!(cmd->flags & CMD_CONTROL);
+
+			/*
+			 * If we've come here because of running hooks, just
+			 * run the command.
+			 */
+			if (cmdq->during == 1)
+				goto runme;
+
 			guard = cmdq_guard(cmdq, "begin", flags);
 
 			if (cmd_prepare_state(cmd, cmdq) != 0) {
@@ -214,13 +259,21 @@ cmdq_continue(struct cmd_q *cmdq)
 				hooks = &cmdq->state.sflag.s->hooks;
 			else
 				hooks = &global_hooks;
-			cmdq_run_hook(hooks, "before", cmd, cmdq);
+
+			if (cmdq->hooks_ran == 0) {
+				if (cmdq_run_hook(hooks, "before", cmd,
+				    cmdq) == 1) {
+					cmdq->during = 1;
+					goto out;
+				}
+			}
 
 			/*
 			 * hooks_run will change the state before each hook, so
 			 * it needs to be restored afterwards. XXX not very
 			 * obvious how this works from here...
 			 */
+runme:
 			if (cmd_prepare_state(cmd, cmdq) != 0)
 				retval = CMD_RETURN_ERROR;
 			else
@@ -230,7 +283,8 @@ cmdq_continue(struct cmd_q *cmdq)
 					cmdq_guard(cmdq, "error", flags);
 				break;
 			}
-			cmdq_run_hook(hooks, "after", cmd, cmdq);
+			if (cmdq_run_hook(hooks, "after", cmd, cmdq) == 1)
+				goto out;
 
 			if (guard)
 				cmdq_guard(cmdq, "end", flags);
