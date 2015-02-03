@@ -121,7 +121,6 @@ dist_tmux_SOURCES = \
 	cmd-set-hook.c \
 	cmd-set-option.c \
 	cmd-show-environment.c \
-	cmd-show-hooks.c \
 	cmd-show-messages.c \
 	cmd-show-options.c \
 	cmd-source-file.c \
