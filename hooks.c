@@ -61,7 +61,6 @@ hooks_add(struct hooks *hooks, const char *name, struct cmd_list *cmdlist)
 	hook->name = xstrdup(name);
 	hook->cmdlist = cmdlist;
 	hook->cmdlist->references++;
-
 	RB_INSERT(hooks_tree, &hooks->tree, hook);
 }
 
@@ -100,19 +99,17 @@ hooks_find(struct hooks *hooks, const char *name)
 }
 
 void
-hooks_run(struct hook *hook, struct cmd_q *cmdq)
+hooks_emptyfn(struct cmd_q *cmdq1)
 {
-	struct cmd	*cmd;
-	char		 tmp[BUFSIZ];
+	struct cmd_q	*cmdq = cmdq1->orig_cmdq;
 
-	cmd_list_print(hook->cmdlist, tmp, sizeof tmp);
-	log_debug("entering hook %s: %s", hook->name, tmp);
+	if (cmdq1->client_exit >= 0)
+		cmdq->client_exit = cmdq1->client_exit;
 
-	TAILQ_FOREACH(cmd, &hook->cmdlist->list, qentry) {
-		/* TA:  FIXME:  How do we handle errors here, if at all??? */
-		if (cmd_prepare_state(cmd, cmdq) == 0)
-			cmd->entry->exec(cmd, cmdq);
+	if (!cmdq_free(cmdq)) {
+		cmdq->hooks_ran = 1;
+		cmdq_continue(cmdq);
 	}
 
-	log_debug("exiting hook %s", hook->name);
+	cmdq_free(cmdq1);
 }
