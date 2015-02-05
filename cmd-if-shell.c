@@ -142,6 +142,7 @@ cmd_if_shell_callback(struct job *job)
 	cdata->started = 1;
 
 	cmdq1 = cmdq_new(cmdq->client);
+	cmdq1->flags |= cmdq->flags & CMD_Q_HOOKS;
 	cmdq1->emptyfn = cmd_if_shell_done;
 	cmdq1->data = cdata;
 
