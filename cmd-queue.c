@@ -36,7 +36,7 @@ cmdq_new(struct client *c)
 
 	cmdq = xcalloc(1, sizeof *cmdq);
 	cmdq->references = 1;
-	cmdq->dead = 0;
+	cmdq->flags = 0;
 
 	cmdq->client = c;
 	cmdq->client_exit = -1;
@@ -52,8 +52,11 @@ cmdq_new(struct client *c)
 int
 cmdq_free(struct cmd_q *cmdq)
 {
-	if (--cmdq->references != 0)
-		return (cmdq->dead);
+	if (--cmdq->references != 0) {
+		if (cmdq->flags & CMD_Q_DEAD)
+			return (1);
+		return (0);
+	}
 
 	cmdq_flush(cmdq);
 	free(cmdq);
@@ -169,11 +172,10 @@ cmdq_hooks_run(struct hooks *hooks, const char *prefix, struct cmd_q *cmdq)
 		return (0);
 
 	hooks_cmdq = cmdq_new(cmdq->client);
+	hooks_cmdq->flags |= CMD_Q_HOOKS;
 
 	hooks_cmdq->emptyfn = cmdq_hooks_emptyfn;
 	hooks_cmdq->data = cmdq;
-
-	hooks_cmdq->for_hooks = 1;
 
 	cmdq->references++;
 	cmdq_run(hooks_cmdq, hook->cmdlist);
@@ -214,6 +216,7 @@ cmdq_continue(struct cmd_q *cmdq)
 {
 	struct cmd_q_item	*next;
 	struct cmd		*cmd;
+	struct hooks		*hooks;
 	enum cmd_retval		 retval;
 	int			 empty, flags;
 	char			 s[1024];
@@ -229,7 +232,7 @@ cmdq_continue(struct cmd_q *cmdq)
 	 * CMD_RETURN_WAIT), move onto the next command; otherwise, leave the
 	 * state of the queue as it is.
 	 */
-	if (cmdq->hooks == NULL) {
+	if (!(cmdq->flags & CMD_Q_REENTRY)) {
 		if (cmdq->item == NULL) {
 			cmdq->item = TAILQ_FIRST(&cmdq->queue);
 			cmdq->cmd = TAILQ_FIRST(&cmdq->item->cmdlist->list);
@@ -250,45 +253,43 @@ cmdq_continue(struct cmd_q *cmdq)
 
 			flags = !!(cmd->flags & CMD_CONTROL);
 
-			/*
-			 * If we've come back here after running hooks, skip
-			 * the before hooks.
-			 */
-			if (cmdq->hooks != NULL)
-				goto skip;
+			if (!(cmdq->flags & CMD_Q_REENTRY))
+				cmdq_guard(cmdq, "begin", flags);
 
-			cmdq_guard(cmdq, "begin", flags);
+			if (!(cmdq->flags & CMD_Q_HOOKS)) {
+				if (cmd_prepare_state(cmd, cmdq) != 0) {
+					cmdq_guard(cmdq, "error", flags);
+					cmdq->flags &= ~CMD_Q_REENTRY;
+					break;
+				}
+				if (cmdq->state.tflag.s != NULL)
+					hooks = &cmdq->state.tflag.s->hooks;
+				else if (cmdq->state.sflag.s != NULL)
+					hooks = &cmdq->state.sflag.s->hooks;
+				else
+					hooks = &global_hooks;
 
-			if (cmd_prepare_state(cmd, cmdq) != 0) {
-				cmdq_guard(cmdq, "error", flags);
-				break;
-			}
-			// XXX hooks changed/session destroyed?
-			if (cmdq->state.tflag.s != NULL)
-				cmdq->hooks = &cmdq->state.tflag.s->hooks;
-			else if (cmdq->state.sflag.s != NULL)
-				cmdq->hooks = &cmdq->state.sflag.s->hooks;
-			else
-				cmdq->hooks = &global_hooks;
+				if (!(cmdq->flags & CMD_Q_REENTRY) &&
+				    cmdq_hooks_run(hooks, "before", cmdq)) {
+					cmdq->flags |= CMD_Q_REENTRY;
+					goto out;
+				}
+			} else
+				hooks = NULL;
+			cmdq->flags &= ~CMD_Q_REENTRY;
 
-			if (!cmdq->for_hooks && cmdq_hooks_run(cmdq->hooks,
-			    "before", cmdq))
-				goto out;
-
-		skip:
 			if (cmd_prepare_state(cmd, cmdq) != 0)
 				retval = CMD_RETURN_ERROR;
 			else
 				retval = cmd->entry->exec(cmd, cmdq);
 			if (retval == CMD_RETURN_ERROR) {
 				cmdq_guard(cmdq, "error", flags);
-				cmdq->hooks = NULL;
 				break;
 			}
-			if (!cmdq->for_hooks && cmdq_hooks_run(cmdq->hooks,
-			    "after", cmdq))
+
+			if (hooks != NULL &&
+			    cmdq_hooks_run(hooks, "after", cmdq))
 				retval = CMD_RETURN_WAIT;
-			cmdq->hooks = NULL;
 
 			cmdq_guard(cmdq, "end", flags);
 
