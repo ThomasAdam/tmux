@@ -174,7 +174,7 @@ cmdq_hooks_run(struct hooks *hooks, const char *prefix, struct cmd_q *cmdq)
 	}
 
 	hooks_cmdq = cmdq_new(cmdq->client);
-	hooks_cmdq->flags |= CMD_Q_HOOKS;
+	hooks_cmdq->flags |= CMD_Q_NOHOOKS;
 
 	hooks_cmdq->emptyfn = cmdq_hooks_emptyfn;
 	hooks_cmdq->data = cmdq;
@@ -237,7 +237,7 @@ cmdq_continue_one(struct cmd_q *cmdq)
 	if (~cmdq->flags & CMD_Q_REENTRY)
 		cmdq_guard(cmdq, "begin", flags);
 
-	if (~cmdq->flags & CMD_Q_HOOKS) {
+	if (~cmdq->flags & CMD_Q_NOHOOKS) {
 		if (cmd_prepare_state(cmd, cmdq) != 0)
 			goto error;
 

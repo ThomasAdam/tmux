@@ -1419,7 +1419,7 @@ struct cmd_q {
 	int			 flags;
 #define CMD_Q_DEAD 0x1
 #define CMD_Q_REENTRY 0x2
-#define CMD_Q_HOOKS 0x4
+#define CMD_Q_NOHOOKS 0x4
 
 	struct client		*client;
 	int			 client_exit;
