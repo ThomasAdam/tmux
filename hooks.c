@@ -97,19 +97,3 @@ hooks_find(struct hooks *hooks, const char *name)
 	}
 	return (hook);
 }
-
-void
-hooks_emptyfn(struct cmd_q *cmdq1)
-{
-	struct cmd_q	*cmdq = cmdq1->orig_cmdq;
-
-	if (cmdq1->client_exit >= 0)
-		cmdq->client_exit = cmdq1->client_exit;
-
-	if (!cmdq_free(cmdq)) {
-		cmdq->hooks_ran = 1;
-		cmdq_continue(cmdq);
-	}
-
-	cmdq_free(cmdq1);
-}
