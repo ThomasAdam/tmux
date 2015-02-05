@@ -1441,7 +1441,10 @@ TAILQ_HEAD(cmd_q_items, cmd_q_item);
 /* Command queue. */
 struct cmd_q {
 	int			 references;
-	int			 dead;
+	int			 flags;
+#define CMD_Q_DEAD 0x1
+#define CMD_Q_REENTRY 0x2
+#define CMD_Q_HOOKS 0x4
 
 	struct client		*client;
 	int			 client_exit;
@@ -1458,9 +1461,6 @@ struct cmd_q {
 	void			*data;
 
 	TAILQ_ENTRY(cmd_q)       waitentry;
-
-	int			 for_hooks;
-	struct hooks		*hooks;
 };
 
 /* Command definition. */

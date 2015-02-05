@@ -120,7 +120,7 @@ cmd_run_shell_callback(struct job *job)
 	int				 retcode;
 	u_int				 lines;
 
-	if (cmdq->dead)
+	if (cmdq->flags & CMD_Q_DEAD)
 		return;
 	cmd = cdata->cmd;
 
