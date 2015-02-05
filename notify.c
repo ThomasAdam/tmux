@@ -43,7 +43,7 @@ struct notify_entry {
 	TAILQ_ENTRY(notify_entry) entry;
 };
 TAILQ_HEAD(, notify_entry) notify_queue = TAILQ_HEAD_INITIALIZER(notify_queue);
-int	notify_enabled = 1;
+int	notify_disabled;
 
 void	notify_drain(void);
 void	notify_add(enum notify_type, struct client *, struct session *,
@@ -52,14 +52,18 @@ void	notify_add(enum notify_type, struct client *, struct session *,
 void
 notify_enable(void)
 {
-	notify_enabled = 1;
-	notify_drain();
+	if (notify_disabled == 0)
+		return;
+	if (--notify_disabled == 0)
+		notify_drain();
+	log_debug("notify enabled, now %d", notify_disabled);
 }
 
 void
 notify_disable(void)
 {
-	notify_enabled = 0;
+	notify_disabled++;
+	log_debug("notify disabled, now %d", notify_disabled);
 }
 
 void
@@ -88,7 +92,7 @@ notify_drain(void)
 {
 	struct notify_entry	*ne, *ne1;
 
-	if (!notify_enabled)
+	if (notify_disabled)
 		return;
 
 	TAILQ_FOREACH_SAFE(ne, &notify_queue, entry, ne1) {
@@ -141,7 +145,7 @@ notify_input(struct window_pane *wp, struct evbuffer *input)
 	 * notify_input() is not queued and only does anything when
 	 * notifications are enabled.
 	 */
-	if (!notify_enabled)
+	if (notify_disabled)
 		return;
 
 	for (i = 0; i < ARRAY_LENGTH(&clients); i++) {
