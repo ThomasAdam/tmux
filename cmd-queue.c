@@ -277,10 +277,10 @@ cmdq_continue(struct cmd_q *cmdq)
 				else
 					hooks = &global_hooks;
 
-				if (!(cmdq->flags & CMD_Q_REENTRY) &&
-				    cmdq_hooks_run(hooks, "before", cmdq)) {
+				if (!(cmdq->flags & CMD_Q_REENTRY)) {
 					cmdq->flags |= CMD_Q_REENTRY;
-					goto out;
+					if (cmdq_hooks_run(hooks, "before", cmdq))
+						goto out;
 				}
 			} else
 				hooks = NULL;
