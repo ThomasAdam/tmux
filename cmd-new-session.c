@@ -49,7 +49,7 @@ const struct cmd_entry cmd_has_session_entry = {
 	"has-session", "has",
 	"t:", 0, 0,
 	CMD_TARGET_SESSION_USAGE,
-	0,
+	CMD_PREP_SESSION_T,
 	cmd_new_session_exec
 };
 
@@ -71,11 +71,8 @@ cmd_new_session_exec(struct cmd *self, struct cmd_q *cmdq)
 	struct format_tree	*ft;
 	struct environ_entry	*envent;
 
-	if (self->entry == &cmd_has_session_entry) {
-		if (cmd_find_session(cmdq, args_get(args, 't'), 0) == NULL)
-			return (CMD_RETURN_ERROR);
+	if (self->entry == &cmd_has_session_entry)
 		return (CMD_RETURN_NORMAL);
-	}
 
 	if (args_has(args, 't') && (args->argc != 0 || args_has(args, 'n'))) {
 		cmdq_error(cmdq, "command or window name given with target");
