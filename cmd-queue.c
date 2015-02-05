@@ -166,16 +166,20 @@ cmdq_hooks_run(struct hooks *hooks, const char *prefix, struct cmd_q *cmdq)
 
 	xasprintf(&s, "%s-%s", prefix, cmd->entry->name);
 	hook = hooks_find(hooks, s);
-	free(s);
 
-	if (hook == NULL)
+	if (hook == NULL) {
+		free(s);
 		return (0);
+	}
 
 	hooks_cmdq = cmdq_new(cmdq->client);
 	hooks_cmdq->flags |= CMD_Q_HOOKS;
 
 	hooks_cmdq->emptyfn = cmdq_hooks_emptyfn;
 	hooks_cmdq->data = cmdq;
+
+	log_debug("entering hooks cmdq %p for %s", hooks_cmdq, s);
+	free(s);
 
 	cmdq->references++;
 	cmdq_run(hooks_cmdq, hook->cmdlist);
@@ -188,6 +192,8 @@ void
 cmdq_hooks_emptyfn(struct cmd_q *hooks_cmdq)
 {
 	struct cmd_q	*cmdq = hooks_cmdq->data;
+
+	log_debug("exiting hooks cmdq %p", hooks_cmdq);
 
 	if (hooks_cmdq->client_exit >= 0)
 		cmdq->client_exit = hooks_cmdq->client_exit;
@@ -222,6 +228,8 @@ cmdq_continue(struct cmd_q *cmdq)
 	char			 s[1024];
 
 	notify_disable();
+
+	log_debug("continuing cmdq %p: flags=%#x", cmdq, cmdq->flags);
 
 	empty = TAILQ_EMPTY(&cmdq->queue);
 	if (empty)
