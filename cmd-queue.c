@@ -224,13 +224,14 @@ enum cmd_retval
 cmdq_continue_one(struct cmd_q *cmdq)
 {
 	struct cmd	*cmd = cmdq->cmd;
+	struct session	*s;
 	struct hooks	*hooks;
 	enum cmd_retval	 retval;
-	char		 s[1024];
+	char		 tmp[1024];
 	int		 flags = !!(cmd->flags & CMD_CONTROL);
 
-	cmd_print(cmd, s, sizeof s);
-	log_debug("cmdq %p: %s", cmdq, s);
+	cmd_print(cmd, tmp, sizeof tmp);
+	log_debug("cmdq %p: %s", cmdq, tmp);
 
 	cmdq->time = time(NULL);
 	cmdq->number++;
@@ -241,10 +242,16 @@ cmdq_continue_one(struct cmd_q *cmdq)
 	if (~cmdq->flags & CMD_Q_HOOKS) {
 		if (cmd_prepare_state(cmd, cmdq) != 0)
 			goto error;
+
+		s = NULL;
 		if (cmdq->state.tflag.s != NULL)
-			hooks = &cmdq->state.tflag.s->hooks;
+			s = cmdq->state.tflag.s;
 		else if (cmdq->state.sflag.s != NULL)
-			hooks = &cmdq->state.sflag.s->hooks;
+			s = cmdq->state.sflag.s;
+		else if (cmdq->state.c != NULL)
+			s = cmdq->state.c->session;
+		if (s != NULL)
+			hooks = &s->hooks;
 		else
 			hooks = &global_hooks;
 
