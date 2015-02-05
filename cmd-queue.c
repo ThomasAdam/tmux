@@ -25,10 +25,8 @@
 
 #include "tmux.h"
 
-int	cmdq_run_hook(struct hooks *, const char *, struct cmd *,
-	    struct cmd_q *);
-
-int	 running_hooks = 0;
+int	cmdq_hooks_run(struct hooks *, const char *, struct cmd_q *);
+void	cmdq_hooks_emptyfn(struct cmd_q *);
 
 /* Create new command queue. */
 struct cmd_q *
@@ -148,34 +146,55 @@ cmdq_run(struct cmd_q *cmdq, struct cmd_list *cmdlist, struct mouse_event *m)
 	}
 }
 
-/* Run hooks based on the hooks prefix (before/after). */
+/*
+ * Run hooks based on the hooks prefix (before/after). Returns 1 if hooks are
+ * running.
+ */
 int
-cmdq_run_hook(struct hooks *hooks, const char *prefix, struct cmd *cmd,
-    struct cmd_q *cmdq)
+cmdq_hooks_run(struct hooks *hooks, const char *prefix, struct cmd_q *cmdq)
 {
+	struct cmd	*cmd = cmdq->cmd;
 	struct hook     *hook;
 	struct cmd_q	*hooks_cmdq;
 	char            *s;
-	int		 retval;
 
 	xasprintf(&s, "%s-%s", prefix, cmd->entry->name);
-	if ((hook = hooks_find(hooks, s)) == NULL) {
+	hook = hooks_find(hooks, s);
+	free(s);
+
+	if (hook == NULL) {
 		cmdq->hooks_ran = 0;
-		retval = 0;
-		goto done;
+		return (0);
 	}
 
 	hooks_cmdq = cmdq_new(cmdq->client);
-	hooks_cmdq->orig_cmdq = cmdq;
-	hooks_cmdq->emptyfn = hooks_emptyfn;
+
+	hooks_cmdq->emptyfn = cmdq_hooks_emptyfn;
+	hooks_cmdq->data = cmdq;
+
 	hooks_cmdq->hooks_ran = 1;
+
 	cmdq->references++;
 	cmdq_run(hooks_cmdq, hook->cmdlist);
-	retval = 1;
 
-done:
-	free(s);
-	return (retval);
+	return (1);
+}
+
+/* Callback when hooks cmdq is empty. */
+void
+cmdq_hooks_emptyfn(struct cmd_q *cmdq1)
+{
+	struct cmd_q	*cmdq = cmdq1->data;
+
+	if (cmdq1->client_exit >= 0)
+		cmdq->client_exit = cmdq1->client_exit;
+
+	if (!cmdq_free(cmdq)) {
+		cmdq->hooks_ran = 1;
+		cmdq_continue(cmdq);
+	}
+
+	cmdq_free(cmdq1);
 }
 
 /* Add command list to queue. */
@@ -213,11 +232,12 @@ cmdq_continue(struct cmd_q *cmdq)
 	if (empty)
 		goto empty;
 
-	/* If the command isn't in the middle of running hooks (due to
+	/*
+	 * If the command isn't in the middle of running hooks (due to
 	 * CMD_RETURN_WAIT), move onto the next command; otherwise, leave the
 	 * state of the queue as is; we're already in the correct place.
 	 */
-	if (cmdq->during == 0) {
+	if (!cmdq->during) {
 		if (cmdq->item == NULL) {
 			cmdq->item = TAILQ_FIRST(&cmdq->queue);
 			cmdq->cmd = TAILQ_FIRST(&cmdq->item->cmdlist->list);
@@ -242,8 +262,8 @@ cmdq_continue(struct cmd_q *cmdq)
 			 * If we've come here because of running hooks, just
 			 * run the command.
 			 */
-			if (cmdq->during == 1)
-				goto runme;
+			if (cmdq->during)
+				goto skip;
 
 			guard = cmdq_guard(cmdq, "begin", flags);
 
@@ -260,20 +280,19 @@ cmdq_continue(struct cmd_q *cmdq)
 			else
 				hooks = &global_hooks;
 
-			if (cmdq->hooks_ran == 0) {
-				if (cmdq_run_hook(hooks, "before", cmd,
-				    cmdq) == 1) {
+			if (!cmdq->hooks_ran) {
+				if (cmdq_hooks_run(hooks, "before", cmdq)) {
 					cmdq->during = 1;
 					goto out;
 				}
 			}
 
+		skip:
 			/*
-			 * hooks_run will change the state before each hook, so
-			 * it needs to be restored afterwards. XXX not very
-			 * obvious how this works from here...
+			 * Runnning the hooks will change the state before each
+			 * hook, so it needs to be restored afterwards. XXX not
+			 * very obvious how this works from here...
 			 */
-runme:
 			if (cmd_prepare_state(cmd, cmdq) != 0)
 				retval = CMD_RETURN_ERROR;
 			else
@@ -283,7 +302,7 @@ runme:
 					cmdq_guard(cmdq, "error", flags);
 				break;
 			}
-			if (cmdq_run_hook(hooks, "after", cmd, cmdq) == 1)
+			if (cmdq_hooks_run(hooks, "after", cmdq))
 				goto out;
 
 			if (guard)
