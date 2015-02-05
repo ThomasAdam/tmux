@@ -49,7 +49,7 @@ const struct cmd_entry cmd_has_session_entry = {
 	"has-session", "has",
 	"t:", 0, 0,
 	CMD_TARGET_SESSION_USAGE,
-	0,
+	CMD_PREP_SESSION_T,
 	cmd_new_session_exec
 };
 
@@ -72,8 +72,10 @@ cmd_new_session_exec(struct cmd *self, struct cmd_q *cmdq)
 	struct environ_entry	*envent;
 
 	if (self->entry == &cmd_has_session_entry) {
-		if (cmd_find_session(cmdq, args_get(args, 't'), 0) == NULL)
-			return (CMD_RETURN_ERROR);
+		/*
+		 * cmd_prepare() will fail if the session cannot be found,
+		 * hence always return success here.
+		 */
 		return (CMD_RETURN_NORMAL);
 	}
 
