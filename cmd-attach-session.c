@@ -36,7 +36,7 @@ const struct cmd_entry cmd_attach_session_entry = {
 	"attach-session", "attach",
 	"c:drt:", 0, 0,
 	"[-dr] [-c working-directory] " CMD_TARGET_SESSION_USAGE,
-	CMD_CANTNEST|CMD_STARTSERVER,
+	CMD_CANTNEST|CMD_STARTSERVER|CMD_PREP_SESSION_T|CMD_PREP_PANE_T,
 	cmd_attach_session_exec
 };
 
@@ -44,11 +44,10 @@ enum cmd_retval
 cmd_attach_session(struct cmd_q *cmdq, const char *tflag, int dflag, int rflag,
     const char *cflag)
 {
-	struct session		*s;
-	struct client		*c;
-	struct winlink		*wl = NULL;
-	struct window		*w = NULL;
-	struct window_pane	*wp = NULL;
+	struct session		*s = cmdq->state.tflag.s;
+	struct client		*c = cmdq->state.c;
+	struct winlink		*wl = cmdq->state.tflag.wl;
+	struct window_pane	*wp = cmdq->state.tflag.wp;
 	const char		*update;
 	char			*cause;
 	u_int			 i;
@@ -59,22 +58,6 @@ cmd_attach_session(struct cmd_q *cmdq, const char *tflag, int dflag, int rflag,
 	if (RB_EMPTY(&sessions)) {
 		cmdq_error(cmdq, "no sessions");
 		return (CMD_RETURN_ERROR);
-	}
-
-	if (tflag == NULL) {
-		if ((s = cmd_find_session(cmdq, tflag, 1)) == NULL)
-			return (CMD_RETURN_ERROR);
-	} else if (tflag[strcspn(tflag, ":.")] != '\0') {
-		if ((wl = cmd_find_pane(cmdq, tflag, &s, &wp)) == NULL)
-			return (CMD_RETURN_ERROR);
-	} else {
-		if ((s = cmd_find_session(cmdq, tflag, 1)) == NULL)
-			return (CMD_RETURN_ERROR);
-		w = cmd_lookup_windowid(tflag);
-		if (w == NULL && (wp = cmd_lookup_paneid(tflag)) != NULL)
-			w = wp->window;
-		if (w != NULL)
-			wl = winlink_find_by_window(&s->windows, w);
 	}
 
 	if (cmdq->client == NULL)
