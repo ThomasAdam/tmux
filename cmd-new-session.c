@@ -58,7 +58,7 @@ cmd_new_session_exec(struct cmd *self, struct cmd_q *cmdq)
 {
 	struct args		*args = self->args;
 	struct client		*c = cmdq->client, *c0;
-	struct session		*s, *groupwith;
+	struct session		*s, *attach_sess, *groupwith;
 	struct window		*w;
 	struct environ		 env;
 	struct termios		 tio, *tiop;
@@ -90,9 +90,16 @@ cmd_new_session_exec(struct cmd *self, struct cmd_q *cmdq)
 			cmdq_error(cmdq, "bad session name: %s", newname);
 			return (CMD_RETURN_ERROR);
 		}
-		if (session_find(newname) != NULL) {
+		if ((attach_sess = session_find(newname)) != NULL) {
 			if (args_has(args, 'A')) {
-				return (cmd_attach_session(cmdq, newname,
+				/*
+				 * This cmdq is now destined for
+				 * attach-session.  Because attach-session
+				 * will have already been prepared, copy this
+				 * session into its tflag so it can be used.
+				 */
+				cmdq->state.tflag.s = attach_sess;
+				return (cmd_attach_session(cmdq,
 				    args_has(args, 'D'), 0, NULL));
 			}
 			cmdq_error(cmdq, "duplicate session: %s", newname);
