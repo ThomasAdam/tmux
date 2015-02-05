@@ -1434,8 +1434,9 @@ struct cmd_q {
 	void			*data;
 
 	TAILQ_ENTRY(cmd_q)       waitentry;
-	int			 hooks_ran;
-	int			 during;
+
+	int			 for_hooks;
+	struct hooks		*hooks;
 };
 
 /* Command definition. */

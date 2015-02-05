@@ -165,17 +165,15 @@ cmdq_hooks_run(struct hooks *hooks, const char *prefix, struct cmd_q *cmdq)
 	hook = hooks_find(hooks, s);
 	free(s);
 
-	if (hook == NULL) {
-		cmdq->hooks_ran = 0;
+	if (hook == NULL)
 		return (0);
-	}
 
 	hooks_cmdq = cmdq_new(cmdq->client);
 
 	hooks_cmdq->emptyfn = cmdq_hooks_emptyfn;
 	hooks_cmdq->data = cmdq;
 
-	hooks_cmdq->hooks_ran = 1;
+	hooks_cmdq->for_hooks = 1;
 
 	cmdq->references++;
 	cmdq_run(hooks_cmdq, hook->cmdlist);
@@ -185,19 +183,17 @@ cmdq_hooks_run(struct hooks *hooks, const char *prefix, struct cmd_q *cmdq)
 
 /* Callback when hooks cmdq is empty. */
 void
-cmdq_hooks_emptyfn(struct cmd_q *cmdq1)
+cmdq_hooks_emptyfn(struct cmd_q *hooks_cmdq)
 {
-	struct cmd_q	*cmdq = cmdq1->data;
+	struct cmd_q	*cmdq = hooks_cmdq->data;
 
-	if (cmdq1->client_exit >= 0)
-		cmdq->client_exit = cmdq1->client_exit;
+	if (hooks_cmdq->client_exit >= 0)
+		cmdq->client_exit = hooks_cmdq->client_exit;
 
-	if (!cmdq_free(cmdq)) {
-		cmdq->hooks_ran = 1;
+	if (!cmdq_free(cmdq))
 		cmdq_continue(cmdq);
-	}
 
-	cmdq_free(cmdq1);
+	cmdq_free(hooks_cmdq);
 }
 
 /* Add command list to queue. */
@@ -218,9 +214,8 @@ cmdq_continue(struct cmd_q *cmdq)
 {
 	struct cmd_q_item	*next;
 	struct cmd		*cmd;
-	struct hooks		*hooks;
 	enum cmd_retval		 retval;
-	int			 empty, guard, flags;
+	int			 empty, flags;
 	char			 s[1024];
 
 	notify_disable();
@@ -232,9 +227,9 @@ cmdq_continue(struct cmd_q *cmdq)
 	/*
 	 * If the command isn't in the middle of running hooks (due to
 	 * CMD_RETURN_WAIT), move onto the next command; otherwise, leave the
-	 * state of the queue as is; we're already in the correct place.
+	 * state of the queue as it is.
 	 */
-	if (!cmdq->during) {
+	if (cmdq->hooks == NULL) {
 		if (cmdq->item == NULL) {
 			cmdq->item = TAILQ_FIRST(&cmdq->queue);
 			cmdq->cmd = TAILQ_FIRST(&cmdq->item->cmdlist->list);
@@ -256,54 +251,46 @@ cmdq_continue(struct cmd_q *cmdq)
 			flags = !!(cmd->flags & CMD_CONTROL);
 
 			/*
-			 * If we've come here because of running hooks, just
-			 * run the command.
+			 * If we've come back here after running hooks, skip
+			 * the before hooks.
 			 */
-			if (cmdq->during)
+			if (cmdq->hooks != NULL)
 				goto skip;
 
-			guard = cmdq_guard(cmdq, "begin", flags);
+			cmdq_guard(cmdq, "begin", flags);
 
 			if (cmd_prepare_state(cmd, cmdq) != 0) {
-				if (guard)
-					cmdq_guard(cmdq, "error", flags);
+				cmdq_guard(cmdq, "error", flags);
 				break;
 			}
-
+			// XXX hooks changed/session destroyed?
 			if (cmdq->state.tflag.s != NULL)
-				hooks = &cmdq->state.tflag.s->hooks;
+				cmdq->hooks = &cmdq->state.tflag.s->hooks;
 			else if (cmdq->state.sflag.s != NULL)
-				hooks = &cmdq->state.sflag.s->hooks;
+				cmdq->hooks = &cmdq->state.sflag.s->hooks;
 			else
-				hooks = &global_hooks;
+				cmdq->hooks = &global_hooks;
 
-			if (!cmdq->hooks_ran) {
-				if (cmdq_hooks_run(hooks, "before", cmdq)) {
-					cmdq->during = 1;
-					goto out;
-				}
-			}
+			if (!cmdq->for_hooks && cmdq_hooks_run(cmdq->hooks,
+			    "before", cmdq))
+				goto out;
 
 		skip:
-			/*
-			 * Runnning the hooks will change the state before each
-			 * hook, so it needs to be restored afterwards. XXX not
-			 * very obvious how this works from here...
-			 */
 			if (cmd_prepare_state(cmd, cmdq) != 0)
 				retval = CMD_RETURN_ERROR;
 			else
 				retval = cmd->entry->exec(cmd, cmdq);
 			if (retval == CMD_RETURN_ERROR) {
-				if (guard)
-					cmdq_guard(cmdq, "error", flags);
+				cmdq_guard(cmdq, "error", flags);
+				cmdq->hooks = NULL;
 				break;
 			}
-			if (cmdq_hooks_run(hooks, "after", cmdq))
-				goto out;
+			if (!cmdq->for_hooks && cmdq_hooks_run(cmdq->hooks,
+			    "after", cmdq))
+				retval = CMD_RETURN_WAIT;
+			cmdq->hooks = NULL;
 
-			if (guard)
-				cmdq_guard(cmdq, "end", flags);
+			cmdq_guard(cmdq, "end", flags);
 
 			if (retval == CMD_RETURN_WAIT)
 				goto out;
