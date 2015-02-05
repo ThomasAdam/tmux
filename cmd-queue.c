@@ -28,8 +28,6 @@
 int	cmdq_run_hook(struct hooks *, const char *, struct cmd *,
 	    struct cmd_q *);
 
-int	 running_hooks = 0;
-
 /* Create new command queue. */
 struct cmd_q *
 cmdq_new(struct client *c)

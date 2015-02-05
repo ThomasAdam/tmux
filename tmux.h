@@ -1539,7 +1539,6 @@ extern time_t	 start_time;
 extern char	 socket_path[PATH_MAX];
 extern int	 login_shell;
 extern char	*environ_path;
-extern int	 running_hooks;
 void		 logfile(const char *);
 const char	*getshell(void);
 int		 checkshell(const char *);
