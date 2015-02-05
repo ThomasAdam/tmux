@@ -46,7 +46,6 @@ cmd_switch_client_exec(struct cmd *self, struct cmd_q *cmdq)
 	struct client		*c = state->c;
 	struct session		*s;
 	struct window_pane	*wp;
-	const char		*tflag;
 
 	if (args_has(args, 'r')) {
 		if (c->flags & CLIENT_READONLY)
@@ -68,6 +67,8 @@ cmd_switch_client_exec(struct cmd *self, struct cmd_q *cmdq)
 	} else if (args_has(args, 'l')) {
 		if (c->last_session != NULL && session_alive(c->last_session))
 			s = c->last_session;
+		else
+			s = NULL;
 		if (s == NULL) {
 			cmdq_error(cmdq, "can't find last session");
 			return (CMD_RETURN_ERROR);
