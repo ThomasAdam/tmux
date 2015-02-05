@@ -25,8 +25,9 @@
 
 #include "tmux.h"
 
-int	cmdq_hooks_run(struct hooks *, const char *, struct cmd_q *);
-void	cmdq_hooks_emptyfn(struct cmd_q *);
+int		cmdq_hooks_run(struct hooks *, const char *, struct cmd_q *);
+void		cmdq_hooks_emptyfn(struct cmd_q *);
+enum cmd_retval	cmdq_continue_one(struct cmd_q *);
 
 /* Create new command queue. */
 struct cmd_q *
@@ -216,20 +217,76 @@ cmdq_append(struct cmd_q *cmdq, struct cmd_list *cmdlist)
 	cmdlist->references++;
 }
 
+/* Process one command. */
+enum cmd_retval
+cmdq_continue_one(struct cmd_q *cmdq)
+{
+	struct cmd	*cmd = cmdq->cmd;
+	struct hooks	*hooks;
+	enum cmd_retval	 retval;
+	char		 s[1024];
+	int		 flags = !!(cmd->flags & CMD_CONTROL);
+
+	cmd_print(cmd, s, sizeof s);
+	log_debug("cmdq %p: %s", cmdq, s);
+
+	cmdq->time = time(NULL);
+	cmdq->number++;
+
+	if (~cmdq->flags & CMD_Q_REENTRY)
+		cmdq_guard(cmdq, "begin", flags);
+
+	if (~cmdq->flags & CMD_Q_HOOKS) {
+		if (cmd_prepare_state(cmd, cmdq) != 0)
+			goto error;
+		if (cmdq->state.tflag.s != NULL)
+			hooks = &cmdq->state.tflag.s->hooks;
+		else if (cmdq->state.sflag.s != NULL)
+			hooks = &cmdq->state.sflag.s->hooks;
+		else
+			hooks = &global_hooks;
+
+		if (~cmdq->flags & CMD_Q_REENTRY) {
+			cmdq->flags |= CMD_Q_REENTRY;
+			if (cmdq_hooks_run(hooks, "before", cmdq))
+				return (CMD_RETURN_WAIT);
+		}
+	} else
+		hooks = NULL;
+	cmdq->flags &= ~CMD_Q_REENTRY;
+
+	if (cmd_prepare_state(cmd, cmdq) != 0)
+		goto error;
+	retval = cmd->entry->exec(cmd, cmdq);
+	if (retval == CMD_RETURN_ERROR)
+		goto error;
+
+	if (hooks != NULL && cmdq_hooks_run(hooks, "after", cmdq))
+		retval = CMD_RETURN_WAIT;
+	cmdq_guard(cmdq, "end", flags);
+
+	return (retval);
+
+error:
+	cmdq_guard(cmdq, "error", flags);
+
+	cmdq->flags &= ~CMD_Q_REENTRY;
+	return (CMD_RETURN_ERROR);
+}
+
 /* Continue processing command queue. Returns 1 if finishes empty. */
 int
 cmdq_continue(struct cmd_q *cmdq)
 {
+	struct client		*c = cmdq->client;
 	struct cmd_q_item	*next;
-	struct cmd		*cmd;
-	struct hooks		*hooks;
 	enum cmd_retval		 retval;
-	int			 empty, flags;
-	char			 s[1024];
+	int			 empty;
 
 	notify_disable();
 
-	log_debug("continuing cmdq %p: flags=%#x", cmdq, cmdq->flags);
+	log_debug("continuing cmdq %p: flags=%#x, client=%d", cmdq, cmdq->flags,
+	    c != NULL ? c->ibuf.fd : -1);
 
 	empty = TAILQ_EMPTY(&cmdq->queue);
 	if (empty)
@@ -250,64 +307,15 @@ cmdq_continue(struct cmd_q *cmdq)
 
 	do {
 		while (cmdq->cmd != NULL) {
-			cmd = cmdq->cmd;
-
-			cmd_print(cmd, s, sizeof s);
-			log_debug("cmdq %p: %s (client %d)", cmdq, s,
-			    cmdq->client != NULL ? cmdq->client->ibuf.fd : -1);
-
-			cmdq->time = time(NULL);
-			cmdq->number++;
-
-			flags = !!(cmd->flags & CMD_CONTROL);
-
-			if (!(cmdq->flags & CMD_Q_REENTRY))
-				cmdq_guard(cmdq, "begin", flags);
-
-			if (!(cmdq->flags & CMD_Q_HOOKS)) {
-				if (cmd_prepare_state(cmd, cmdq) != 0) {
-					cmdq_guard(cmdq, "error", flags);
-					cmdq->flags &= ~CMD_Q_REENTRY;
-					break;
-				}
-				if (cmdq->state.tflag.s != NULL)
-					hooks = &cmdq->state.tflag.s->hooks;
-				else if (cmdq->state.sflag.s != NULL)
-					hooks = &cmdq->state.sflag.s->hooks;
-				else
-					hooks = &global_hooks;
-
-				if (!(cmdq->flags & CMD_Q_REENTRY)) {
-					cmdq->flags |= CMD_Q_REENTRY;
-					if (cmdq_hooks_run(hooks, "before", cmdq))
-						goto out;
-				}
-			} else
-				hooks = NULL;
-			cmdq->flags &= ~CMD_Q_REENTRY;
-
-			if (cmd_prepare_state(cmd, cmdq) != 0)
-				retval = CMD_RETURN_ERROR;
-			else
-				retval = cmd->entry->exec(cmd, cmdq);
-			if (retval == CMD_RETURN_ERROR) {
-				cmdq_guard(cmdq, "error", flags);
+			retval = cmdq_continue_one(cmdq);
+			if (retval == CMD_RETURN_ERROR)
 				break;
-			}
-
-			if (hooks != NULL &&
-			    cmdq_hooks_run(hooks, "after", cmdq))
-				retval = CMD_RETURN_WAIT;
-
-			cmdq_guard(cmdq, "end", flags);
-
 			if (retval == CMD_RETURN_WAIT)
 				goto out;
 			if (retval == CMD_RETURN_STOP) {
 				cmdq_flush(cmdq);
 				goto empty;
 			}
-
 			cmdq->cmd = TAILQ_NEXT(cmdq->cmd, qentry);
 		}
 		next = TAILQ_NEXT(cmdq->item, qentry);
