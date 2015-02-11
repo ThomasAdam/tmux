@@ -900,6 +900,9 @@ struct window_pane {
 
 	struct input_ctx ictx;
 
+	/* Default fg/bg grid cell colours */
+	struct grid_cell *colgc;
+
 	int		 pipe_fd;
 	struct bufferevent *pipe_event;
 	size_t		 pipe_off;
@@ -952,6 +955,10 @@ struct window {
 #define WINDOW_ALERTFLAGS (WINDOW_BELL|WINDOW_ACTIVITY|WINDOW_SILENCE)
 
 	struct options	 options;
+
+	/* Default fg/bg grid cell colours for window and active pane */
+	struct grid_cell *colgc;
+	struct grid_cell *apcolgc;
 
 	u_int		 references;
 };
@@ -1628,7 +1635,8 @@ void	tty_stop_tty(struct tty *);
 void	tty_set_title(struct tty *, const char *);
 void	tty_update_mode(struct tty *, int, struct screen *);
 void	tty_force_cursor_colour(struct tty *, const char *);
-void	tty_draw_line(struct tty *, struct screen *, u_int, u_int, u_int);
+void	tty_draw_line(struct tty *, struct screen *, u_int, u_int, u_int,
+	    const struct grid_cell *);
 int	tty_open(struct tty *, char **);
 void	tty_close(struct tty *);
 void	tty_free(struct tty *);
@@ -1739,6 +1747,7 @@ extern const struct cmd_entry cmd_choose_tree_entry;
 extern const struct cmd_entry cmd_choose_window_entry;
 extern const struct cmd_entry cmd_clear_history_entry;
 extern const struct cmd_entry cmd_clock_mode_entry;
+extern const struct cmd_entry cmd_colour_pane_entry;
 extern const struct cmd_entry cmd_command_prompt_entry;
 extern const struct cmd_entry cmd_confirm_before_entry;
 extern const struct cmd_entry cmd_copy_mode_entry;
@@ -1956,6 +1965,7 @@ void	 colour_set_bg(struct grid_cell *, int);
 const char *colour_tostring(int);
 int	 colour_fromstring(const char *);
 u_char	 colour_256to16(u_char);
+const struct grid_cell *get_wp_default_grid_colours(const struct window_pane *);
 
 /* attributes.c */
 const char *attributes_tostring(u_char);

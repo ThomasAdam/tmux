@@ -288,6 +288,9 @@ window_create1(u_int sx, u_int sy)
 	w->sx = sx;
 	w->sy = sy;
 
+	w->colgc = NULL;
+	w->apcolgc = NULL;
+
 	options_init(&w->options, &global_w_options);
 	if (options_get_number(&w->options, "automatic-rename"))
 		queue_window_name(w);
@@ -357,6 +360,8 @@ window_destroy(struct window *w)
 	window_destroy_panes(w);
 
 	free(w->name);
+	free(w->colgc);
+	free(w->apcolgc);
 	free(w);
 }
 
@@ -704,6 +709,8 @@ window_pane_create(struct window *w, u_int sx, u_int sy, u_int hlimit)
 
 	wp->saved_grid = NULL;
 
+	wp->colgc = NULL;
+
 	screen_init(&wp->base, sx, sy, hlimit);
 	wp->screen = &wp->base;
 
@@ -742,6 +749,7 @@ window_pane_destroy(struct window_pane *wp)
 	RB_REMOVE(window_pane_tree, &all_window_panes, wp);
 
 	close(wp->cwd);
+	free(wp->colgc);
 	free(wp->shell);
 	cmd_free_argv(wp->argc, wp->argv);
 	free(wp);

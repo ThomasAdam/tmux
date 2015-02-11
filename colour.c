@@ -287,3 +287,16 @@ colour_256to16(u_char c)
 
 	return (table[c]);
 }
+
+const struct grid_cell *
+get_wp_default_grid_colours(const struct window_pane *wp)
+{
+	if (wp->colgc != NULL)
+		return (wp->colgc);
+
+	if (wp == wp->window->active && wp->window->apcolgc != NULL)
+		return (wp->window->apcolgc);
+
+
+	return (wp->window->colgc);
+}

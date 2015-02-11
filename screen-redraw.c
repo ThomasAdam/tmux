@@ -266,7 +266,8 @@ screen_redraw_pane(struct client *c, struct window_pane *wp)
 		yoff++;
 
 	for (i = 0; i < wp->sy; i++)
-		tty_draw_line(&c->tty, wp->screen, i, wp->xoff, yoff);
+		tty_draw_line(&c->tty, wp->screen, i, wp->xoff, yoff,
+		    get_wp_default_grid_colours(wp));
 	tty_reset(&c->tty);
 }
 
@@ -354,7 +355,8 @@ screen_redraw_draw_panes(struct client *c, u_int top)
 			continue;
 		s = wp->screen;
 		for (i = 0; i < wp->sy; i++)
-			tty_draw_line(tty, s, i, wp->xoff, top + wp->yoff);
+			tty_draw_line(tty, s, i, wp->xoff, top + wp->yoff,
+			    get_wp_default_grid_colours(wp));
 		if (c->flags & CLIENT_IDENTIFY)
 			screen_redraw_draw_number(c, wp);
 	}
@@ -367,9 +369,9 @@ screen_redraw_draw_status(struct client *c, u_int top)
 	struct tty	*tty = &c->tty;
 
 	if (top)
-		tty_draw_line(tty, &c->status, 0, 0, 0);
+		tty_draw_line(tty, &c->status, 0, 0, 0, NULL);
 	else
-		tty_draw_line(tty, &c->status, 0, 0, tty->sy - 1);
+		tty_draw_line(tty, &c->status, 0, 0, tty->sy - 1, NULL);
 }
 
 /* Draw number on a pane. */
