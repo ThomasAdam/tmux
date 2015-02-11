@@ -266,8 +266,7 @@ screen_redraw_pane(struct client *c, struct window_pane *wp)
 		yoff++;
 
 	for (i = 0; i < wp->sy; i++)
-		tty_draw_line(&c->tty, wp->screen, i, wp->xoff, yoff,
-		    get_wp_default_grid_colours(wp));
+		tty_draw_line(&c->tty, wp->screen, i, wp->xoff, yoff, wp);
 	tty_reset(&c->tty);
 }
 
@@ -355,8 +354,7 @@ screen_redraw_draw_panes(struct client *c, u_int top)
 			continue;
 		s = wp->screen;
 		for (i = 0; i < wp->sy; i++)
-			tty_draw_line(tty, s, i, wp->xoff, top + wp->yoff,
-			    get_wp_default_grid_colours(wp));
+			tty_draw_line(tty, s, i, wp->xoff, top + wp->yoff, wp);
 		if (c->flags & CLIENT_IDENTIFY)
 			screen_redraw_draw_number(c, wp);
 	}
