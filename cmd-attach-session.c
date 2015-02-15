@@ -36,7 +36,8 @@ const struct cmd_entry cmd_attach_session_entry = {
 	"attach-session", "attach",
 	"c:drt:", 0, 0,
 	"[-dr] [-c working-directory] " CMD_TARGET_SESSION_USAGE,
-	CMD_CANTNEST|CMD_STARTSERVER|CMD_PREP_SESSION_T|CMD_PREP_PANE_T,
+	CMD_CANTNEST|CMD_STARTSERVER|CMD_PREP_SESSION_T|CMD_PREP_PANE_T|
+	    CMD_PREP_PREFERUNATTACHED,
 	cmd_attach_session_exec
 };
 
@@ -44,7 +45,7 @@ enum cmd_retval
 cmd_attach_session(struct cmd_q *cmdq, int dflag, int rflag, const char *cflag)
 {
 	struct session		*s = cmdq->state.tflag.s;
-	struct client		*c = cmdq->state.c;
+	struct client		*cloop, *c = cmdq->state.c;
 	struct winlink		*wl = cmdq->state.tflag.wl;
 	struct window_pane	*wp = cmdq->state.tflag.wp;
 	const char		*update;
@@ -67,6 +68,26 @@ cmd_attach_session(struct cmd_q *cmdq, int dflag, int rflag, const char *cflag)
 		session_set_current(s, wl);
 	}
 
+	if (cflag != NULL) {
+		ft = format_create();
+		format_client(ft, c);
+		format_session(ft, s);
+		format_winlink(ft, s, s->curw);
+		format_window_pane(ft, s->curw->window->active);
+		cp = format_expand(ft, cflag);
+		format_free(ft);
+
+		fd = open(cp, O_RDONLY|O_DIRECTORY);
+		free(cp);
+		if (fd == -1) {
+			cmdq_error(cmdq, "bad working directory: %s",
+			    strerror(errno));
+			return (CMD_RETURN_ERROR);
+		}
+		close(s->cwd);
+		s->cwd = fd;
+	}
+
 	if (cmdq->client->session != NULL) {
 		if (dflag) {
 			/*
@@ -76,32 +97,11 @@ cmd_attach_session(struct cmd_q *cmdq, int dflag, int rflag, const char *cflag)
 			TAILQ_FOREACH(c, &clients, entry) {
 				if (c->session != s || c == cmdq->client)
 					continue;
-				server_write_client(c, MSG_DETACH,
-				    c->session->name,
-				    strlen(c->session->name) + 1);
+				server_write_client(cloop, MSG_DETACH,
+				    cloop->session->name,
+				    strlen(cloop->session->name) + 1);
 			}
 		}
-
-		if (cflag != NULL) {
-			ft = format_create();
-			format_client(ft, c);
-			format_session(ft, s);
-			format_winlink(ft, s, s->curw);
-			format_window_pane(ft, s->curw->window->active);
-			cp = format_expand(ft, cflag);
-			format_free(ft);
-
-			fd = open(cp, O_RDONLY|O_DIRECTORY);
-			free(cp);
-			if (fd == -1) {
-				cmdq_error(cmdq, "bad working directory: %s",
-				    strerror(errno));
-				return (CMD_RETURN_ERROR);
-			}
-			close(s->cwd);
-			s->cwd = fd;
-		}
-
 		cmdq->client->session = s;
 		notify_attached_session_changed(cmdq->client);
 		session_update_activity(s);
@@ -112,24 +112,6 @@ cmd_attach_session(struct cmd_q *cmdq, int dflag, int rflag, const char *cflag)
 			cmdq_error(cmdq, "open terminal failed: %s", cause);
 			free(cause);
 			return (CMD_RETURN_ERROR);
-		}
-
-		if (cflag != NULL) {
-			ft = format_create();
-			format_defaults(ft, cmd_find_client(cmdq, NULL, 1), s,
-			    NULL, NULL);
-			cp = format_expand(ft, cflag);
-			format_free(ft);
-
-			fd = open(cp, O_RDONLY|O_DIRECTORY);
-			free(cp);
-			if (fd == -1) {
-				cmdq_error(cmdq, "bad working directory: %s",
-				    strerror(errno));
-				return (CMD_RETURN_ERROR);
-			}
-			close(s->cwd);
-			s->cwd = fd;
 		}
 
 		if (rflag)
