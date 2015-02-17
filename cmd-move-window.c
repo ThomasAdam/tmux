@@ -53,17 +53,6 @@ cmd_move_window_exec(struct cmd *self, struct cmd_q *cmdq)
 	char		*cause;
 	int		 idx, kflag, dflag, sflag;
 
-	if (args_has(args, 'r')) {
-		s = cmd_find_session(cmdq, args_get(args, 't'), 0);
-		if (s == NULL)
-			return (CMD_RETURN_ERROR);
-
-		session_renumber_windows(s);
-		recalculate_sizes();
-
-		return (CMD_RETURN_NORMAL);
-	}
-
 	if ((wl = cmd_find_window(cmdq, args_get(args, 's'), &src)) == NULL)
 		return (CMD_RETURN_ERROR);
 	if ((idx = cmd_find_index(cmdq, args_get(args, 't'), &dst)) == -2)
@@ -78,8 +67,19 @@ cmd_move_window_exec(struct cmd *self, struct cmd_q *cmdq)
 		free(cause);
 		return (CMD_RETURN_ERROR);
 	}
-	if (self->entry == &cmd_move_window_entry)
+	if (self->entry == &cmd_move_window_entry) {
+		if (args_has(args, 'r')) {
+			s = cmd_find_session(cmdq, args_get(args, 't'), 0);
+			if (s == NULL)
+				return (CMD_RETURN_ERROR);
+
+			session_renumber_windows(s);
+			recalculate_sizes();
+
+			return (CMD_RETURN_NORMAL);
+		}
 		server_unlink_window(src, wl);
+<<<<<<< HEAD
 
 	/*
 	 * Renumber the winlinks in the src session only, the destination
@@ -89,6 +89,9 @@ cmd_move_window_exec(struct cmd *self, struct cmd_q *cmdq)
 	if (!sflag && options_get_number(&src->options, "renumber-windows"))
 		session_renumber_windows(src);
 
+=======
+	}
+>>>>>>> 047fa29... movew: Make -r local to cmd_move_window_entry
 	recalculate_sizes();
 
 	return (CMD_RETURN_NORMAL);
