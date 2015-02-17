@@ -39,7 +39,12 @@ const struct cmd_entry cmd_new_window_entry = {
 	"ac:dF:kn:Pt:", 0, -1,
 	"[-adkP] [-c start-directory] [-F format] [-n window-name] "
 	CMD_TARGET_WINDOW_USAGE " [command]",
-	0,
+	/*
+	 * Using PREP_CANFAIL here ensures that the wl is filled in
+	 * regardless; making PREP_INDEX the thing we want -t to be used for
+	 * in the specific case.
+	 */
+	CMD_PREP_INDEX_T|CMD_PREP_CANFAIL,
 	cmd_new_window_exec
 };
 
@@ -47,19 +52,17 @@ enum cmd_retval
 cmd_new_window_exec(struct cmd *self, struct cmd_q *cmdq)
 {
 	struct args		*args = self->args;
-	struct session		*s;
-	struct winlink		*wl;
-	struct client		*c;
+	struct session		*s = cmdq->state.tflag.s;
+	struct winlink		*wl = cmdq->state.tflag.wl;
+	struct client		*c = cmdq->state.c;
 	const char		*cmd, *path, *template;
 	char		       **argv, *cause, *cp;
-	int			 argc, idx, last, detached, cwd, fd = -1;
+	int			 argc, last, detached, cwd, fd = -1;
+	int			 idx = cmdq->state.tflag.idx;
 	struct format_tree	*ft;
 	struct environ_entry	*envent;
 
 	if (args_has(args, 'a')) {
-		wl = cmd_find_window(cmdq, args_get(args, 't'), &s);
-		if (wl == NULL)
-			return (CMD_RETURN_ERROR);
 		idx = wl->idx + 1;
 
 		/* Find the next free index. */
@@ -78,10 +81,6 @@ cmd_new_window_exec(struct cmd *self, struct cmd_q *cmdq)
 			server_link_window(s, wl, s, last, 0, 0, NULL);
 			server_unlink_window(s, wl);
 		}
-	} else {
-		idx = cmd_find_index(cmdq, args_get(args, 't'), &s);
-		if (idx == -2)
-			return (CMD_RETURN_ERROR);
 	}
 	detached = args_has(args, 'd');
 
@@ -109,8 +108,7 @@ cmd_new_window_exec(struct cmd *self, struct cmd_q *cmdq)
 
 	if (args_has(args, 'c')) {
 		ft = format_create();
-		if ((c = cmd_find_client(cmdq, NULL, 1)) != NULL)
-			format_client(ft, c);
+		format_client(ft, c);
 		format_session(ft, s);
 		format_winlink(ft, s, s->curw);
 		format_window_pane(ft, s->curw->window->active);
@@ -173,8 +171,7 @@ cmd_new_window_exec(struct cmd *self, struct cmd_q *cmdq)
 			template = NEW_WINDOW_TEMPLATE;
 
 		ft = format_create();
-		if ((c = cmd_find_client(cmdq, NULL, 1)) != NULL)
-			format_client(ft, c);
+		format_client(ft, c);
 		format_session(ft, s);
 		format_winlink(ft, s, wl);
 		format_window_pane(ft, wl->window->active);
