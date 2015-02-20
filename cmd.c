@@ -411,6 +411,14 @@ cmd_set_state_tflag(struct cmd *cmd, struct cmd_q *cmdq)
 			}
 		}
 		break;
+	case CMD_PREP_SESSION_RENUM_T|CMD_PREP_INDEX_T:
+		state->tflag.s = cmd_find_session(cmdq, tflag, prefer);
+		if (state->tflag.s == NULL) {
+			state->tflag.idx = cmd_find_index(cmdq, tflag, &state->tflag.s);
+			if (state->tflag.idx == -2)
+				return (-1);
+		}
+		break;
 	case CMD_PREP_SESSION_T:
 		state->tflag.s = cmd_find_session(cmdq, tflag, prefer);
 		if (state->tflag.s == NULL)
