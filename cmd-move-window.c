@@ -32,7 +32,7 @@ const struct cmd_entry cmd_move_window_entry = {
 	"move-window", "movew",
 	"dkrs:t:", 0, 0,
 	"[-dkr] " CMD_SRCDST_WINDOW_USAGE,
-	0,
+	CMD_PREP_WINDOW_S|CMD_PREP_SESSION_RENUM_T|CMD_PREP_INDEX_T,
 	cmd_move_window_exec
 };
 
@@ -40,7 +40,7 @@ const struct cmd_entry cmd_link_window_entry = {
 	"link-window", "linkw",
 	"dks:t:", 0, 0,
 	"[-dk] " CMD_SRCDST_WINDOW_USAGE,
-	0,
+	CMD_PREP_WINDOW_S|CMD_PREP_INDEX_T,
 	cmd_move_window_exec
 };
 
@@ -48,38 +48,29 @@ enum cmd_retval
 cmd_move_window_exec(struct cmd *self, struct cmd_q *cmdq)
 {
 	struct args	*args = self->args;
-	struct session	*src, *dst, *s;
-	struct winlink	*wl;
+	struct session	*src = cmdq->state.sflag.s;
+	struct session	*dst = cmdq->state.tflag.s;
+	struct winlink	*wl = cmdq->state.sflag.wl;
 	char		*cause;
-	int		 idx, kflag, dflag, sflag;
-
-	if ((wl = cmd_find_window(cmdq, args_get(args, 's'), &src)) == NULL)
-		return (CMD_RETURN_ERROR);
-	if ((idx = cmd_find_index(cmdq, args_get(args, 't'), &dst)) == -2)
-		return (CMD_RETURN_ERROR);
+	int		 idx = cmdq->state.tflag.idx, kflag, dflag;
 
 	kflag = args_has(self->args, 'k');
 	dflag = args_has(self->args, 'd');
-	sflag = args_has(self->args, 's');
-	if (server_link_window(src, wl, dst, idx, kflag, !dflag,
-	    &cause) != 0) {
+
+	if (args_has(args, 'r')) {
+		session_renumber_windows(dst);
+		recalculate_sizes();
+
+		return (CMD_RETURN_NORMAL);
+	}
+
+	if (server_link_window(src, wl, dst, idx, kflag, !dflag, &cause) != 0) {
 		cmdq_error(cmdq, "can't link window: %s", cause);
 		free(cause);
 		return (CMD_RETURN_ERROR);
 	}
-	if (self->entry == &cmd_move_window_entry) {
-		if (args_has(args, 'r')) {
-			s = cmd_find_session(cmdq, args_get(args, 't'), 0);
-			if (s == NULL)
-				return (CMD_RETURN_ERROR);
-
-			session_renumber_windows(s);
-			recalculate_sizes();
-
-			return (CMD_RETURN_NORMAL);
-		}
+	if (self->entry == &cmd_move_window_entry)
 		server_unlink_window(src, wl);
-<<<<<<< HEAD
 
 	/*
 	 * Renumber the winlinks in the src session only, the destination
@@ -89,9 +80,6 @@ cmd_move_window_exec(struct cmd *self, struct cmd_q *cmdq)
 	if (!sflag && options_get_number(&src->options, "renumber-windows"))
 		session_renumber_windows(src);
 
-=======
-	}
->>>>>>> 047fa29... movew: Make -r local to cmd_move_window_entry
 	recalculate_sizes();
 
 	return (CMD_RETURN_NORMAL);
