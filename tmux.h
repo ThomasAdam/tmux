@@ -1942,6 +1942,8 @@ void		 cmdq_append(struct cmd_q *, struct cmd_list *,
 		     struct mouse_event *);
 int		 cmdq_continue(struct cmd_q *);
 void		 cmdq_flush(struct cmd_q *);
+int		 cmdq_hooks_run(struct hooks *, const char *, const char *,
+    struct cmd_q *);
 
 /* cmd-string.c */
 int	cmd_string_parse(const char *, struct cmd_list **, const char *,
