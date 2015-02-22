@@ -33,6 +33,22 @@ enum notify_type {
 	NOTIFY_SESSION_CLOSED
 };
 
+struct notify_hooks {
+	const enum notify_type	 type;
+	const char		*hook_name;
+};
+
+const struct notify_hooks notify_hooks_info[] = {
+	{NOTIFY_WINDOW_LAYOUT_CHANGED, "notify-window-layout-changed"},
+	{NOTIFY_WINDOW_UNLINKED, "notify-window-unlinked"},
+	{NOTIFY_WINDOW_LINKED, "notify-window-linked"},
+	{NOTIFY_WINDOW_RENAMED, "notify-window-renamed"},
+	{NOTIFY_ATTACHED_SESSION_CHANGED, "notify-attached-session-changed"},
+	{NOTIFY_SESSION_RENAMED, "notify-session-renamed"},
+	{NOTIFY_SESSION_CREATED, "notify-session-created"},
+	{NOTIFY_SESSION_CLOSED, "notify-session-closed"},
+};
+
 struct notify_entry {
 	enum notify_type	 type;
 
@@ -48,6 +64,30 @@ int	notify_disabled;
 void	notify_drain(void);
 void	notify_add(enum notify_type, struct client *, struct session *,
 	    struct window *);
+void	notify_run_hook(const struct notify_entry *);
+
+void
+notify_run_hook(const struct notify_entry *ne)
+{
+	struct hooks	*hooks;
+	const char	*hook_name = NULL;
+	u_int		 i;
+
+	for(i = 0; i < nitems(notify_hooks_info); i++) {
+		if (notify_hooks_info[i].type == ne->type) {
+			hook_name = notify_hooks_info[i].hook_name;
+			break;
+		}
+	}
+
+	if (hook_name == NULL)
+	       return;
+
+	hooks = ne->session != NULL ? &ne->session->hooks : &global_hooks;
+
+	/* Run the hooked commands */
+	cmdq_hooks_run(hooks, NULL, hook_name, NULL);
+}
 
 void
 notify_enable(void)
@@ -131,6 +171,8 @@ notify_drain(void)
 			window_remove_ref(ne->window);
 
 		TAILQ_REMOVE(&notify_queue, ne, entry);
+		notify_run_hook(ne);
+
 		free(ne);
 	}
 }
