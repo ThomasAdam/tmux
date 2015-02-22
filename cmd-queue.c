@@ -25,7 +25,6 @@
 
 #include "tmux.h"
 
-int		cmdq_hooks_run(struct hooks *, const char *, struct cmd_q *);
 void		cmdq_hooks_emptyfn(struct cmd_q *);
 enum cmd_retval	cmdq_continue_one(struct cmd_q *);
 
@@ -158,14 +157,17 @@ cmdq_run(struct cmd_q *cmdq, struct cmd_list *cmdlist)
  * running.
  */
 int
-cmdq_hooks_run(struct hooks *hooks, const char *prefix, struct cmd_q *cmdq)
+cmdq_hooks_run(struct hooks *hooks, const char *prefix, const char *cmd_name,
+    struct cmd_q *cmdq)
 {
-	struct cmd	*cmd = cmdq->cmd;
 	struct hook     *hook;
 	struct cmd_q	*hooks_cmdq;
 	char            *s;
 
-	xasprintf(&s, "%s-%s", prefix, cmd->entry->name);
+	if (prefix != NULL && cmd_name != NULL)
+		xasprintf(&s, "%s-%s", prefix, cmd_name);
+	else
+		xasprintf(&s, "%s", cmd_name);
 	hook = hooks_find(hooks, s);
 
 	if (hook == NULL) {
@@ -173,7 +175,7 @@ cmdq_hooks_run(struct hooks *hooks, const char *prefix, struct cmd_q *cmdq)
 		return (0);
 	}
 
-	hooks_cmdq = cmdq_new(cmdq->client);
+	hooks_cmdq = cmdq_new(cmdq != NULL ? cmdq->client : NULL);
 	hooks_cmdq->flags |= CMD_Q_NOHOOKS;
 
 	hooks_cmdq->emptyfn = cmdq_hooks_emptyfn;
@@ -182,7 +184,8 @@ cmdq_hooks_run(struct hooks *hooks, const char *prefix, struct cmd_q *cmdq)
 	log_debug("entering hooks cmdq %p for %s", hooks_cmdq, s);
 	free(s);
 
-	cmdq->references++;
+	if (cmdq != NULL)
+		cmdq->references++;
 	cmdq_run(hooks_cmdq, hook->cmdlist);
 
 	return (1);
@@ -196,10 +199,10 @@ cmdq_hooks_emptyfn(struct cmd_q *hooks_cmdq)
 
 	log_debug("exiting hooks cmdq %p", hooks_cmdq);
 
-	if (hooks_cmdq->client_exit >= 0)
+	if (cmdq != NULL && hooks_cmdq->client_exit >= 0)
 		cmdq->client_exit = hooks_cmdq->client_exit;
 
-	if (!cmdq_free(cmdq))
+	if (cmdq != NULL && !cmdq_free(cmdq))
 		cmdq_continue(cmdq);
 
 	cmdq_free(hooks_cmdq);
@@ -255,8 +258,10 @@ cmdq_continue_one(struct cmd_q *cmdq)
 
 		if (~cmdq->flags & CMD_Q_REENTRY) {
 			cmdq->flags |= CMD_Q_REENTRY;
-			if (cmdq_hooks_run(hooks, "before", cmdq))
+			if (cmdq_hooks_run(hooks, "before",
+			    cmdq->cmd->entry->name,cmdq)) {
 				return (CMD_RETURN_WAIT);
+			}
 		}
 	} else
 		hooks = NULL;
@@ -268,8 +273,10 @@ cmdq_continue_one(struct cmd_q *cmdq)
 	if (retval == CMD_RETURN_ERROR)
 		goto error;
 
-	if (hooks != NULL && cmdq_hooks_run(hooks, "after", cmdq))
+	if (hooks != NULL && cmdq_hooks_run(hooks, "after",
+	    cmdq->cmd->entry->name, cmdq)) {
 		retval = CMD_RETURN_WAIT;
+	}
 	cmdq_guard(cmdq, "end", flags);
 
 	return (retval);
