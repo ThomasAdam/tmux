@@ -1607,6 +1607,9 @@ void	mode_key_init(struct mode_key_data *, struct mode_key_tree *);
 enum mode_key_cmd mode_key_lookup(struct mode_key_data *, int, const char **);
 
 /* notify.c */
+#define CONTROL_SHOULD_NOTIFY_CLIENT(c) \
+	((c) != NULL && ((c)->flags & CLIENT_CONTROL))
+
 void	notify_enable(void);
 void	notify_disable(void);
 void	notify_input(struct window_pane *, struct evbuffer *);

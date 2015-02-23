@@ -134,8 +134,21 @@ void
 notify_drain(void)
 {
 	struct notify_entry	*ne, *ne1;
+	struct client		*c = NULL, *cloop = NULL;
+	u_int			 i;
 
 	if (notify_disabled)
+		return;
+
+	/* If no clients want notifications, stop here! */
+	for (i = 0; i < ARRAY_LENGTH(&clients); i++) {
+		cloop = ARRAY_ITEM(&clients, i);
+		if (!CONTROL_SHOULD_NOTIFY_CLIENT(cloop))
+			continue;
+		c = cloop;
+	}
+
+	if (c == NULL)
 		return;
 
 	TAILQ_FOREACH_SAFE(ne, &notify_queue, entry, ne1) {
