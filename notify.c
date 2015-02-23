@@ -55,6 +55,7 @@ struct notify_entry {
 	struct client		*client;
 	struct session		*session;
 	struct window		*window;
+	int			 do_free;
 
 	TAILQ_ENTRY(notify_entry) entry;
 };
@@ -64,16 +65,16 @@ int	notify_disabled;
 void	notify_drain(void);
 void	notify_add(enum notify_type, struct client *, struct session *,
 	    struct window *);
-void	notify_run_hook(const struct notify_entry *);
+void	notify_run_hook(struct notify_entry *);
 
 void
-notify_run_hook(const struct notify_entry *ne)
+notify_run_hook(struct notify_entry *ne)
 {
 	struct hooks	*hooks;
 	const char	*hook_name = NULL;
 	u_int		 i;
 
-	for(i = 0; i < nitems(notify_hooks_info); i++) {
+	for (i = 0; i < nitems(notify_hooks_info); i++) {
 		if (notify_hooks_info[i].type == ne->type) {
 			hook_name = notify_hooks_info[i].hook_name;
 			break;
@@ -86,6 +87,7 @@ notify_run_hook(const struct notify_entry *ne)
 	hooks = ne->session != NULL ? &ne->session->hooks : &global_hooks;
 
 	/* Run the hooked commands */
+	ne->do_free = 1;
 	cmdq_hooks_run(hooks, NULL, hook_name, NULL);
 }
 
@@ -117,6 +119,7 @@ notify_add(enum notify_type type, struct client *c, struct session *s,
 	ne->client = c;
 	ne->session = s;
 	ne->window = w;
+	ne->do_free = 0;
 	TAILQ_INSERT_TAIL(&notify_queue, ne, entry);
 
 	if (c != NULL)
@@ -171,9 +174,10 @@ notify_drain(void)
 			window_remove_ref(ne->window);
 
 		TAILQ_REMOVE(&notify_queue, ne, entry);
-		notify_run_hook(ne);
 
-		free(ne);
+		if (ne->do_free)
+			free(ne);
+		notify_run_hook(ne);
 	}
 }
 
