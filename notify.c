@@ -188,9 +188,14 @@ notify_drain(void)
 
 		TAILQ_REMOVE(&notify_queue, ne, entry);
 
+		/*
+		 * If we are freeing ne here, then the hook has already run,
+		 * otherwise schedule the hook to run.
+		 */
 		if (ne->do_free)
 			free(ne);
-		notify_run_hook(ne);
+		else
+			notify_run_hook(ne);
 	}
 }
 
