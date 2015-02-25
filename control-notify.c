@@ -21,9 +21,6 @@
 
 #include "tmux.h"
 
-#define CONTROL_SHOULD_NOTIFY_CLIENT(c) \
-	((c) != NULL && ((c)->flags & CLIENT_CONTROL))
-
 void
 control_notify_input(struct client *c, struct window_pane *wp,
     struct evbuffer *input)
