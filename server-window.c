@@ -24,10 +24,22 @@
 
 #include "tmux.h"
 
-int	server_window_check_bell(struct session *, struct winlink *);
-int	server_window_check_activity(struct session *, struct winlink *);
-int	server_window_check_silence(struct session *, struct winlink *);
-void	ring_bell(struct session *);
+int	 server_window_check_bell(struct session *, struct winlink *);
+int	 server_window_check_activity(struct session *, struct winlink *);
+int	 server_window_check_silence(struct session *, struct winlink *);
+void	 server_window_run_hooks(struct session *, struct winlink *);
+void	 ring_bell(struct session *);
+
+struct window_flag_hook {
+	int		 flag;
+	const char	*name;
+};
+
+const struct window_flag_hook	 window_flag_hook_names[] = {
+	{WINLINK_BELL, "on-window-bell"},
+	{WINLINK_ACTIVITY, "on-window-activity"},
+	{WINLINK_SILENCE, "on-window-silence"},
+};
 
 /* Window functions that need to happen every loop. */
 void
@@ -39,18 +51,42 @@ server_window_loop(void)
 
 	RB_FOREACH(w, windows, &windows) {
 		RB_FOREACH(s, sessions, &sessions) {
-			RB_FOREACH(wl, winlinks, &s->windows) {
-				if (wl->window != w)
-					continue;
+			wl = session_has(s, w);
+			if (wl == NULL)
+				continue;
 
-				if (server_window_check_bell(s, wl) ||
-				    server_window_check_activity(s, wl) ||
-				    server_window_check_silence(s, wl))
-					server_status_session(s);
+			if (server_window_check_bell(s, wl) ||
+			    server_window_check_activity(s, wl) ||
+			    server_window_check_silence(s, wl)) {
+				server_window_run_hooks(s, wl);
+				server_status_session(s);
 			}
 		}
 	}
 }
+
+/* Run any hooks associated with monitored events. */
+void
+server_window_run_hooks(struct session *s, struct winlink *wl)
+{
+	struct hooks	*hooks;
+	const char	*hook_name = NULL;
+	u_int		 i;
+
+	for (i = 0; i < nitems(window_flag_hook_names); i++) {
+		if (wl->flags & window_flag_hook_names[i].flag) {
+			hook_name = window_flag_hook_names[i].name;
+			break;
+		}
+	}
+
+	if (hook_name == NULL)
+		return;
+
+	hooks = s == NULL ? &global_hooks : &s->hooks;
+	cmdq_hooks_run(hooks, NULL, hook_name, NULL);
+}
+
 
 /* Check for bell in window. */
 int
