@@ -389,7 +389,7 @@ cmd_set_state_tflag(struct cmd *cmd, struct cmd_q *cmdq)
 	case 0:
 		break;
 	case CMD_PREP_SESSION_T|CMD_PREP_PANE_T:
-		if (tflag[strcspn(tflag, ":.")] != '\0') {
+		if (tflag != NULL && tflag[strcspn(tflag, ":.")] != '\0') {
 			state->tflag.wl = cmd_find_pane(cmdq, tflag,
 			    &state->tflag.s, &state->tflag.wp);
 			if (state->tflag.wl == NULL)
@@ -509,7 +509,7 @@ cmd_set_state_sflag(struct cmd *cmd, struct cmd_q *cmdq)
 	case 0:
 		break;
 	case CMD_PREP_SESSION_S|CMD_PREP_PANE_S:
-		if (sflag[strcspn(sflag, ":.")] != '\0') {
+		if (sflag != NULL && sflag[strcspn(sflag, ":.")] != '\0') {
 			state->sflag.wl = cmd_find_pane(cmdq, sflag,
 			    &state->sflag.s, &state->sflag.wp);
 			if (state->sflag.wl == NULL)
@@ -1056,7 +1056,7 @@ cmd_lookup_paneid(const char *arg)
 	const char	*errstr;
 	u_int		 paneid;
 
-	if (*arg != '%')
+	if (arg == NULL || *arg != '%')
 		return (NULL);
 
 	paneid = strtonum(arg + 1, 0, UINT_MAX, &errstr);
@@ -1072,7 +1072,7 @@ cmd_lookup_winlink_windowid(struct session *s, const char *arg)
 	const char	*errstr;
 	u_int		 windowid;
 
-	if (*arg != '@')
+	if (arg == NULL || *arg != '@')
 		return (NULL);
 
 	windowid = strtonum(arg + 1, 0, UINT_MAX, &errstr);
@@ -1088,7 +1088,7 @@ cmd_lookup_windowid(const char *arg)
 	const char	*errstr;
 	u_int		 windowid;
 
-	if (*arg != '@')
+	if (arg == NULL || *arg != '@')
 		return (NULL);
 
 	windowid = strtonum(arg + 1, 0, UINT_MAX, &errstr);
