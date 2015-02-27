@@ -98,10 +98,8 @@ server_window_check_bell(struct session *s, struct winlink *wl)
 
 	if (!(w->flags & WINDOW_BELL) || wl->flags & WINLINK_BELL)
 		return (0);
-	if (s->curw != wl || s->flags & SESSION_UNATTACHED)
+	if (s->curw != wl)
 		wl->flags |= WINLINK_BELL;
-	if (s->flags & SESSION_UNATTACHED)
-		return (0);
 	if (s->curw->window == w)
 		w->flags &= ~WINDOW_BELL;
 
@@ -138,7 +136,7 @@ server_window_check_activity(struct session *s, struct winlink *wl)
 
 	if (!(w->flags & WINDOW_ACTIVITY) || wl->flags & WINLINK_ACTIVITY)
 		return (0);
-	if (s->curw == wl && !(s->flags & SESSION_UNATTACHED))
+	if (s->curw == wl)
 		return (0);
 
 	if (!options_get_number(&w->options, "monitor-activity"))
@@ -171,7 +169,7 @@ server_window_check_silence(struct session *s, struct winlink *wl)
 	if (!(w->flags & WINDOW_SILENCE) || wl->flags & WINLINK_SILENCE)
 		return (0);
 
-	if (s->curw == wl && !(s->flags & SESSION_UNATTACHED)) {
+	if (s->curw == wl) {
 		/*
 		 * Reset the timer for this window if we've focused it.  We
 		 * don't want the timer tripping as soon as we've switched away
