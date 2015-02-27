@@ -226,7 +226,11 @@ ring_bell(struct session *s)
 
 	for (i = 0; i < ARRAY_LENGTH(&clients); i++) {
 		c = ARRAY_ITEM(&clients, i);
-		if (c != NULL && c->session == s && !(c->flags & CLIENT_CONTROL))
+		if (c == NULL)
+			continue;
+		if (c->flags & CLIENT_CONTROL)
+			continue;
+		if (c->session == s)
 			tty_bell(&c->tty);
 	}
 }
