@@ -388,7 +388,7 @@ cmd_set_state_tflag(struct cmd *cmd, struct cmd_q *cmdq)
 	case 0:
 		break;
 	case CMD_PREP_SESSION_T|CMD_PREP_PANE_T:
-		if (tflag[strcspn(tflag, ":.")] != '\0') {
+		if (tflag != NULL && tflag[strcspn(tflag, ":.")] != '\0') {
 			state->tflag.wl = cmd_find_pane(cmdq, tflag,
 			    &state->tflag.s, &state->tflag.wp);
 			if (state->tflag.wl == NULL)
@@ -508,7 +508,7 @@ cmd_set_state_sflag(struct cmd *cmd, struct cmd_q *cmdq)
 	case 0:
 		break;
 	case CMD_PREP_SESSION_S|CMD_PREP_PANE_S:
-		if (sflag[strcspn(sflag, ":.")] != '\0') {
+		if (sflag != NULL && sflag[strcspn(sflag, ":.")] != '\0') {
 			state->sflag.wl = cmd_find_pane(cmdq, sflag,
 			    &state->sflag.s, &state->sflag.wp);
 			if (state->sflag.wl == NULL)
@@ -748,19 +748,53 @@ cmd_mouse_at(struct window_pane *wp, struct mouse_event *m, u_int *xp,
 	if (y < wp->yoff || y >= wp->yoff + wp->sy)
 		return (-1);
 
-	*xp = x - wp->xoff;
-	*yp = y - wp->yoff;
-	return (0);
+	idx = strtonum(name, 0, INT_MAX, &errstr);
+	if (errstr == NULL)
+		return (idx);
+
+	return (-1);
+}
+
+/* Lookup pane id. An initial % means a pane id. */
+struct window_pane *
+cmd_lookup_paneid(const char *arg)
+{
+	const char	*errstr;
+	u_int		 paneid;
+
+	if (arg == NULL || *arg != '%')
+		return (NULL);
+
+	paneid = strtonum(arg + 1, 0, UINT_MAX, &errstr);
+	if (errstr != NULL)
+		return (NULL);
+	return (window_pane_find_by_id(paneid));
 }
 
 /* Get current mouse window if any. */
 struct winlink *
-cmd_mouse_window(struct mouse_event *m, struct session **sp)
+cmd_lookup_winlink_windowid(struct session *s, const char *arg)
+{
+	const char	*errstr;
+	u_int		 windowid;
+
+	if (arg == NULL || *arg != '@')
+		return (NULL);
+
+	windowid = strtonum(arg + 1, 0, UINT_MAX, &errstr);
+	if (errstr != NULL)
+		return (NULL);
+	return (winlink_find_by_window_id(&s->windows, windowid));
+}
+
+/* Lookup window id. An initial @ means a window id. */
+struct window *
+cmd_lookup_windowid(const char *arg)
 {
 	struct session	*s;
 	struct window	*w;
 
-	if (!m->valid || m->s == -1 || m->w == -1)
+	if (arg == NULL || *arg != '@')
 		return (NULL);
 	if ((s = session_find_by_id(m->s)) == NULL)
 		return (NULL);
