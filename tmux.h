@@ -1787,14 +1787,6 @@ int		 cmd_prepare_state(struct cmd *, struct cmd_q *);
 size_t		 cmd_print(struct cmd *, char *, size_t);
 struct session	*cmd_current_session(struct cmd_q *, int);
 struct client	*cmd_current_client(struct cmd_q *);
-struct client	*cmd_find_client(struct cmd_q *, const char *, int);
-struct session	*cmd_find_session(struct cmd_q *, const char *, int);
-struct winlink	*cmd_find_window(struct cmd_q *, const char *,
-		     struct session **);
-int		 cmd_find_index(struct cmd_q *, const char *,
-		     struct session **);
-struct winlink	*cmd_find_pane(struct cmd_q *, const char *, struct session **,
-		     struct window_pane **);
 char		*cmd_template_replace(const char *, const char *, int);
 struct window	*cmd_lookup_windowid(const char *);
 struct window_pane *cmd_lookup_paneid(const char *);

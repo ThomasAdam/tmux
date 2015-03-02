@@ -27,6 +27,15 @@
 
 #include "tmux.h"
 
+struct client	*cmd_find_client(struct cmd_q *, const char *, int);
+struct session	*cmd_find_session(struct cmd_q *, const char *, int);
+struct winlink	*cmd_find_window(struct cmd_q *, const char *,
+		     struct session **);
+int		 cmd_find_index(struct cmd_q *, const char *,
+		     struct session **);
+struct winlink	*cmd_find_pane(struct cmd_q *, const char *, struct session **,
+		     struct window_pane **);
+
 const struct cmd_entry *cmd_table[] = {
 	&cmd_attach_session_entry,
 	&cmd_bind_key_entry,
