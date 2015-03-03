@@ -68,7 +68,7 @@ const struct cmd_entry cmd_set_option_entry = {
 	"set-option", "set",
 	"agoqst:uw", 1, 2,
 	"[-agosquw] [-t target-window] option [value]",
-	CMD_PREP_WINDOW_T,
+	CMD_PREP_WINDOW_T|CMD_PREP_CANFAIL,
 	cmd_set_option_exec
 };
 
@@ -76,7 +76,7 @@ const struct cmd_entry cmd_set_window_option_entry = {
 	"set-window-option", "setw",
 	"agoqt:u", 1, 2,
 	"[-agoqu] " CMD_TARGET_WINDOW_USAGE " option [value]",
-	CMD_PREP_WINDOW_T,
+	CMD_PREP_WINDOW_T|CMD_PREP_CANFAIL,
 	cmd_set_option_exec
 };
 
