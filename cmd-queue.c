@@ -259,7 +259,7 @@ cmdq_continue_one(struct cmd_q *cmdq)
 		if (~cmdq->flags & CMD_Q_REENTRY) {
 			cmdq->flags |= CMD_Q_REENTRY;
 			if (cmdq_hooks_run(hooks, "before",
-			    cmdq->cmd->entry->name,cmdq)) {
+			    cmd->entry->name,cmdq)) {
 				return (CMD_RETURN_WAIT);
 			}
 		}
@@ -274,7 +274,7 @@ cmdq_continue_one(struct cmd_q *cmdq)
 		goto error;
 
 	if (hooks != NULL && cmdq_hooks_run(hooks, "after",
-	    cmdq->cmd->entry->name, cmdq)) {
+	    cmd->entry->name, cmdq)) {
 		retval = CMD_RETURN_WAIT;
 	}
 	cmdq_guard(cmdq, "end", flags);
