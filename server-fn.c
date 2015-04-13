@@ -101,6 +101,14 @@ server_status_client(struct client *c)
 }
 
 void
+server_set_key_table(struct client *c, const char *name)
+{
+	key_bindings_unref_table(c->keytable);
+	c->keytable = key_bindings_get_table(name, 1);
+	c->keytable->references++;
+}
+
+void
 server_redraw_session(struct session *s)
 {
 	struct client	*c;

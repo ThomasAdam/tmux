@@ -842,6 +842,7 @@ Suspend a client by sending
 .Op Fl lnpr
 .Op Fl c Ar target-client
 .Op Fl t Ar target-session
+.Op Fl T Ar key-table
 .Xc
 .D1 (alias: Ic switchc )
 Switch the current session for client
@@ -859,6 +860,9 @@ respectively.
 toggles whether a client is read-only (see the
 .Ic attach-session
 command).
+.Fl T
+sets the client's key table; the next key from the client will be interpreted from
+.Ar key-table .
 .El
 .Sh WINDOWS AND PANES
 A
@@ -1897,6 +1901,7 @@ Commands related to key bindings are as follows:
 .It Xo Ic bind-key
 .Op Fl cnr
 .Op Fl t Ar mode-table
+.Op Fl T Ar key-table
 .Ar key Ar command Op Ar arguments
 .Xc
 .D1 (alias: Ic bind )
@@ -1932,18 +1937,41 @@ or for normal mode without.
 To view the default bindings and possible commands, see the
 .Ic list-keys
 command.
-.It Ic list-keys Op Fl t Ar key-table
+.Pp
+If
+.Fl T
+is present,
+.Ar key
+is bound in
+.Ar key-table :
+.Em prefix
+corresponds to the default,
+.Em root
+corresponds to
+.Fl n ,
+and custom values may be used with
+.Ic switch-client
+.Fl T .
+.It Xo Ic list-keys
+.Op Fl t Ar mode-table
+.Op Fl T Ar key-table
+.Xc
 .D1 (alias: Ic lsk )
 List all key bindings.
 Without
 .Fl t
-the primary key bindings - those executed when preceded by the prefix key -
-are printed.
+or
+.Fl T
+all key tables are printed.
+With
+.Fl T
+only
+.Ar key-table .
 .Pp
 With
 .Fl t ,
 the key bindings in
-.Ar key-table
+.Ar mode-table
 are listed; this may be one of:
 .Em vi-edit ,
 .Em emacs-edit ,
@@ -1984,6 +2012,7 @@ the secondary prefix key, to a window as if it was pressed.
 .It Xo Ic unbind-key
 .Op Fl acn
 .Op Fl t Ar mode-table
+.Op Fl T Ar key-table
 .Ar key
 .Xc
 .D1 (alias: Ic unbind )
@@ -2009,6 +2038,22 @@ in
 is unbound: the binding for command mode with
 .Fl c
 or for normal mode without.
+.Pp
+If
+.Fl T
+is present,
+.Ar key
+in
+.Ar key-table
+is unbound:
+.Em prefix
+corresponds to the default,
+.Em root
+corresponds to
+.Fl n ,
+and custom values may be used with
+.Ic switch-client
+.Fl T .
 .El
 .Sh OPTIONS
 The appearance and behaviour of
