@@ -1113,6 +1113,14 @@ struct session {
 };
 RB_HEAD(sessions, session);
 
+/* Alert information. */
+struct alert {
+	struct session	*s;
+	struct winlinks	 windows;
+	RB_ENTRY(alert)	 entry;
+};
+RB_HEAD(alerts, alert);
+
 /* TTY information. */
 struct tty_key {
 	char		 ch;
@@ -1994,6 +2002,9 @@ void	 server_client_status_timer(void);
 void	 server_client_loop(void);
 
 /* server-window.c */
+extern struct alerts alerts;
+RB_PROTOTYPE(alerts, alert, entry, alert_cmp);
+int	 alert_cmp(struct alert *, struct alert *);
 void	 server_window_loop(void);
 
 /* server-fn.c */

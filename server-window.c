@@ -21,8 +21,12 @@
 #include <event.h>
 #include <stdlib.h>
 #include <unistd.h>
+#include <string.h>
 
 #include "tmux.h"
+
+struct alerts	 alerts;
+RB_GENERATE(alerts, alert, entry, alert_cmp);
 
 int	 server_window_check_bell(struct session *, struct winlink *);
 int	 server_window_check_activity(struct session *, struct winlink *);
@@ -40,6 +44,12 @@ const struct window_flag_hook	 window_flag_hook_names[] = {
 	{WINLINK_ACTIVITY, "on-window-activity"},
 	{WINLINK_SILENCE, "on-window-silence"},
 };
+
+int
+alert_cmp(struct alert *a1, struct alert *a2)
+{
+	return (strcmp(a1->s->name, a2->s->name));
+}
 
 /* Window functions that need to happen every loop. */
 void
