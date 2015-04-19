@@ -48,7 +48,27 @@ const struct window_flag_hook	 window_flag_hook_names[] = {
 int
 alert_cmp(struct alert *a1, struct alert *a2)
 {
-	return (strcmp(a1->s->name, a2->s->name));
+	return strcmp(a1->name, a2->name);
+}
+
+struct alert *
+alert_new(void)
+{
+	struct alert	*al;
+
+	al = xcalloc(1, sizeof *al);
+	return (al);
+}
+
+void
+alert_free(struct alert *al)
+{
+	struct winlink	*wl,* wl1;
+
+	RB_REMOVE(alerts, &alerts, al);
+	RB_FOREACH_SAFE(wl, winlinks, &al->windows, wl1)
+		winlink_remove(&al->windows, wl);
+	free(al);
 }
 
 /* Window functions that need to happen every loop. */
@@ -80,12 +100,16 @@ void
 server_window_run_hooks(struct session *s, struct winlink *wl)
 {
 	struct hooks	*hooks;
+	struct alert	*al, al_find;
+	struct winlink	*wl_new;
 	const char	*hook_name = NULL;
 	u_int		 i;
+	int		 flag;
 
 	for (i = 0; i < nitems(window_flag_hook_names); i++) {
 		if (wl->flags & window_flag_hook_names[i].flag) {
 			hook_name = window_flag_hook_names[i].name;
+			flag = window_flag_hook_names[i].flag;
 			break;
 		}
 	}
@@ -93,8 +117,22 @@ server_window_run_hooks(struct session *s, struct winlink *wl)
 	if (hook_name == NULL)
 		return;
 
-	hooks = s == NULL ? &global_hooks : &s->hooks;
+	al_find.name = hook_name;
+	if ((al = RB_FIND(alerts, &alerts, &al_find)) == NULL) {
+		al = alert_new();
+		al->name = hook_name;
+		al->flag = flag;
+		al->s = s;
+		RB_INIT(&al->windows);
+	}
+	wl_new = winlink_add(&al->windows, wl->idx);
+	winlink_set_window(wl_new, wl->window);
+	wl_new->flags |= wl->flags & WINLINK_ALERTFLAGS;
+	RB_INSERT(alerts, &alerts, al);
+
+	hooks = &s->hooks;
 	cmdq_hooks_run(hooks, NULL, hook_name, NULL);
+	alert_free(al);
 }
 
 
