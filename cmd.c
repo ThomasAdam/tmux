@@ -35,6 +35,7 @@ int		 cmd_find_index(struct cmd_q *, const char *,
 		     struct session **);
 struct winlink	*cmd_find_pane(struct cmd_q *, const char *, struct session **,
 		     struct window_pane **);
+int		 cmd_has_session_alert(struct session *, struct alert **);
 
 const struct cmd_entry *cmd_table[] = {
 	&cmd_attach_session_entry,
@@ -470,14 +471,18 @@ complete_everything:
 		if (state->tflag.s == NULL) {
 			if (flags & CMD_PREP_CANFAIL)
 				return (0);
+
 			cmdq_error(cmdq, "no current session");
 			return (-1);
 		}
 	}
 	if (state->tflag.wl == NULL)
-		state->tflag.wl = state->tflag.s->curw;
-	if (state->tflag.wp == NULL)
-		state->tflag.wp = state->tflag.wl->window->active;
+		state->tflag.wl = cmd_find_window(cmdq, tflag, &state->tflag.s);
+	if (state->tflag.wp == NULL) {
+		state->tflag.wl = cmd_find_pane(cmdq, tflag, &state->tflag.s,
+		    &state->tflag.wp);
+	}
+
 	return (0);
 }
 
@@ -577,8 +582,10 @@ complete_everything:
 	if (state->sflag.s == NULL) {
 		if (state->c != NULL)
 			state->sflag.s = state->c->session;
+
 		if (state->sflag.s == NULL)
 			state->sflag.s = cmd_current_session(cmdq, prefer);
+
 		if (state->sflag.s == NULL) {
 			if (flags & CMD_PREP_CANFAIL)
 				return (0);
@@ -586,10 +593,14 @@ complete_everything:
 			return (-1);
 		}
 	}
-	if (state->sflag.wl == NULL)
-		state->sflag.wl = state->sflag.s->curw;
-	if (state->sflag.wp == NULL)
-		state->sflag.wp = state->sflag.wl->window->active;
+	if (state->sflag.wl == NULL) {
+		state->sflag.wl = cmd_find_pane(cmdq, sflag, &state->sflag.s,
+		    &state->sflag.wp);
+	}
+	if (state->sflag.wp == NULL) {
+		state->sflag.wl = cmd_find_pane(cmdq, sflag, &state->sflag.s,
+		    &state->sflag.wp);
+	}
 	return (0);
 }
 
@@ -664,6 +675,21 @@ cmd_print(struct cmd *cmd, char *buf, size_t len)
 	return (off);
 }
 
+int
+cmd_has_session_alert(struct session *s, struct alert **al)
+{
+	struct alert	*al1;
+
+	RB_FOREACH(al1, alerts, &alerts) {
+		if (al1->s == s) {
+			if (al != NULL)
+				*al = al1;
+			return (1);
+		}
+	}
+	return (0);
+}
+
 /*
  * Figure out the current session. Use: 1) the current session, if the command
  * context has one; 2) the most recently used session containing the pty of the
@@ -682,8 +708,18 @@ cmd_current_session(struct cmd_q *cmdq, int prefer_unattached)
 	const char		*path;
 	int			 found;
 
-	if (c != NULL && c->session != NULL)
+	/* If there's no alerts present, and there's a current session, return
+	 * that.
+	 */
+	if (RB_EMPTY(&alerts) && c != NULL && c->session != NULL)
 		return (c->session);
+
+	/* Check all sessions for alerts, and for any one found, use that. */
+	RB_FOREACH(s, sessions, &sessions) {
+		if (cmd_has_session_alert(s, NULL)) {
+			return (s);
+		}
+	}
 
 	/*
 	 * If the name of the calling client's pty is known, build a list of
@@ -1194,6 +1230,7 @@ cmd_find_window(struct cmd_q *cmdq, const char *arg, struct session **sp)
 {
 	struct session	*s;
 	struct winlink	*wl;
+	struct alert	*al;
 	const char	*winptr;
 	char		*sessptr = NULL;
 	int		 ambiguous = 0;
@@ -1211,6 +1248,13 @@ cmd_find_window(struct cmd_q *cmdq, const char *arg, struct session **sp)
 	if (arg == NULL) {
 		if (sp != NULL)
 			*sp = s;
+		if (cmd_has_session_alert(s, &al)) {
+			RB_FOREACH(wl, winlinks, &s->windows) {
+				if (wl->flags & al->flag) {
+					return (wl);
+				}
+			}
+		}
 		return (s->curw);
 	}
 
@@ -1489,6 +1533,7 @@ cmd_find_pane(struct cmd_q *cmdq,
 {
 	struct session	*s;
 	struct winlink	*wl;
+	struct alert	*al;
 	const char	*period, *errstr;
 	char		*winptr, *paneptr;
 	u_int		 idx;
@@ -1501,10 +1546,29 @@ cmd_find_pane(struct cmd_q *cmdq,
 	if (sp != NULL)
 		*sp = s;
 
-	/* A NULL argument means the current session, window and pane. */
+	/*
+	 * A NULL argument means the current session, window and pane, if the
+	 * session doesn't have any alerts associated with it though.
+	 */
 	if (arg == NULL) {
-		*wpp = s->curw->window->active;
-		return (s->curw);
+		if (!cmd_has_session_alert(s, &al))
+			return (s->curw);
+		else {
+			/*
+			 * The session has an alert associated with it.  Find
+			 * the matching winlink in its list for the alert
+			 * type, and return that instead.
+			 */
+			RB_FOREACH(wl, winlinks, &al->windows) {
+				if (wl->flags & al->flag) {
+					*wpp = wl->window->active;
+					return (wl);
+				}
+			}
+			/* No alert found, use the current window and pane. */
+			*wpp = s->curw->window->active;
+			return (s->curw);
+		}
 	}
 
 	/* Lookup as pane id. */
