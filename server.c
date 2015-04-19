@@ -145,6 +145,7 @@ server_start(int lockfd, char *lockfile)
 	RB_INIT(&sessions);
 	RB_INIT(&dead_sessions);
 	TAILQ_INIT(&session_groups);
+	RB_INIT(&alerts);
 	mode_key_init_trees();
 	key_bindings_init();
 	utf8_build();
