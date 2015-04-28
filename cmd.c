@@ -351,7 +351,7 @@ cmd_get_state_client(struct cmd_q *cmdq, int quiet)
 
 	switch (cmd->entry->flags & (CMD_PREP_CLIENT_C|CMD_PREP_CLIENT_T)) {
 	case 0:
-		return (cmd_current_client(cmdq));
+		return (cmd_find_client(cmdq, NULL, 1));
 	case CMD_PREP_CLIENT_C:
 		return (cmd_find_client(cmdq, args_get(args, 'c'), quiet));
 	case CMD_PREP_CLIENT_T:
@@ -409,9 +409,9 @@ cmd_set_state_tflag(struct cmd *cmd, struct cmd_q *cmdq)
 				return (-1);
 
 			s = state->tflag.s;
-			if ((w = cmd_lookup_windowid(tflag)) != NULL)
+			if ((w = window_find_by_id_str(tflag)) != NULL)
 				wp = w->active;
-			else if ((wp = cmd_lookup_paneid(tflag)) != NULL)
+			else if ((wp = window_pane_find_by_id_str(tflag)) != NULL)
 				w = wp->window;
 			wl = winlink_find_by_window(&s->windows, w);
 			if (wl != NULL) {
@@ -466,7 +466,7 @@ complete_everything:
 		if (state->c != NULL)
 			state->tflag.s = state->c->session;
 		if (state->tflag.s == NULL)
-			state->tflag.s = cmd_current_session(cmdq, prefer);
+			state->tflag.s = cmd_find_current(cmdq);
 		if (state->tflag.s == NULL) {
 			if (flags & CMD_PREP_CANFAIL)
 				return (0);
@@ -533,9 +533,9 @@ cmd_set_state_sflag(struct cmd *cmd, struct cmd_q *cmdq)
 				return (-1);
 
 			s = state->sflag.s;
-			if ((w = cmd_lookup_windowid(sflag)) != NULL)
+			if ((w = window_find_by_id_str(sflag)) != NULL)
 				wp = w->active;
-			else if ((wp = cmd_lookup_paneid(sflag)) != NULL)
+			else if ((wp = window_pane_find_by_id_str(sflag)) != NULL)
 				w = wp->window;
 			wl = winlink_find_by_window(&s->windows, w);
 			if (wl != NULL) {
@@ -583,7 +583,7 @@ complete_everything:
 			state->sflag.s = state->c->session;
 
 		if (state->sflag.s == NULL)
-			state->sflag.s = cmd_current_session(cmdq, prefer);
+			state->sflag.s = cmd_find_current(cmdq);
 
 		if (state->sflag.s == NULL) {
 			if (flags & CMD_PREP_CANFAIL)
@@ -762,199 +762,48 @@ int
 cmd_mouse_at(struct window_pane *wp, struct mouse_event *m, u_int *xp,
     u_int *yp, int last)
 {
-	u_int	x, y;
+       u_int   x, y;
 
-	if (last) {
-		x = m->lx;
-		y = m->ly;
-	} else {
-		x = m->x;
-		y = m->y;
-	}
+       if (last) {
+               x = m->lx;
+               y = m->ly;
+       } else {
+               x = m->x;
+               y = m->y;
+       }
 
-	if (m->statusat == 0 && y > 0)
-		y--;
-	else if (m->statusat > 0 && y >= (u_int)m->statusat)
-		y = m->statusat - 1;
+       if (m->statusat == 0 && y > 0)
+               y--;
+       else if (m->statusat > 0 && y >= (u_int)m->statusat)
+               y = m->statusat - 1;
 
-	if (x < wp->xoff || x >= wp->xoff + wp->sx)
-		return (-1);
-	if (y < wp->yoff || y >= wp->yoff + wp->sy)
-		return (-1);
+       if (x < wp->xoff || x >= wp->xoff + wp->sx)
+               return (-1);
+       if (y < wp->yoff || y >= wp->yoff + wp->sy)
+               return (-1);
 
-	idx = strtonum(name, 0, INT_MAX, &errstr);
-	if (errstr == NULL)
-		return (idx);
-
-	return (-1);
-}
-
-/* Lookup pane id. An initial % means a pane id. */
-struct window_pane *
-cmd_lookup_paneid(const char *arg)
-{
-	const char	*errstr;
-	u_int		 paneid;
-
-	if (arg == NULL || *arg != '%')
-		return (NULL);
-
-	paneid = strtonum(arg + 1, 0, UINT_MAX, &errstr);
-	if (errstr != NULL)
-		return (NULL);
-	return (window_pane_find_by_id(paneid));
+       *xp = x - wp->xoff;
+       *yp = y - wp->yoff;
+       return (0);
 }
 
 /* Get current mouse window if any. */
 struct winlink *
-cmd_lookup_winlink_windowid(struct session *s, const char *arg)
+cmd_mouse_window(struct mouse_event *m, struct session **sp)
 {
-	const char	*errstr;
-	u_int		 windowid;
+       struct session  *s;
+       struct window   *w;
 
-	if (arg == NULL || *arg != '@')
-		return (NULL);
+       if (!m->valid || m->s == -1 || m->w == -1)
+               return (NULL);
+       if ((s = session_find_by_id(m->s)) == NULL)
+               return (NULL);
+       if ((w = window_find_by_id(m->w)) == NULL)
+               return (NULL);
 
-	windowid = strtonum(arg + 1, 0, UINT_MAX, &errstr);
-	if (errstr != NULL)
-		return (NULL);
-	return (winlink_find_by_window_id(&s->windows, windowid));
-}
-
-/* Lookup window id. An initial @ means a window id. */
-struct window *
-cmd_lookup_windowid(const char *arg)
-{
-	struct session	*s;
-	struct window	*w;
-
-	if (arg == NULL || *arg != '@')
-		return (NULL);
-	if ((s = session_find_by_id(m->s)) == NULL)
-		return (NULL);
-	return (window_find_by_id(windowid));
-}
-
-/* Find session and winlink for window. */
-struct session *
-cmd_window_session(struct cmd_q *cmdq, struct window *w, struct winlink **wlp)
-{
-	struct session		*s;
-	struct sessionslist	 ss;
-	struct winlink		*wl;
-
-	/* If this window is in the current session, return that winlink. */
-	s = cmd_current_session(cmdq, 0);
-	if (s != NULL) {
-		wl = winlink_find_by_window(&s->windows, w);
-		if (wl != NULL) {
-			if (wlp != NULL)
-				*wlp = wl;
-			return (s);
-		}
-	}
-
-	/* Otherwise choose from all sessions with this window. */
-	ARRAY_INIT(&ss);
-	RB_FOREACH(s, sessions, &sessions) {
-		if (winlink_find_by_window(&s->windows, w) != NULL)
-			ARRAY_ADD(&ss, s);
-	}
-	s = cmd_choose_session_list(&ss);
-	ARRAY_FREE(&ss);
-	if (wlp != NULL)
-		*wlp = winlink_find_by_window(&s->windows, w);
-	return (s);
-}
-
-/* Find the target session or report an error and return NULL. */
-struct session *
-cmd_find_session(struct cmd_q *cmdq, const char *arg, int prefer_unattached)
-{
-	struct session	*s;
-	struct client	*c;
-	char		*tmparg;
-	size_t		 arglen;
-	int		 ambiguous;
-
-	/* A NULL argument means the current session. */
-	if (arg == NULL) {
-		if ((s = cmd_current_session(cmdq, prefer_unattached)) == NULL)
-			cmdq_error(cmdq, "can't establish current session");
-		return (s);
-	}
-
-	/* Trim a single trailing colon if any. */
-	tmparg = xstrdup(arg);
-	arglen = strlen(tmparg);
-	if (arglen != 0 && tmparg[arglen - 1] == ':')
-		tmparg[arglen - 1] = '\0';
-
-	/* An empty session name is the current session. */
-	if (*tmparg == '\0') {
-		free(tmparg);
-		if ((s = cmd_current_session(cmdq, prefer_unattached)) == NULL)
-			cmdq_error(cmdq, "can't establish current session");
-		return (s);
-	}
-
-	/* Find the session, if any. */
-	s = cmd_lookup_session(cmdq, tmparg, &ambiguous);
-
-	/* If it doesn't, try to match it as a client. */
-	if (s == NULL && (c = cmd_lookup_client(tmparg)) != NULL)
-		s = c->session;
-
-	/* If no session found, report an error. */
-	if (s == NULL) {
-		if (ambiguous)
-			cmdq_error(cmdq, "more than one session: %s", tmparg);
-		else
-			cmdq_error(cmdq, "session not found: %s", tmparg);
-	}
-
-	free(tmparg);
-	return (s);
-}
-
-/* Find the target session and window or report an error and return NULL. */
-struct winlink *
-cmd_find_window(struct cmd_q *cmdq, const char *arg, struct session **sp)
-{
-	struct session	*s;
-	struct winlink	*wl;
-	struct alert	*al;
-	const char	*winptr;
-	char		*sessptr = NULL;
-	int		 ambiguous = 0;
-
-	/*
-	 * Find the current session. There must always be a current session, if
-	 * it can't be found, report an error.
-	 */
-	if ((s = cmd_current_session(cmdq, 0)) == NULL) {
-		cmdq_error(cmdq, "can't establish current session");
-		return (NULL);
-	}
-
-	/* A NULL argument means the current session and window. */
-	if (arg == NULL) {
-		if (sp != NULL)
-			*sp = s;
-		if (cmd_has_session_alert(s, &al)) {
-			RB_FOREACH(wl, winlinks, &s->windows) {
-				if (wl->flags & al->flag) {
-					return (wl);
-				}
-			}
-		}
-		return (s->curw);
-	}
->>>>>>> 940a4d0... Introduce alerts for hooks
-
-	if (sp != NULL)
-		*sp = s;
-	return (winlink_find_by_window(&s->windows, w));
+       if (sp != NULL)
+               *sp = s;
+       return (winlink_find_by_window(&s->windows, w));
 }
 
 /* Get current mouse pane if any. */
