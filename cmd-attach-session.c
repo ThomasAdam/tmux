@@ -45,7 +45,7 @@ enum cmd_retval
 cmd_attach_session(struct cmd_q *cmdq, int dflag, int rflag, const char *cflag)
 {
 	struct session		*s = cmdq->state.tflag.s;
-	struct client		*cloop, *c = cmdq->state.c;
+	struct client		*c = cmdq->state.c;
 	struct winlink		*wl = cmdq->state.tflag.wl;
 	struct window_pane	*wp = cmdq->state.tflag.wp;
 	const char		*update;
@@ -70,10 +70,7 @@ cmd_attach_session(struct cmd_q *cmdq, int dflag, int rflag, const char *cflag)
 
 	if (cflag != NULL) {
 		ft = format_create();
-		format_client(ft, c);
-		format_session(ft, s);
-		format_winlink(ft, s, s->curw);
-		format_window_pane(ft, s->curw->window->active);
+		format_defaults(ft, c, s, wl, wp);
 		cp = format_expand(ft, cflag);
 		format_free(ft);
 

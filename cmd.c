@@ -336,7 +336,7 @@ cmd_get_state_client(struct cmd_q *cmdq, int quiet)
 
 	switch (cmd->entry->flags & (CMD_PREP_CLIENT_C|CMD_PREP_CLIENT_T)) {
 	case 0:
-		return (cmd_current_client(cmdq));
+		return (cmd_find_client(cmdq, NULL, 1));
 	case CMD_PREP_CLIENT_C:
 		return (cmd_find_client(cmdq, args_get(args, 'c'), quiet));
 	case CMD_PREP_CLIENT_T:
@@ -394,9 +394,9 @@ cmd_set_state_tflag(struct cmd *cmd, struct cmd_q *cmdq)
 				return (-1);
 
 			s = state->tflag.s;
-			if ((w = cmd_lookup_windowid(tflag)) != NULL)
+			if ((w = window_find_by_id_str(tflag)) != NULL)
 				wp = w->active;
-			else if ((wp = cmd_lookup_paneid(tflag)) != NULL)
+			else if ((wp = window_pane_find_by_id_str(tflag)) != NULL)
 				w = wp->window;
 			wl = winlink_find_by_window(&s->windows, w);
 			if (wl != NULL) {
@@ -451,7 +451,7 @@ complete_everything:
 		if (state->c != NULL)
 			state->tflag.s = state->c->session;
 		if (state->tflag.s == NULL)
-			state->tflag.s = cmd_current_session(cmdq, prefer);
+			state->tflag.s = cmd_find_current(cmdq);
 		if (state->tflag.s == NULL) {
 			if (flags & CMD_PREP_CANFAIL)
 				return (0);
@@ -518,9 +518,9 @@ cmd_set_state_sflag(struct cmd *cmd, struct cmd_q *cmdq)
 				return (-1);
 
 			s = state->sflag.s;
-			if ((w = cmd_lookup_windowid(sflag)) != NULL)
+			if ((w = window_find_by_id_str(sflag)) != NULL)
 				wp = w->active;
-			else if ((wp = cmd_lookup_paneid(sflag)) != NULL)
+			else if ((wp = window_pane_find_by_id_str(sflag)) != NULL)
 				w = wp->window;
 			wl = winlink_find_by_window(&s->windows, w);
 			if (wl != NULL) {
@@ -568,7 +568,7 @@ complete_everything:
 			state->sflag.s = state->c->session;
 
 		if (state->sflag.s == NULL)
-			state->sflag.s = cmd_current_session(cmdq, prefer);
+			state->sflag.s = cmd_find_current(cmdq);
 
 		if (state->sflag.s == NULL) {
 			if (flags & CMD_PREP_CANFAIL)
@@ -674,6 +674,54 @@ cmd_has_session_alert(struct session *s, struct alert **al)
 	return (0);
 }
 
+/* Adjust current mouse position for a pane. */
+int
+cmd_mouse_at(struct window_pane *wp, struct mouse_event *m, u_int *xp,
+    u_int *yp, int last)
+{
+       u_int   x, y;
+
+       if (last) {
+               x = m->lx;
+               y = m->ly;
+       } else {
+               x = m->x;
+               y = m->y;
+       }
+
+       if (m->statusat == 0 && y > 0)
+               y--;
+       else if (m->statusat > 0 && y >= (u_int)m->statusat)
+               y = m->statusat - 1;
+
+       if (x < wp->xoff || x >= wp->xoff + wp->sx)
+               return (-1);
+       if (y < wp->yoff || y >= wp->yoff + wp->sy)
+               return (-1);
+
+       *xp = x - wp->xoff;
+       *yp = y - wp->yoff;
+       return (0);
+}
+
+/* Get current mouse window if any. */
+struct winlink *
+cmd_mouse_window(struct mouse_event *m, struct session **sp)
+{
+       struct session  *s;
+       struct window   *w;
+
+       if (!m->valid || m->s == -1 || m->w == -1)
+               return (NULL);
+       if ((s = session_find_by_id(m->s)) == NULL)
+               return (NULL);
+       if ((w = window_find_by_id(m->w)) == NULL)
+               return (NULL);
+
+       if (sp != NULL)
+               *sp = s;
+       return (winlink_find_by_window(&s->windows, w));
+}
 
 /* Get current mouse pane if any. */
 struct window_pane *
