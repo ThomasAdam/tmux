@@ -28,8 +28,8 @@ enum cmd_retval	 cmd_select_pane_exec(struct cmd *, struct cmd_q *);
 
 const struct cmd_entry cmd_select_pane_entry = {
 	"select-pane", "selectp",
-	"DdeLlRt:U", 0, 0,
-	"[-DdeLlRU] " CMD_TARGET_PANE_USAGE,
+	"DdeLlP:Rt:U", 0, 0,
+	"[-DdeLlRU] [-P style] " CMD_TARGET_PANE_USAGE,
 	CMD_PREP_PANE_T,
 	cmd_select_pane_exec
 };
@@ -48,6 +48,7 @@ cmd_select_pane_exec(struct cmd *self, struct cmd_q *cmdq)
 	struct args		*args = self->args;
 	struct winlink		*wl = cmdq->state.tflag.wl;
 	struct window_pane	*wp = cmdq->state.tflag.wp;
+	const char		*style;
 
 	if (self->entry == &cmd_last_pane_entry || args_has(args, 'l')) {
 		if (wl->window->last == NULL) {
@@ -75,6 +76,21 @@ cmd_select_pane_exec(struct cmd *self, struct cmd_q *cmdq)
 		return (CMD_RETURN_ERROR);
 	}
 
+	if (args_has(self->args, 'P') || args_has(self->args, 'g')) {
+		if (args_has(args, 'P')) {
+			style = args_get(args, 'P');
+			if (style_parse(&grid_default_cell, &wp->colgc,
+			    style) == -1) {
+				cmdq_error(cmdq, "bad style: %s", style);
+				return (CMD_RETURN_ERROR);
+			}
+			wp->flags |= PANE_REDRAW;
+		}
+		if (args_has(self->args, 'g'))
+			cmdq_print(cmdq, "%s", style_tostring(&wp->colgc));
+		return (CMD_RETURN_NORMAL);
+	}
+
 	if (args_has(self->args, 'L'))
 		wp = window_pane_find_left(wp);
 	else if (args_has(self->args, 'R'))
@@ -88,11 +104,23 @@ cmd_select_pane_exec(struct cmd *self, struct cmd_q *cmdq)
 		return (CMD_RETURN_ERROR);
 	}
 
-	if (args_has(self->args, 'e'))
+	if (args_has(self->args, 'e')) {
 		wp->flags &= ~PANE_INPUTOFF;
-	else if (args_has(self->args, 'd'))
+		return (CMD_RETURN_NORMAL);
+	}
+	if (args_has(self->args, 'd')) {
 		wp->flags |= PANE_INPUTOFF;
-	else if (window_set_active_pane(wl->window, wp)) {
+		return (CMD_RETURN_NORMAL);
+	}
+
+	if (wp == wl->window->active)
+		return (CMD_RETURN_NORMAL);
+	server_unzoom_window(wp->window);
+	if (!window_pane_visible(wp)) {
+		cmdq_error(cmdq, "pane not visible");
+		return (CMD_RETURN_ERROR);
+	}
+	if (window_set_active_pane(wl->window, wp)) {
 		server_status_window(wl->window);
 		server_redraw_window_borders(wl->window);
 	}

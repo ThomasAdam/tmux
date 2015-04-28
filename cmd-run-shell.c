@@ -79,14 +79,16 @@ cmd_run_shell_exec(struct cmd *self, struct cmd_q *cmdq)
 	struct winlink			*wl = cmdq->state.tflag.wl;
 	struct window_pane		*wp = cmdq->state.tflag.wp;
 	struct format_tree		*ft;
+	int				 cwd;
 
+	if (cmdq->client != NULL && cmdq->client->session == NULL)
+		cwd = cmdq->client->cwd;
+	else if (s != NULL)
+		cwd = s->cwd;
+	else
+		cwd = -1;
 	ft = format_create();
-	if (s != NULL)
-		format_session(ft, s);
-	if (s != NULL && wl != NULL)
-		format_winlink(ft, s, wl);
-	if (wp != NULL)
-		format_window_pane(ft, wp);
+	format_defaults(ft, NULL, s, wl, wp);
 	shellcmd = format_expand(ft, args->argv[0]);
 	format_free(ft);
 
@@ -98,7 +100,8 @@ cmd_run_shell_exec(struct cmd *self, struct cmd_q *cmdq)
 	cdata->cmdq = cmdq;
 	cmdq->references++;
 
-	job_run(shellcmd, s, cmd_run_shell_callback, cmd_run_shell_free, cdata);
+	job_run(shellcmd, s, cwd, cmd_run_shell_callback, cmd_run_shell_free,
+	    cdata);
 
 	if (cdata->bflag)
 		return (CMD_RETURN_NORMAL);

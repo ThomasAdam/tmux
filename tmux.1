@@ -163,7 +163,8 @@ If the socket is accidentally removed, the
 .Dv SIGUSR1
 signal may be sent to the
 .Nm
-server process to recreate it.
+server process to recreate it (note that this will fail if any parent
+directories are missing).
 .It Fl l
 Behave as a login shell.
 This flag currently has no effect and is for compatibility with other shells
@@ -361,6 +362,7 @@ argument with one of
 or
 .Ar target-pane .
 These specify the client, session, window or pane which a command should affect.
+.Pp
 .Ar target-client
 is the name of the
 .Xr pty 7
@@ -370,27 +372,35 @@ or
 .Pa ttyp1
 for the client attached to
 .Pa /dev/ttyp1 .
-If no client is specified, the current client is chosen, if possible, or an
-error is reported.
+If no client is specified,
+.Nm
+attempts to work out the client currently in use; if that fails, an error is
+reported.
 Clients may be listed with the
 .Ic list-clients
 command.
 .Pp
 .Ar target-session
-is the session id prefixed with a $, the name of a session (as listed by the
+is tried as, in order:
+.Bl -enum -offset Ds
+.It
+A session ID prefixed with a $.
+.It
+An exact name of a session (as listed by the
 .Ic list-sessions
-command), or the name of a client with the same syntax as
-.Ar target-client ,
-in which case the session attached to the client is used.
-When looking for the session name,
-.Nm
-initially searches for an exact match; if none is found, the session names
-are checked for any for which
-.Ar target-session
-is a prefix or for which it matches as an
+command).
+.It
+The start of a session name, for example
+.Ql mysess
+would match a session named
+.Ql mysession .
+.It
+An
 .Xr fnmatch 3
-pattern.
-If a single match is found, it is used as the target session; multiple matches
+pattern which is matched against the session name.
+.El
+.Pp
+If a single session is found, it is used as the target session; multiple matches
 produce an error.
 If a session is omitted, the current session is used if available; if no
 current session is available, the most recently used is chosen.
@@ -403,12 +413,29 @@ follows the same rules as for
 .Ar target-session ,
 and
 .Em window
-is looked for in order: as a window index, for example mysession:1;
-as a window ID, such as @1;
-as an exact window name, such as mysession:mywindow; then as an
+is looked for in order as:
+.Bl -enum -offset Ds
+.It
+A special token, listed below.
+.It
+A window index, for example
+.Ql mysession:1
+is window 1 in session
+.Ql mysession .
+.It
+A window ID, such as @1.
+.It
+An exact window name, such as
+.Ql mysession:mywindow .
+.It
+The start of a window name, such as
+.Ql mysession:mywin .
+.It
+As an
 .Xr fnmatch 3
-pattern or the start of a window name, such as mysession:mywin* or
-mysession:mywin.
+pattern matched against the window name.
+.El
+.Pp
 An empty window name specifies the next unused index if appropriate (for
 example the
 .Ic new-window
@@ -418,53 +445,50 @@ commands)
 otherwise the current window in
 .Em session
 is chosen.
-The special character
-.Ql \&!
-uses the last (previously current) window,
-.Ql ^
-selects the highest numbered window,
-.Ql $
-selects the lowest numbered window, and
-.Ql +
-and
-.Ql -
-select the next window or the previous window by number.
-When the argument does not contain a colon,
-.Nm
-first attempts to parse it as window; if that fails, an attempt is made to
-match a session.
+.Pp
+The following special tokens are available to indicate particular windows.
+Each has a single-character alternative form.
+.Bl -column "XXXXXXXXXX" "X"
+.It Sy "Token" Ta Sy "" Ta Sy "Meaning"
+.It Li "{start}" Ta "^" Ta "The lowest-numbered window"
+.It Li "{end}" Ta "$" Ta "The highest-numbered window"
+.It Li "{last}" Ta "!" Ta "The last (previously current) window"
+.It Li "{next}" Ta "+" Ta "The next window by number"
+.It Li "{previous}" Ta "-" Ta "The previous window by number"
+.It Li "{mouse}" Ta "=" Ta "The window where the mouse event happened"
+.El
 .Pp
 .Ar target-pane
-takes a similar form to
+may be a
+pane ID or takes a similar form to
 .Ar target-window
-but with the optional addition of a period followed by a pane index, for
-example: mysession:mywindow.1.
+but with the optional addition of a period followed by a pane index or pane ID,
+for example:
+.Ql mysession:mywindow.1 .
 If the pane index is omitted, the currently active pane in the specified
 window is used.
-If neither a colon nor period appears,
-.Nm
-first attempts to use the argument as a pane index; if that fails, it is looked
-up as for
-.Ar target-window .
-A
-.Ql + ,
-.Ql -
-or
-.Ql \&!
-indicate the next, previous or last pane.
-One of the strings
-.Em top ,
-.Em bottom ,
-.Em left ,
-.Em right ,
-.Em top-left ,
-.Em top-right ,
-.Em bottom-left
-or
-.Em bottom-right
-may be used instead of a pane index.
+The following special tokens are available for the pane index:
+.Bl -column "XXXXXXXXXXXXXX" "X"
+.It Sy "Token" Ta Sy "" Ta Sy "Meaning"
+.It Li "{last}" Ta "!" Ta "The last (previously active) pane"
+.It Li "{next}" Ta "+" Ta "The next pane by number"
+.It Li "{previous}" Ta "-" Ta "The previous pane by number"
+.It Li "{top}" Ta "" Ta "The top pane"
+.It Li "{bottom}" Ta "" Ta "The bottom pane"
+.It Li "{left}" Ta "" Ta "The leftmost pane"
+.It Li "{right}" Ta "" Ta "The rightmost pane"
+.It Li "{top-left}" Ta "" Ta "The top-left pane"
+.It Li "{top-right}" Ta "" Ta "The top-right pane"
+.It Li "{bottom-left}" Ta "" Ta "The bottom-left pane"
+.It Li "{bottom-right}" Ta "" Ta "The bottom-right pane"
+.It Li "{up}" Ta "" Ta "The pane above the active pane"
+.It Li "{down}" Ta "" Ta "The pane below the active pane"
+.It Li "{left}" Ta "" Ta "The pane to the left of the active pane"
+.It Li "{right}" Ta "" Ta "The pane to the right of the active pane"
+.It Li "{mouse}" Ta "=" Ta "The pane where the mouse event happened"
+.El
 .Pp
-The special characters
+The tokens
 .Ql +
 and
 .Ql -
@@ -473,19 +497,34 @@ may be followed by an offset, for example:
 select-window -t:+2
 .Ed
 .Pp
-When dealing with a session that doesn't contain sequential window indexes,
-they will be correctly skipped.
-.Pp
+Sessions, window and panes are each numbered with a unique ID; session IDs are
+prefixed with a
+.Ql $ ,
+windows with a
+.Ql @ ,
+and panes with a
+.Ql % .
+These are unique and are unchanged for the life of the session, window or pane
+in the
 .Nm
-also gives each pane created in a server an identifier consisting of a
-.Ql %
-and a number, starting from zero.
-A pane's identifier is unique for the life of the
-.Nm
-server and is passed to the child process of the pane in the
+server.
+The pane ID is passed to the child process of the pane in the
 .Ev TMUX_PANE
 environment variable.
-It may be used alone to target a pane or the window containing it.
+IDs may be displayed using the
+.Ql session_id ,
+.Ql window_id ,
+or
+.Ql pane_id
+formats (see the
+.Sx FORMATS
+section) and the
+.Ic display-message ,
+.Ic list-sessions ,
+.Ic list-windows
+or
+.Ic list-panes
+commands.
 .Pp
 .Ar shell-command
 arguments are
@@ -751,7 +790,7 @@ behave like
 .Ic attach-session
 if
 .Ar session-name
-already exists; in the case,
+already exists; in this case,
 .Fl D
 behaves like
 .Fl d
@@ -842,6 +881,7 @@ Suspend a client by sending
 .Op Fl lnpr
 .Op Fl c Ar target-client
 .Op Fl t Ar target-session
+.Op Fl T Ar key-table
 .Xc
 .D1 (alias: Ic switchc )
 Switch the current session for client
@@ -859,6 +899,22 @@ respectively.
 toggles whether a client is read-only (see the
 .Ic attach-session
 command).
+.Pp
+.Fl T
+sets the client's key table; the next key from the client will be interpreted from
+.Ar key-table .
+This may be used to configure multiple prefix keys, or to bind commands to
+sequences of keys.
+For example, to make typing
+.Ql abc
+run the
+.Ic list-keys
+command:
+.Bd -literal -offset indent
+bind-key -Ttable2 c list-keys
+bind-key -Ttable1 b switch-client -Ttable2
+bind-key -Troot   a switch-client -Ttable1
+.Ed
 .El
 .Sh WINDOWS AND PANES
 A
@@ -991,15 +1047,27 @@ command and keys modified or removed with
 .Ic bind-key
 and
 .Ic unbind-key .
-One command accepts an argument,
-.Ic copy-pipe ,
-which copies the selection and pipes it to a command.
+If
+.Ic append-selection ,
+.Ic copy-selection ,
+or
+.Ic start-named-buffer
+are given the
+.Fl x
+flag,
+.Nm
+will not exit copy mode after copying.
+.Ic copy-pipe
+copies the selection and pipes it to a command.
 For example the following will bind
+.Ql C-w
+not to exit after copying and
 .Ql C-q
 to copy the selection into
 .Pa /tmp
 as well as the paste buffer:
 .Bd -literal -offset indent
+bind-key -temacs-copy C-w copy-selection -x
 bind-key -temacs-copy C-q copy-pipe "cat >/tmp/out"
 .Ed
 .Pp
@@ -1011,13 +1079,16 @@ The synopsis for the
 command is:
 .Bl -tag -width Ds
 .It Xo Ic copy-mode
-.Op Fl u
+.Op Fl Mu
 .Op Fl t Ar target-pane
 .Xc
 Enter copy mode.
 The
 .Fl u
 option scrolls one page up.
+.Fl M
+begins a mouse drag (only valid if bound to a mouse key binding, see
+.Sx MOUSE SUPPORT ) .
 .El
 .Pp
 Each window displayed by
@@ -1635,7 +1706,7 @@ Rename the current window, or the window at
 if specified, to
 .Ar new-name .
 .It Xo Ic resize-pane
-.Op Fl DLRUZ
+.Op Fl DLMRUZ
 .Op Fl t Ar target-pane
 .Op Fl x Ar width
 .Op Fl y Ar height
@@ -1664,6 +1735,10 @@ With
 .Fl Z ,
 the active pane is toggled between zoomed (occupying the whole of the window)
 and unzoomed (its normal position in the layout).
+.Pp
+.Fl M
+begins mouse resizing (only valid if bound to a mouse key binding, see
+.Sx MOUSE SUPPORT ) .
 .It Xo Ic respawn-pane
 .Op Fl k
 .Op Fl t Ar target-pane
@@ -1704,7 +1779,7 @@ lower) with
 .Fl U
 or downward (numerically higher).
 .It Xo Ic select-layout
-.Op Fl np
+.Op Fl nop
 .Op Fl t Ar target-window
 .Op Ar layout-name
 .Xc
@@ -1721,15 +1796,20 @@ are equivalent to the
 and
 .Ic previous-layout
 commands.
+.Fl o
+applies the last set layout if possible (undoes the most recent layout change).
 .It Xo Ic select-pane
-.Op Fl DdeLlRU
+.Op Fl DdegLlRU
+.Op Fl P Ar style
 .Op Fl t Ar target-pane
 .Xc
 .D1 (alias: Ic selectp )
 Make pane
 .Ar target-pane
 the active pane in window
-.Ar target-window .
+.Ar target-window ,
+or set its style (with
+.Fl P ) .
 If one of
 .Fl D ,
 .Fl L ,
@@ -1746,6 +1826,22 @@ command.
 enables or
 .Fl d
 disables input to the pane.
+.Pp
+Each pane has a style: by default the
+.Ic window-style
+and
+.Ic window-active-style
+options are used,
+.Ic select-pane
+.Fl P
+sets the style for a single pane.
+For example, to set the pane 1 background to red:
+.Bd -literal -offset indent
+select-pane -t:.1 -P 'bg=red'
+.Ed
+.Pp
+.Fl g
+shows the current pane style.
 .It Xo Ic select-window
 .Op Fl lnpT
 .Op Fl t Ar target-window
@@ -1897,6 +1993,7 @@ Commands related to key bindings are as follows:
 .It Xo Ic bind-key
 .Op Fl cnr
 .Op Fl t Ar mode-table
+.Op Fl T Ar key-table
 .Ar key Ar command Op Ar arguments
 .Xc
 .D1 (alias: Ic bind )
@@ -1904,16 +2001,40 @@ Bind key
 .Ar key
 to
 .Ar command .
-By default (without
-.Fl t )
-the primary key bindings are modified (those normally activated with the prefix
-key); in this case, if
-.Fl n
-is specified, it is not necessary to use the prefix key,
-.Ar command
+Keys are bound in a key table.
+By default (without -T), the key is bound in
+the
+.Em prefix
+key table.
+This table is used for keys pressed after the prefix key (for example,
+by default
+.Ql c
 is bound to
-.Ar key
-alone.
+.Ic new-window
+in the
+.Em prefix
+table, so
+.Ql C-b c
+creates a new window).
+The
+.Em root
+table is used for keys pressed without the prefix key: binding
+.Ql c
+to
+.Ic new-window
+in the
+.Em root
+table (not recommended) means a plain
+.Ql c
+will create a new window.
+.Fl n
+is an alias
+for
+.Fl T Ar root .
+Keys may also be bound in custom key tables and the
+.Ic switch-client
+.Fl T
+command used to switch to them from a key binding.
 The
 .Fl r
 flag indicates this key may repeat, see the
@@ -1929,21 +2050,33 @@ is bound in
 the binding for command mode with
 .Fl c
 or for normal mode without.
+See the
+.Sx WINDOWS AND PANES
+section and the
+.Ic list-keys
+command for information on mode key bindings.
+.Pp
 To view the default bindings and possible commands, see the
 .Ic list-keys
 command.
-.It Ic list-keys Op Fl t Ar key-table
+.It Xo Ic list-keys
+.Op Fl t Ar mode-table
+.Op Fl T Ar key-table
+.Xc
 .D1 (alias: Ic lsk )
 List all key bindings.
 Without
-.Fl t
-the primary key bindings - those executed when preceded by the prefix key -
-are printed.
+.Fl T
+all key tables are printed.
+With
+.Fl T
+only
+.Ar key-table .
 .Pp
 With
 .Fl t ,
 the key bindings in
-.Ar key-table
+.Ar mode-table
 are listed; this may be one of:
 .Em vi-edit ,
 .Em emacs-edit ,
@@ -1953,7 +2086,7 @@ are listed; this may be one of:
 or
 .Em emacs-copy .
 .It Xo Ic send-keys
-.Op Fl lR
+.Op Fl lMR
 .Op Fl t Ar target-pane
 .Ar key Ar ...
 .Xc
@@ -1974,6 +2107,10 @@ All arguments are sent sequentially from first to last.
 The
 .Fl R
 flag causes the terminal state to be reset.
+.Pp
+.Fl M
+passes through a mouse event (only valid if bound to a mouse key binding, see
+.Sx MOUSE SUPPORT ) .
 .It Xo Ic send-prefix
 .Op Fl 2
 .Op Fl t Ar target-pane
@@ -1984,31 +2121,22 @@ the secondary prefix key, to a window as if it was pressed.
 .It Xo Ic unbind-key
 .Op Fl acn
 .Op Fl t Ar mode-table
+.Op Fl T Ar key-table
 .Ar key
 .Xc
 .D1 (alias: Ic unbind )
 Unbind the command bound to
 .Ar key .
-Without
+.Fl c ,
+.Fl n ,
+.Fl T
+and
 .Fl t
-the primary key bindings are modified; in this case, if
-.Fl n
-is specified, the command bound to
-.Ar key
-without a prefix (if any) is removed.
+are the same as for
+.Ic bind-key .
 If
 .Fl a
 is present, all key bindings are removed.
-.Pp
-If
-.Fl t
-is present,
-.Ar key
-in
-.Ar mode-table
-is unbound: the binding for command mode with
-.Fl c
-or for normal mode without.
 .El
 .Sh OPTIONS
 The appearance and behaviour of
@@ -2062,7 +2190,7 @@ also supports user options which are prefixed with a
 User options may have any name, so long as they are prefixed with
 .Ql \&@ ,
 and be set to any string.
-For example
+For example:
 .Bd -literal -offset indent
 $ tmux setw -q @foo "abc123"
 $ tmux showw -v @foo
@@ -2422,45 +2550,19 @@ For how to specify
 see the
 .Ic message-command-style
 option.
-.It Xo Ic mouse-resize-pane
+.It Xo Ic mouse
 .Op Ic on | off
 .Xc
 If on,
 .Nm
-captures the mouse and allows panes to be resized by dragging on their borders.
-.It Xo Ic mouse-select-pane
-.Op Ic on | off
-.Xc
-If on,
-.Nm
-captures the mouse and when a window is split into multiple panes the mouse may
-be used to select the current pane.
-The mouse click is also passed through to the application as normal.
-.It Xo Ic mouse-select-window
-.Op Ic on | off
-.Xc
-If on, clicking the mouse on a window name in the status line will select that
-window.
+captures the mouse and allows mouse events to be bound as key bindings.
+See the
+.Sx MOUSE SUPPORT
+section for details.
 .It Xo Ic mouse-utf8
 .Op Ic on | off
 .Xc
 If enabled, request mouse input as UTF-8 on UTF-8 terminals.
-.It Ic pane-active-border-style Ar style
-Set the pane border style for the currently active pane.
-For how to specify
-.Ar style ,
-see the
-.Ic message-command-style
-option.
-Attributes are ignored.
-.It Ic pane-border-style Ar style
-Set the pane border style for panes aside from the active pane.
-For how to specify
-.Ar style ,
-see the
-.Ic message-command-style
-option.
-Attributes are ignored.
 .It Ic prefix Ar key
 Set the key accepted as a prefix key.
 .It Ic prefix2 Ar key
@@ -2519,9 +2621,9 @@ variable is set.
 String used to set the window title if
 .Ic set-titles
 is on.
-Character sequences are replaced as for the
-.Ic status-left
-option.
+Formats are expanded, see the
+.Sx FORMATS
+section.
 .It Xo Ic status
 .Op Ic on | off
 .Xc
@@ -2844,18 +2946,6 @@ or
 contains
 .Ql vi .
 .Pp
-.It Xo Ic mode-mouse
-.Op Ic on | off | copy-mode
-.Xc
-Mouse state in modes.
-If on, the mouse may be used to enter copy mode and copy a selection by
-dragging, to enter copy mode and scroll with the mouse wheel, or to select an
-option in choice mode.
-If set to
-.Em copy-mode ,
-the mouse behaves as set to on, but cannot be used to enter copy
-mode.
-.Pp
 .It Ic mode-style Ar style
 Set window modes style.
 For how to specify
@@ -2899,10 +2989,28 @@ but set the width of other panes in the
 .Ic main-vertical
 layout.
 .Pp
+.It Ic pane-active-border-style Ar style
+Set the pane border style for the currently active pane.
+For how to specify
+.Ar style ,
+see the
+.Ic message-command-style
+option.
+Attributes are ignored.
+.Pp
 .It Ic pane-base-index Ar index
 Like
 .Ic base-index ,
 but set the starting index for pane numbers.
+.Pp
+.It Ic pane-border-style Ar style
+Set the pane border style for panes aside from the active pane.
+For how to specify
+.Ar style ,
+see the
+.Ic message-command-style
+option.
+Attributes are ignored.
 .Pp
 .It Xo Ic remain-on-exit
 .Op Ic on | off
@@ -2925,6 +3033,14 @@ for panes that are not in any special mode).
 Instructs
 .Nm
 to expect UTF-8 sequences to appear in this window.
+.Pp
+.It Ic window-active-style Ar style
+Set the style for the window's active pane.
+For how to specify
+.Ar style ,
+see the
+.Ic message-command-style
+option.
 .Pp
 .It Ic window-status-activity-style Ar style
 Set status line style for windows with an activity alert.
@@ -2977,6 +3093,14 @@ The default is a single space character.
 .Pp
 .It Ic window-status-style Ar style
 Set status line style for a single window.
+For how to specify
+.Ar style ,
+see the
+.Ic message-command-style
+option.
+.Pp
+.It Ic window-style Ar style
+Set the default window style.
 For how to specify
 .Ar style ,
 see the
@@ -3038,6 +3162,58 @@ is used.
 .Fl v
 shows only the option value, not the name.
 .El
+.Sh MOUSE SUPPORT
+If the
+.Ic mouse
+option is on (the default is off),
+.Nm
+allows mouse events to be bound as keys.
+The name of each key is made up of a mouse event (such as
+.Ql MouseUp1 )
+and a location suffix (one of
+.Ql Pane
+for the contents of a pane,
+.Ql Border
+for a pane border or
+.Ql Status
+for the status line).
+The following mouse events are available:
+.Bl -column "MouseDown1" "MouseDrag1" "WheelDown" -offset indent
+.It Li "MouseDown1" Ta "MouseUp1" Ta "MouseDrag1"
+.It Li "MouseDown2" Ta "MouseUp2" Ta "MouseDrag2"
+.It Li "MouseDown3" Ta "MouseUp3" Ta "MouseDrag3"
+.It Li "WheelUp" Ta "WheelDown" Ta ""
+.El
+.Pp
+Each should be suffixed with a location, for example
+.Ql MouseDown1Status .
+.Pp
+The special token
+.Ql {mouse}
+or
+.Ql =
+may be used as
+.Ar target-window
+or
+.Ar target-pane
+in commands bound to mouse key bindings.
+It resolves to the window or pane over which the mouse event took place
+(for example, the window in the status line over which button 1 was released for a
+.Ql MouseUp1Status
+binding, or the pane over which the wheel was scrolled for a
+.Ql WheelDownPane
+binding).
+.Pp
+The
+.Ic send-keys
+.Fl M
+flag may be used to forward a mouse event to a pane.
+.Pp
+The default key bindings allow the mouse to be used to select and resize panes,
+to copy text and to change window using the status line.
+These take effect if the
+.Ic mouse
+option is turned on.
 .Sh FORMATS
 Certain commands accept the
 .Fl F
@@ -3151,6 +3327,8 @@ The following variables are available, where appropriate:
 .It Li "scroll_region_lower" Ta "" Ta "Bottom of scroll region in pane"
 .It Li "scroll_region_upper" Ta "" Ta "Top of scroll region in pane"
 .It Li "session_attached" Ta "" Ta "Number of clients session is attached to"
+.It Li "session_activity" Ta "" Ta "Integer time of session last activity"
+.It Li "session_activity_string" Ta "" Ta "String time of session last activity"
 .It Li "session_created" Ta "" Ta "Integer time session created"
 .It Li "session_created_string" Ta "" Ta "String time session created"
 .It Li "session_group" Ta "" Ta "Number of session group"

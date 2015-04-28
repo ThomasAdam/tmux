@@ -48,10 +48,9 @@ enum cmd_retval
 cmd_detach_client_exec(struct cmd *self, struct cmd_q *cmdq)
 {
 	struct args	*args = self->args;
-	struct client	*c = cmdq->state.c, *c2;
+	struct client	*c = cmdq->state.c, *cloop;
 	struct session	*s;
 	enum msgtype	 msgtype;
-	u_int 		 i;
 
 	if (self->entry == &cmd_suspend_client_entry) {
 		tty_stop_tty(&c->tty);
@@ -67,29 +66,28 @@ cmd_detach_client_exec(struct cmd *self, struct cmd_q *cmdq)
 
 	if (args_has(args, 's')) {
 		s = cmdq->state.sflag.s;
-		for (i = 0; i < ARRAY_LENGTH(&clients); i++) {
-			c = ARRAY_ITEM(&clients, i);
-			if (c == NULL || c->session != s)
+		TAILQ_FOREACH(cloop, &clients, entry) {
+			if (cloop->session != s)
 				continue;
-			server_write_client(c, msgtype, c->session->name,
-			    strlen(c->session->name) + 1);
+			server_write_client(cloop, msgtype,
+			    cloop->session->name,
+			    strlen(cloop->session->name) + 1);
 		}
-	} else {
-		if (args_has(args, 'a')) {
-			for (i = 0; i < ARRAY_LENGTH(&clients); i++) {
-				c2 = ARRAY_ITEM(&clients, i);
-				if (c2 == NULL || c2->session == NULL ||
-				    c2 == c)
-					continue;
-				server_write_client(c2, msgtype,
-				    c2->session->name,
-				    strlen(c2->session->name) + 1);
-			}
-		} else {
-			server_write_client(c, msgtype, c->session->name,
-			    strlen(c->session->name) + 1);
-		}
+		return (CMD_RETURN_STOP);
 	}
 
+	if (args_has(args, 'a')) {
+		TAILQ_FOREACH(cloop, &clients, entry) {
+			if (cloop->session == NULL || cloop == c)
+				continue;
+			server_write_client(cloop, msgtype,
+			    cloop->session->name,
+			    strlen(cloop->session->name) + 1);
+		}
+		return (CMD_RETURN_NORMAL);
+	}
+
+	server_write_client(c, msgtype, c->session->name,
+	    strlen(c->session->name) + 1);
 	return (CMD_RETURN_STOP);
 }

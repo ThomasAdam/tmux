@@ -21,6 +21,7 @@
 
 #include <errno.h>
 #include <fcntl.h>
+#include <stdlib.h>
 #include <string.h>
 #include <time.h>
 #include <unistd.h>
@@ -49,8 +50,11 @@ cmd_pipe_pane_exec(struct cmd *self, struct cmd_q *cmdq)
 	struct args		*args = self->args;
 	struct client		*c = cmdq->state.c;
 	struct window_pane	*wp = cmdq->state.tflag.wp;
-	char			*command;
+	struct session		*s = cmdq->state.tflag.s;
+	struct winlink		*wl = cmdq->state.tflag.wl;
+	char			*cmd;
 	int			 old_fd, pipe_fd[2], null_fd;
+	struct format_tree	*ft;
 
 	/* Destroy the old pipe. */
 	old_fd = wp->pipe_fd;
@@ -79,10 +83,18 @@ cmd_pipe_pane_exec(struct cmd *self, struct cmd_q *cmdq)
 		return (CMD_RETURN_ERROR);
 	}
 
+	/* Expand the command. */
+	ft = format_create();
+	format_defaults(ft, c, s, wl, wp);
+	cmd = format_expand_time(ft, args->argv[0], time(NULL));
+	format_free(ft);
+
 	/* Fork the child. */
 	switch (fork()) {
 	case -1:
 		cmdq_error(cmdq, "fork error: %s", strerror(errno));
+
+		free(cmd);
 		return (CMD_RETURN_ERROR);
 	case 0:
 		/* Child process. */
@@ -104,9 +116,7 @@ cmd_pipe_pane_exec(struct cmd *self, struct cmd_q *cmdq)
 
 		closefrom(STDERR_FILENO + 1);
 
-		command = status_replace(c, NULL, NULL, NULL, args->argv[0],
-		    time(NULL), 0);
-		execl(_PATH_BSHELL, "sh", "-c", command, (char *) NULL);
+		execl(_PATH_BSHELL, "sh", "-c", cmd, (char *) NULL);
 		_exit(1);
 	default:
 		/* Parent process. */
@@ -120,6 +130,8 @@ cmd_pipe_pane_exec(struct cmd *self, struct cmd_q *cmdq)
 		bufferevent_enable(wp->pipe_event, EV_WRITE);
 
 		setblocking(wp->pipe_fd, 0);
+
+		free(cmd);
 		return (CMD_RETURN_NORMAL);
 	}
 }

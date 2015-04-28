@@ -31,8 +31,8 @@ enum cmd_retval	 cmd_switch_client_exec(struct cmd *, struct cmd_q *);
 
 const struct cmd_entry cmd_switch_client_entry = {
 	"switch-client", "switchc",
-	"lc:npt:r", 0, 0,
-	"[-lnpr] [-c target-client] " CMD_TARGET_SESSION_USAGE,
+	"lc:npt:rT:", 0, 0,
+	"[-lnpr] [-c target-client] [-T key-table] " CMD_TARGET_SESSION_USAGE,
 	CMD_READONLY|CMD_PREP_CLIENT_C|CMD_PREP_PANE_T|CMD_PREP_SESSION_T|
 	CMD_PREP_PREFERUNATTACHED,
 	cmd_switch_client_exec
@@ -44,14 +44,29 @@ cmd_switch_client_exec(struct cmd *self, struct cmd_q *cmdq)
 	struct args		*args = self->args;
 	struct cmd_state	*state = &cmdq->state;
 	struct client		*c = state->c;
-	struct session		*s;
+	struct session		*s = cmdq->state.tflag.s;
 	struct window_pane	*wp;
+	const char		*tablename;
+	struct key_table	*table;
+
 
 	if (args_has(args, 'r')) {
 		if (c->flags & CLIENT_READONLY)
 			c->flags &= ~CLIENT_READONLY;
 		else
 			c->flags |= CLIENT_READONLY;
+	}
+
+	tablename = args_get(args, 'T');
+	if (tablename != NULL) {
+		table = key_bindings_get_table(tablename, 0);
+		if (table == NULL) {
+			cmdq_error(cmdq, "table %s doesn't exist", tablename);
+			return (CMD_RETURN_ERROR);
+		}
+		table->references++;
+		key_bindings_unref_table(c->keytable);
+		c->keytable = table;
 	}
 
 	if (args_has(args, 'n')) {
@@ -73,7 +88,6 @@ cmd_switch_client_exec(struct cmd *self, struct cmd_q *cmdq)
 			cmdq_error(cmdq, "can't find last session");
 			return (CMD_RETURN_ERROR);
 		}
-	} else {
 		if (cmdq->client == NULL)
 			return (CMD_RETURN_NORMAL);
 

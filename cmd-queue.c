@@ -20,6 +20,7 @@
 
 #include <ctype.h>
 #include <stdlib.h>
+#include <string.h>
 #include <time.h>
 #include <string.h>
 
@@ -124,27 +125,24 @@ cmdq_error(struct cmd_q *cmdq, const char *fmt, ...)
 }
 
 /* Print a guard line. */
-int
+void
 cmdq_guard(struct cmd_q *cmdq, const char *guard, int flags)
 {
 	struct client	*c = cmdq->client;
 
-	if (c == NULL)
-		return (0);
-	if (!(c->flags & CLIENT_CONTROL))
-		return (0);
+	if (c == NULL || !(c->flags & CLIENT_CONTROL))
+		return;
 
 	evbuffer_add_printf(c->stdout_data, "%%%s %ld %u %d\n", guard,
 	    (long) cmdq->time, cmdq->number, flags);
 	server_push_stdout(c);
-	return (1);
 }
 
 /* Add command list to queue and begin processing if needed. */
 void
-cmdq_run(struct cmd_q *cmdq, struct cmd_list *cmdlist)
+cmdq_run(struct cmd_q *cmdq, struct cmd_list *cmdlist, struct mouse_event *m)
 {
-	cmdq_append(cmdq, cmdlist);
+	cmdq_append(cmdq, cmdlist, m);
 
 	if (cmdq->item == NULL) {
 		cmdq->cmd = NULL;
@@ -186,7 +184,7 @@ cmdq_hooks_run(struct hooks *hooks, const char *prefix, const char *cmd_name,
 
 	if (cmdq != NULL)
 		cmdq->references++;
-	cmdq_run(hooks_cmdq, hook->cmdlist);
+	cmdq_run(hooks_cmdq, hook->cmdlist, NULL);
 
 	return (1);
 }
@@ -210,7 +208,7 @@ cmdq_hooks_emptyfn(struct cmd_q *hooks_cmdq)
 
 /* Add command list to queue. */
 void
-cmdq_append(struct cmd_q *cmdq, struct cmd_list *cmdlist)
+cmdq_append(struct cmd_q *cmdq, struct cmd_list *cmdlist, struct mouse_event *m)
 {
 	struct cmd_q_item	*item;
 
@@ -218,6 +216,11 @@ cmdq_append(struct cmd_q *cmdq, struct cmd_list *cmdlist)
 	item->cmdlist = cmdlist;
 	TAILQ_INSERT_TAIL(&cmdq->queue, item, qentry);
 	cmdlist->references++;
+
+	if (m != NULL)
+		memcpy(&item->mouse, m, sizeof item->mouse);
+	else
+		item->mouse.valid = 0;
 }
 
 /* Process one command. */
@@ -297,6 +300,7 @@ cmdq_continue(struct cmd_q *cmdq)
 	enum cmd_retval		 retval;
 	int			 empty;
 
+	cmdq->references++;
 	notify_disable();
 
 	log_debug("continuing cmdq %p: flags=%#x, client=%d", cmdq, cmdq->flags,
@@ -347,11 +351,13 @@ empty:
 	if (cmdq->client_exit > 0)
 		cmdq->client->flags |= CLIENT_EXIT;
 	if (cmdq->emptyfn != NULL)
-		cmdq->emptyfn(cmdq); /* may free cmdq */
+		cmdq->emptyfn(cmdq);
 	empty = 1;
 
 out:
 	notify_enable();
+	cmdq_free(cmdq);
+
 	return (empty);
 }
 

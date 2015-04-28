@@ -258,11 +258,19 @@ client_main(int argc, char **argv, int flags)
 		return (1);
 	}
 
+	/* Establish signal handlers. */
+	set_signals(client_signal);
+
 	/* Initialize the client socket and start the server. */
 	fd = client_connect(socket_path, cmdflags & CMD_STARTSERVER);
 	if (fd == -1) {
-		fprintf(stderr, "failed to connect to server: %s\n",
-		    strerror(errno));
+		if (errno == ECONNREFUSED) {
+			fprintf(stderr, "no server running on %s\n",
+			    socket_path);
+		} else {
+			fprintf(stderr, "error connecting to %s (%s)\n",
+			    socket_path, strerror(errno));
+		}
 		return (1);
 	}
 
@@ -299,9 +307,6 @@ client_main(int argc, char **argv, int flags)
 		cfsetospeed(&tio, cfgetospeed(&saved_tio));
 		tcsetattr(STDIN_FILENO, TCSANOW, &tio);
 	}
-
-	/* Establish signal handlers. */
-	set_signals(client_signal);
 
 	/* Send identify messages. */
 	client_send_identify(flags);
@@ -561,7 +566,7 @@ client_dispatch_wait(void *data0)
 		data = imsg.data;
 		datalen = imsg.hdr.len - IMSG_HEADER_SIZE;
 
-		log_debug("got %d from server", imsg.hdr.type);
+		log_debug("got %u from server", imsg.hdr.type);
 		switch (imsg.hdr.type) {
 		case MSG_EXIT:
 		case MSG_SHUTDOWN:
@@ -608,7 +613,7 @@ client_dispatch_wait(void *data0)
 				fatalx("bad MSG_VERSION size");
 
 			fprintf(stderr, "protocol version mismatch "
-			    "(client %u, server %u)\n", PROTOCOL_VERSION,
+			    "(client %d, server %u)\n", PROTOCOL_VERSION,
 			    imsg.hdr.peerid);
 			client_exitval = 1;
 
@@ -652,7 +657,7 @@ client_dispatch_attached(void)
 		data = imsg.data;
 		datalen = imsg.hdr.len - IMSG_HEADER_SIZE;
 
-		log_debug("got %d from server", imsg.hdr.type);
+		log_debug("got %u from server", imsg.hdr.type);
 		switch (imsg.hdr.type) {
 		case MSG_DETACH:
 		case MSG_DETACHKILL:

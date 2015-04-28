@@ -129,7 +129,6 @@ cmd_show_messages_exec(struct cmd *self, struct cmd_q *cmdq)
 	struct client		*c = cmdq->state.c;
 	struct message_entry	*msg;
 	char			*tim;
-	u_int			 i;
 	int			 done;
 
 	done = 0;
@@ -152,9 +151,7 @@ cmd_show_messages_exec(struct cmd *self, struct cmd_q *cmdq)
 	if (done)
 		return (CMD_RETURN_NORMAL);
 
-	for (i = 0; i < ARRAY_LENGTH(&c->message_log); i++) {
-		msg = &ARRAY_ITEM(&c->message_log, i);
-
+	TAILQ_FOREACH(msg, &c->message_log, entry) {
 		tim = ctime(&msg->msg_time);
 		*strchr(tim, '\n') = '\0';
 

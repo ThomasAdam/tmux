@@ -61,7 +61,15 @@ void	window_pane_timer_callback(int, short, void *);
 void	window_pane_read_callback(struct bufferevent *, void *);
 void	window_pane_error_callback(struct bufferevent *, short, void *);
 
-struct window_pane *window_pane_choose_best(struct window_pane_list *);
+struct window_pane *window_pane_choose_best(struct window_pane **, u_int);
+
+RB_GENERATE(windows, window, entry, window_cmp);
+
+int
+window_cmp(struct window *w1, struct window *w2)
+{
+	return (w1->id - w2->id);
+}
 
 RB_GENERATE(winlinks, winlink, entry, winlink_cmp);
 
@@ -244,38 +252,36 @@ winlink_stack_remove(struct winlink_stack *stack, struct winlink *wl)
 	}
 }
 
-int
-window_index(struct window *s, u_int *i)
+struct window *
+window_find_by_id_str(const char *s)
 {
-	for (*i = 0; *i < ARRAY_LENGTH(&windows); (*i)++) {
-		if (s == ARRAY_ITEM(&windows, *i))
-			return (0);
-	}
-	return (-1);
+	const char	*errstr;
+	u_int		 id;
+
+	if (*s != '@')
+		return (NULL);
+
+	id = strtonum(s + 1, 0, UINT_MAX, &errstr);
+	if (errstr != NULL)
+		return (NULL);
+	return (window_find_by_id(id));
 }
 
 struct window *
 window_find_by_id(u_int id)
 {
-	struct window	*w;
-	u_int		 i;
+	struct window	w;
 
-	for (i = 0; i < ARRAY_LENGTH(&windows); i++) {
-		w = ARRAY_ITEM(&windows, i);
-		if (w->id == id)
-			return (w);
-	}
-	return (NULL);
+	w.id = id;
+	return (RB_FIND(windows, &windows, &w));
 }
 
 struct window *
 window_create1(u_int sx, u_int sy)
 {
 	struct window	*w;
-	u_int		 i;
 
 	w = xcalloc(1, sizeof *w);
-	w->id = next_window_id++;
 	w->name = NULL;
 	w->flags = 0;
 
@@ -292,15 +298,10 @@ window_create1(u_int sx, u_int sy)
 	if (options_get_number(&w->options, "automatic-rename"))
 		queue_window_name(w);
 
-	for (i = 0; i < ARRAY_LENGTH(&windows); i++) {
-		if (ARRAY_ITEM(&windows, i) == NULL) {
-			ARRAY_SET(&windows, i, w);
-			break;
-		}
-	}
-	if (i == ARRAY_LENGTH(&windows))
-		ARRAY_ADD(&windows, w);
 	w->references = 0;
+
+	w->id = next_window_id++;
+	RB_INSERT (windows, &windows, w);
 
 	return (w);
 }
@@ -336,18 +337,13 @@ window_create(const char *name, int argc, char **argv, const char *path,
 void
 window_destroy(struct window *w)
 {
-	u_int	i;
-
 	window_unzoom(w);
 
-	if (window_index(w, &i) != 0)
-		fatalx("index not found");
-	ARRAY_SET(&windows, i, NULL);
-	while (!ARRAY_EMPTY(&windows) && ARRAY_LAST(&windows) == NULL)
-		ARRAY_TRUNC(&windows, 1);
+	RB_REMOVE(windows, &windows, w);
 
 	if (w->layout_root != NULL)
 		layout_free(w);
+	free(w->old_layout);
 
 	if (event_initialized(&w->name_timer))
 		evtimer_del(&w->name_timer);
@@ -383,6 +379,18 @@ window_resize(struct window *w, u_int sx, u_int sy)
 {
 	w->sx = sx;
 	w->sy = sy;
+}
+
+int
+window_has_pane(struct window *w, struct window_pane *wp)
+{
+	struct window_pane	*wp1;
+
+	TAILQ_FOREACH(wp1, &w->panes, entry) {
+		if (wp1 == wp)
+			return (1);
+	}
+	return (0);
 }
 
 int
@@ -506,6 +514,7 @@ window_unzoom(struct window *w)
 	w->flags &= ~WINDOW_ZOOMED;
 	layout_free(w);
 	w->layout_root = w->saved_layout_root;
+	w->saved_layout_root = NULL;
 
 	TAILQ_FOREACH(wp, &w->panes, entry) {
 		wp->layout_cell = wp->saved_layout_cell;
@@ -637,7 +646,7 @@ window_destroy_panes(struct window *w)
 char *
 window_printable_flags(struct session *s, struct winlink *wl)
 {
-	char	flags[BUFSIZ];
+	char	flags[32];
 	int	pos;
 
 	pos = 0;
@@ -659,7 +668,21 @@ window_printable_flags(struct session *s, struct winlink *wl)
 	return (xstrdup(flags));
 }
 
-/* Find pane in global tree by id. */
+struct window_pane *
+window_pane_find_by_id_str(const char *s)
+{
+	const char	*errstr;
+	u_int		 id;
+
+	if (*s != '%')
+		return (NULL);
+
+	id = strtonum(s + 1, 0, UINT_MAX, &errstr);
+	if (errstr != NULL)
+		return (NULL);
+	return (window_pane_find_by_id(id));
+}
+
 struct window_pane *
 window_pane_find_by_id(u_int id)
 {
@@ -703,6 +726,8 @@ window_pane_create(struct window *w, u_int sx, u_int sy, u_int hlimit)
 	wp->pipe_event = NULL;
 
 	wp->saved_grid = NULL;
+
+	memcpy(&wp->colgc, &grid_default_cell, sizeof wp->colgc);
 
 	screen_init(&wp->base, sx, sy, hlimit);
 	wp->screen = &wp->base;
@@ -1064,50 +1089,35 @@ window_pane_reset_mode(struct window_pane *wp)
 }
 
 void
-window_pane_key(struct window_pane *wp, struct session *sess, int key)
+window_pane_key(struct window_pane *wp, struct client *c, struct session *s,
+    int key, struct mouse_event *m)
 {
 	struct window_pane	*wp2;
 
+	if (KEYC_IS_MOUSE(key) && m == NULL)
+		return;
+
 	if (wp->mode != NULL) {
 		if (wp->mode->key != NULL)
-			wp->mode->key(wp, sess, key);
+			wp->mode->key(wp, c, s, key, m);
 		return;
 	}
 
 	if (wp->fd == -1 || wp->flags & PANE_INPUTOFF)
 		return;
 
-	input_key(wp, key);
+	input_key(wp, key, m);
+
+	if (KEYC_IS_MOUSE(key))
+		return;
 	if (options_get_number(&wp->window->options, "synchronize-panes")) {
 		TAILQ_FOREACH(wp2, &wp->window->panes, entry) {
 			if (wp2 == wp || wp2->mode != NULL)
 				continue;
 			if (wp2->fd != -1 && window_pane_visible(wp2))
-				input_key(wp2, key);
+				input_key(wp2, key, NULL);
 		}
 	}
-}
-
-void
-window_pane_mouse(struct window_pane *wp, struct session *sess,
-    struct mouse_event *m)
-{
-	if (!window_pane_visible(wp))
-		return;
-
-	if (m->x < wp->xoff || m->x >= wp->xoff + wp->sx)
-		return;
-	if (m->y < wp->yoff || m->y >= wp->yoff + wp->sy)
-		return;
-	m->x -= wp->xoff;
-	m->y -= wp->yoff;
-
-	if (wp->mode != NULL) {
-		if (wp->mode->mouse != NULL &&
-		    options_get_number(&wp->window->options, "mode-mouse"))
-			wp->mode->mouse(wp, sess, m);
-	} else if (wp->fd != -1)
-		input_mouse(wp, sess, m);
 }
 
 int
@@ -1152,17 +1162,17 @@ window_pane_search(struct window_pane *wp, const char *searchstr,
 
 /* Get MRU pane from a list. */
 struct window_pane *
-window_pane_choose_best(struct window_pane_list *list)
+window_pane_choose_best(struct window_pane **list, u_int size)
 {
 	struct window_pane	*next, *best;
 	u_int			 i;
 
-	if (ARRAY_LENGTH(list) == 0)
+	if (size == 0)
 		return (NULL);
 
-	best = ARRAY_FIRST(list);
-	for (i = 1; i < ARRAY_LENGTH(list); i++) {
-		next = ARRAY_ITEM(list, i);
+	best = list[0];
+	for (i = 1; i < size; i++) {
+		next = list[i];
 		if (next->active_point > best->active_point)
 			best = next;
 	}
@@ -1176,14 +1186,15 @@ window_pane_choose_best(struct window_pane_list *list)
 struct window_pane *
 window_pane_find_up(struct window_pane *wp)
 {
-	struct window_pane	*next, *best;
-	u_int			 edge, left, right, end;
-	struct window_pane_list	 list;
+	struct window_pane	*next, *best, **list;
+	u_int			 edge, left, right, end, size;
 	int			 found;
 
 	if (wp == NULL || !window_pane_visible(wp))
 		return (NULL);
-	ARRAY_INIT(&list);
+
+	list = NULL;
+	size = 0;
 
 	edge = wp->yoff;
 	if (edge == 0)
@@ -1206,12 +1217,14 @@ window_pane_find_up(struct window_pane *wp)
 			found = 1;
 		else if (end >= left && end <= right)
 			found = 1;
-		if (found)
-			ARRAY_ADD(&list, next);
+		if (!found)
+			continue;
+		list = xreallocarray(list, size + 1, sizeof *list);
+		list[size++] = next;
 	}
 
-	best = window_pane_choose_best(&list);
-	ARRAY_FREE(&list);
+	best = window_pane_choose_best(list, size);
+	free(list);
 	return (best);
 }
 
@@ -1219,14 +1232,15 @@ window_pane_find_up(struct window_pane *wp)
 struct window_pane *
 window_pane_find_down(struct window_pane *wp)
 {
-	struct window_pane	*next, *best;
-	u_int			 edge, left, right, end;
-	struct window_pane_list	 list;
+	struct window_pane	*next, *best, **list;
+	u_int			 edge, left, right, end, size;
 	int			 found;
 
 	if (wp == NULL || !window_pane_visible(wp))
 		return (NULL);
-	ARRAY_INIT(&list);
+
+	list = NULL;
+	size = 0;
 
 	edge = wp->yoff + wp->sy + 1;
 	if (edge >= wp->window->sy)
@@ -1249,12 +1263,14 @@ window_pane_find_down(struct window_pane *wp)
 			found = 1;
 		else if (end >= left && end <= right)
 			found = 1;
-		if (found)
-			ARRAY_ADD(&list, next);
+		if (!found)
+			continue;
+		list = xreallocarray(list, size + 1, sizeof *list);
+		list[size++] = next;
 	}
 
-	best = window_pane_choose_best(&list);
-	ARRAY_FREE(&list);
+	best = window_pane_choose_best(list, size);
+	free(list);
 	return (best);
 }
 
@@ -1262,14 +1278,15 @@ window_pane_find_down(struct window_pane *wp)
 struct window_pane *
 window_pane_find_left(struct window_pane *wp)
 {
-	struct window_pane	*next, *best;
-	u_int			 edge, top, bottom, end;
-	struct window_pane_list	 list;
+	struct window_pane	*next, *best, **list;
+	u_int			 edge, top, bottom, end, size;
 	int			 found;
 
 	if (wp == NULL || !window_pane_visible(wp))
 		return (NULL);
-	ARRAY_INIT(&list);
+
+	list = NULL;
+	size = 0;
 
 	edge = wp->xoff;
 	if (edge == 0)
@@ -1292,12 +1309,14 @@ window_pane_find_left(struct window_pane *wp)
 			found = 1;
 		else if (end >= top && end <= bottom)
 			found = 1;
-		if (found)
-			ARRAY_ADD(&list, next);
+		if (!found)
+			continue;
+		list = xreallocarray(list, size + 1, sizeof *list);
+		list[size++] = next;
 	}
 
-	best = window_pane_choose_best(&list);
-	ARRAY_FREE(&list);
+	best = window_pane_choose_best(list, size);
+	free(list);
 	return (best);
 }
 
@@ -1305,14 +1324,15 @@ window_pane_find_left(struct window_pane *wp)
 struct window_pane *
 window_pane_find_right(struct window_pane *wp)
 {
-	struct window_pane	*next, *best;
-	u_int			 edge, top, bottom, end;
-	struct window_pane_list	 list;
+	struct window_pane	*next, *best, **list;
+	u_int			 edge, top, bottom, end, size;
 	int			 found;
 
 	if (wp == NULL || !window_pane_visible(wp))
 		return (NULL);
-	ARRAY_INIT(&list);
+
+	list = NULL;
+	size = 0;
 
 	edge = wp->xoff + wp->sx + 1;
 	if (edge >= wp->window->sx)
@@ -1335,12 +1355,14 @@ window_pane_find_right(struct window_pane *wp)
 			found = 1;
 		else if (end >= top && end <= bottom)
 			found = 1;
-		if (found)
-			ARRAY_ADD(&list, next);
+		if (!found)
+			continue;
+		list = xreallocarray(list, size + 1, sizeof *list);
+		list[size++] = next;
 	}
 
-	best = window_pane_choose_best(&list);
-	ARRAY_FREE(&list);
+	best = window_pane_choose_best(list, size);
+	free(list);
 	return (best);
 }
 
@@ -1348,26 +1370,18 @@ window_pane_find_right(struct window_pane *wp)
 void
 winlink_clear_flags(struct winlink *wl)
 {
-	struct winlink	*wm;
 	struct session	*s;
-	struct window	*w;
-	u_int		 i;
+	struct winlink	*wl_loop;
 
-	for (i = 0; i < ARRAY_LENGTH(&windows); i++) {
-		if ((w = ARRAY_ITEM(&windows, i)) == NULL)
-			continue;
-
-		RB_FOREACH(s, sessions, &sessions) {
-			if ((wm = session_has(s, w)) == NULL)
+	RB_FOREACH(s, sessions, &sessions) {
+		RB_FOREACH(wl_loop, winlinks, &s->windows) {
+			if (wl_loop->window != wl->window)
+				continue;
+			if ((wl_loop->flags & WINLINK_ALERTFLAGS) == 0)
 				continue;
 
-			if (wm->window != wl->window)
-				continue;
-			if ((wm->flags & WINLINK_ALERTFLAGS) == 0)
-				continue;
-
-			wm->flags &= ~WINLINK_ALERTFLAGS;
-			wm->window->flags &= ~WINDOW_ALERTFLAGS;
+			wl_loop->flags &= ~WINLINK_ALERTFLAGS;
+			wl_loop->window->flags &= ~WINDOW_ALERTFLAGS;
 			server_status_session(s);
 		}
 	}

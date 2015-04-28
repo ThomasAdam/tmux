@@ -84,11 +84,7 @@ cmd_split_window_exec(struct cmd *self, struct cmd_q *cmdq)
 
 	if (args_has(args, 'c')) {
 		ft = format_create();
-		if (cmdq->state.c != NULL)
-			format_client(ft, cmdq->state.c);
-		format_session(ft, s);
-		format_winlink(ft, s, s->curw);
-		format_window_pane(ft, s->curw->window->active);
+		format_defaults(ft, cmdq->state.c, s, NULL, NULL);
 		cp = format_expand(ft, args_get(args, 'c'));
 		format_free(ft);
 
@@ -146,6 +142,7 @@ cmd_split_window_exec(struct cmd *self, struct cmd_q *cmdq)
 		goto error;
 	}
 	new_wp = window_add_pane(w, hlimit);
+	layout_assign_pane(lc, new_wp);
 
 	path = NULL;
 	if (cmdq->client != NULL && cmdq->client->session == NULL)
@@ -158,7 +155,6 @@ cmd_split_window_exec(struct cmd *self, struct cmd_q *cmdq)
 	if (window_pane_spawn(new_wp, argc, argv, path, shell, cwd, &env,
 	    s->tio, &cause) != 0)
 		goto error;
-	layout_assign_pane(lc, new_wp);
 
 	server_redraw_window(w);
 
@@ -176,11 +172,7 @@ cmd_split_window_exec(struct cmd *self, struct cmd_q *cmdq)
 			template = SPLIT_WINDOW_TEMPLATE;
 
 		ft = format_create();
-		if (cmdq->state.c != NULL)
-			format_client(ft, cmdq->state.c);
-		format_session(ft, s);
-		format_winlink(ft, s, wl);
-		format_window_pane(ft, new_wp);
+		format_defaults(ft, cmdq->state.c, s, wl, new_wp);
 
 		cp = format_expand(ft, template);
 		cmdq_print(cmdq, "%s", cp);
@@ -196,8 +188,10 @@ cmd_split_window_exec(struct cmd *self, struct cmd_q *cmdq)
 
 error:
 	environ_free(&env);
-	if (new_wp != NULL)
+	if (new_wp != NULL) {
+		layout_close_pane(new_wp);
 		window_remove_pane(w, new_wp);
+	}
 	cmdq_error(cmdq, "create pane failed: %s", cause);
 	free(cause);
 	if (fd != -1)

@@ -25,66 +25,126 @@
 #include "tmux.h"
 
 RB_GENERATE(key_bindings, key_binding, entry, key_bindings_cmp);
+RB_GENERATE(key_tables, key_table, entry, key_table_cmp);
+struct key_tables key_tables = RB_INITIALIZER(&key_tables);
 
-struct key_bindings	key_bindings;
+int
+key_table_cmp(struct key_table *e1, struct key_table *e2)
+{
+	return (strcmp(e1->name, e2->name));
+}
 
 int
 key_bindings_cmp(struct key_binding *bd1, struct key_binding *bd2)
 {
-	int	key1, key2;
-
-	key1 = bd1->key & ~KEYC_PREFIX;
-	key2 = bd2->key & ~KEYC_PREFIX;
-	if (key1 != key2)
-		return (key1 - key2);
-
-	if (bd1->key & KEYC_PREFIX && !(bd2->key & KEYC_PREFIX))
-		return (-1);
-	if (bd2->key & KEYC_PREFIX && !(bd1->key & KEYC_PREFIX))
-		return (1);
-	return (0);
+	return (bd1->key - bd2->key);
 }
 
-struct key_binding *
-key_bindings_lookup(int key)
+struct key_table *
+key_bindings_get_table(const char *name, int create)
 {
-	struct key_binding	bd;
+	struct key_table	table_find, *table;
 
-	bd.key = key;
-	return (RB_FIND(key_bindings, &key_bindings, &bd));
+	table_find.name = name;
+	table = RB_FIND(key_tables, &key_tables, &table_find);
+	if (table != NULL || !create)
+		return (table);
+
+	table = xmalloc(sizeof *table);
+	table->name = xstrdup(name);
+	RB_INIT(&table->key_bindings);
+
+	table->references = 1; /* one reference in key_tables */
+	RB_INSERT(key_tables, &key_tables, table);
+
+	return (table);
 }
 
 void
-key_bindings_add(int key, int can_repeat, struct cmd_list *cmdlist)
+key_bindings_unref_table(struct key_table *table)
 {
 	struct key_binding	*bd;
 
-	key_bindings_remove(key);
+	if (--table->references != 0)
+		return;
+
+	while (!RB_EMPTY(&table->key_bindings)) {
+		bd = RB_ROOT(&table->key_bindings);
+		RB_REMOVE(key_bindings, &table->key_bindings, bd);
+		cmd_list_free(bd->cmdlist);
+		free(bd);
+	}
+
+	free((void *)table->name);
+	free(table);
+}
+
+void
+key_bindings_add(const char *name, int key, int can_repeat,
+    struct cmd_list *cmdlist)
+{
+	struct key_table	*table;
+	struct key_binding	 bd_find, *bd;
+
+	table = key_bindings_get_table(name, 1);
+
+	bd_find.key = key;
+	bd = RB_FIND(key_bindings, &table->key_bindings, &bd_find);
+	if (bd != NULL) {
+		RB_REMOVE(key_bindings, &table->key_bindings, bd);
+		cmd_list_free(bd->cmdlist);
+		free(bd);
+	}
 
 	bd = xmalloc(sizeof *bd);
 	bd->key = key;
-	RB_INSERT(key_bindings, &key_bindings, bd);
+	RB_INSERT(key_bindings, &table->key_bindings, bd);
 
 	bd->can_repeat = can_repeat;
 	bd->cmdlist = cmdlist;
 }
 
 void
-key_bindings_remove(int key)
+key_bindings_remove(const char *name, int key)
 {
-	struct key_binding	*bd;
+	struct key_table	*table;
+	struct key_binding	 bd_find, *bd;
 
-	if ((bd = key_bindings_lookup(key)) == NULL)
+	table = key_bindings_get_table(name, 0);
+	if (table == NULL)
 		return;
-	RB_REMOVE(key_bindings, &key_bindings, bd);
+
+	bd_find.key = key;
+	bd = RB_FIND(key_bindings, &table->key_bindings, &bd_find);
+	if (bd == NULL)
+		return;
+
+	RB_REMOVE(key_bindings, &table->key_bindings, bd);
 	cmd_list_free(bd->cmdlist);
 	free(bd);
+
+	if (RB_EMPTY(&table->key_bindings)) {
+		RB_REMOVE(key_tables, &key_tables, table);
+		key_bindings_unref_table(table);
+	}
+}
+
+void
+key_bindings_remove_table(const char *name)
+{
+	struct key_table	*table;
+
+	table = key_bindings_get_table(name, 0);
+	if (table != NULL) {
+		RB_REMOVE(key_tables, &key_tables, table);
+		key_bindings_unref_table(table);
+	}
 }
 
 void
 key_bindings_init(void)
 {
-	static const char* defaults[] = {
+	static const char *defaults[] = {
 		"bind C-b send-prefix",
 		"bind C-o rotate-window",
 		"bind C-z suspend-client",
@@ -158,14 +218,16 @@ key_bindings_init(void)
 		"bind -r C-Down resize-pane -D",
 		"bind -r C-Left resize-pane -L",
 		"bind -r C-Right resize-pane -R",
+		"bind -n MouseDown1Pane select-pane -t=\\; send-keys -M",
+		"bind -n MouseDrag1Border resize-pane -M",
+		"bind -n MouseDown1Status select-window -t=",
+		"bind -n MouseDrag1Pane if -Ft= '#{mouse_any_flag}' 'if -Ft= \"#{pane_in_mode}\" \"copy-mode -M\" \"send-keys -M\"' 'copy-mode -M'",
 	};
 	u_int		 i;
 	struct cmd_list	*cmdlist;
-	char*            cause;
+	char		*cause;
 	int		 error;
 	struct cmd_q	*cmdq;
-
-	RB_INIT(&key_bindings);
 
 	cmdq = cmdq_new(NULL);
 	for (i = 0; i < nitems(defaults); i++) {
@@ -173,14 +235,15 @@ key_bindings_init(void)
 		    "<default-keys>", i, &cause);
 		if (error != 0)
 			fatalx("bad default key");
-		cmdq_run(cmdq, cmdlist);
-		cmd_list_free(cmdlist);
+		cmdq_run(cmdq, cmdlist, NULL);
+		cmd_list_free (cmdlist);
 	}
 	cmdq_free(cmdq);
 }
 
 void
-key_bindings_dispatch(struct key_binding *bd, struct client *c)
+key_bindings_dispatch(struct key_binding *bd, struct client *c,
+    struct mouse_event *m)
 {
 	struct cmd	*cmd;
 	int		 readonly;
@@ -195,5 +258,5 @@ key_bindings_dispatch(struct key_binding *bd, struct client *c)
 		return;
 	}
 
-	cmdq_run(c->cmdq, bd->cmdlist);
+	cmdq_run(c->cmdq, bd->cmdlist, m);
 }

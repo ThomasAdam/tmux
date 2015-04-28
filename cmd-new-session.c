@@ -121,7 +121,7 @@ cmd_new_session_exec(struct cmd *self, struct cmd_q *cmdq)
 	/* Get the new session working directory. */
 	if (args_has(args, 'c')) {
 		ft = format_create();
-		format_client(ft, c);
+		format_defaults(ft, c, NULL, NULL, NULL);
 		cp = format_expand(ft, args_get(args, 'c'));
 		format_free(ft);
 
@@ -286,8 +286,7 @@ cmd_new_session_exec(struct cmd *self, struct cmd_q *cmdq)
 			template = NEW_SESSION_TEMPLATE;
 
 		ft = format_create();
-		format_client(ft, c);
-		format_session(ft, s);
+		format_defaults(ft, c, s, NULL, NULL);
 
 		cp = format_expand(ft, template);
 		cmdq_print(cmdq, "%s", cp);

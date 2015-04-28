@@ -50,7 +50,6 @@ cmd_attach_session(struct cmd_q *cmdq, int dflag, int rflag, const char *cflag)
 	struct window_pane	*wp = cmdq->state.tflag.wp;
 	const char		*update;
 	char			*cause;
-	u_int			 i;
 	int			 fd;
 	struct format_tree	*ft;
 	char			*cp;
@@ -95,15 +94,28 @@ cmd_attach_session(struct cmd_q *cmdq, int dflag, int rflag, const char *cflag)
 			 * Can't use server_write_session in case attaching to
 			 * the same session as currently attached to.
 			 */
-			for (i = 0; i < ARRAY_LENGTH(&clients); i++) {
-				cloop = ARRAY_ITEM(&clients, i);
-				if (cloop == NULL || cloop->session != s)
+			TAILQ_FOREACH(c, &clients, entry) {
+				if (c->session != s || c == cmdq->client)
 					continue;
-				if (cloop == cmdq->client)
-					continue;
-				server_write_client(cloop, MSG_DETACH,
-				    cloop->session->name,
-				    strlen(cloop->session->name) + 1);
+				server_write_client(c, MSG_DETACH,
+				    c->session->name,
+				    strlen(c->session->name) + 1);
+			}
+		}
+
+		if (cflag != NULL) {
+			ft = format_create();
+			format_defaults(ft, cmd_find_client(cmdq, NULL, 1), s,
+			    NULL, NULL);
+			cp = format_expand(ft, cflag);
+			format_free(ft);
+
+			fd = open(cp, O_RDONLY|O_DIRECTORY);
+			free(cp);
+			if (fd == -1) {
+				cmdq_error(cmdq, "bad working directory: %s",
+				    strerror(errno));
+				return (CMD_RETURN_ERROR);
 			}
 		}
 		cmdq->client->session = s;

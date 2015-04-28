@@ -73,7 +73,6 @@ dist_tmux_SOURCES = \
 	cmd-choose-client.c \
 	cmd-choose-tree.c \
 	cmd-clear-history.c \
-	cmd-clock-mode.c \
 	cmd-command-prompt.c \
 	cmd-confirm-before.c \
 	cmd-copy-mode.c \
@@ -81,6 +80,7 @@ dist_tmux_SOURCES = \
 	cmd-detach-client.c \
 	cmd-display-message.c \
 	cmd-display-panes.c \
+	cmd-find.c \
 	cmd-find-window.c \
 	cmd-if-shell.c \
 	cmd-join-pane.c \
@@ -254,6 +254,7 @@ install-exec-hook:
 # Update SF web site.
 upload-index.html: update-index.html
 	scp www/index.html www/main.css www/images/*.png \
+		www/logo.png www/favicon.ico \
 		${USER},tmux@web.sf.net:/home/groups/t/tm/tmux/htdocs
 	rm -f www/index.html www/images/small-*
 

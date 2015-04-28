@@ -102,9 +102,7 @@ cmd_list_windows_session(struct cmd *self, struct session *s,
 	RB_FOREACH(wl, winlinks, &s->windows) {
 		ft = format_create();
 		format_add(ft, "line", "%u", n);
-		format_session(ft, s);
-		format_winlink(ft, s, wl);
-		format_window_pane(ft, wl->window->active);
+		format_defaults(ft, NULL, s, wl, NULL);
 
 		line = format_expand(ft, template);
 		cmdq_print(cmdq, "%s", line);

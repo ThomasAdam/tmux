@@ -35,9 +35,6 @@
 const char *options_table_mode_keys_list[] = {
 	"emacs", "vi", NULL
 };
-const char *options_table_mode_mouse_list[] = {
-	"off", "on", "copy-mode", NULL
-};
 const char *options_table_clock_mode_style_list[] = {
 	"12", "24", NULL
 };
@@ -254,17 +251,7 @@ const struct options_table_entry session_options_table[] = {
 	  .default_str = "bg=yellow,fg=black"
 	},
 
-	{ .name = "mouse-resize-pane",
-	  .type = OPTIONS_TABLE_FLAG,
-	  .default_num = 0
-	},
-
-	{ .name = "mouse-select-pane",
-	  .type = OPTIONS_TABLE_FLAG,
-	  .default_num = 0
-	},
-
-	{ .name = "mouse-select-window",
+	{ .name = "mouse",
 	  .type = OPTIONS_TABLE_FLAG,
 	  .default_num = 0
 	},
@@ -272,40 +259,6 @@ const struct options_table_entry session_options_table[] = {
 	{ .name = "mouse-utf8",
 	  .type = OPTIONS_TABLE_FLAG,
 	  .default_num = 0
-	},
-
-	{ .name = "pane-active-border-bg",
-	  .type = OPTIONS_TABLE_COLOUR,
-	  .default_num = 8,
-	  .style = "pane-active-border-style"
-	},
-
-	{ .name = "pane-active-border-fg",
-	  .type = OPTIONS_TABLE_COLOUR,
-	  .default_num = 2,
-	  .style = "pane-active-border-style"
-	},
-
-	{ .name = "pane-active-border-style",
-	  .type = OPTIONS_TABLE_STYLE,
-	  .default_str = "fg=green"
-	},
-
-	{ .name = "pane-border-bg",
-	  .type = OPTIONS_TABLE_COLOUR,
-	  .default_num = 8,
-	  .style = "pane-border-style"
-	},
-
-	{ .name = "pane-border-fg",
-	  .type = OPTIONS_TABLE_COLOUR,
-	  .default_num = 8,
-	  .style = "pane-border-style"
-	},
-
-	{ .name = "pane-border-style",
-	  .type = OPTIONS_TABLE_STYLE,
-	  .default_str = "default"
 	},
 
 	{ .name = "prefix",
@@ -430,7 +383,7 @@ const struct options_table_entry session_options_table[] = {
 
 	{ .name = "status-right",
 	  .type = OPTIONS_TABLE_STRING,
-	  .default_str = " \"#{=22:pane_title}\" %H:%M %d-%b-%y"
+	  .default_str = " \"#{=21:pane_title}\" %H:%M %d-%b-%y"
 	},
 
 	{ .name = "status-right-attr",
@@ -608,12 +561,6 @@ const struct options_table_entry window_options_table[] = {
 	  .default_num = MODEKEY_EMACS
 	},
 
-	{ .name = "mode-mouse",
-	  .type = OPTIONS_TABLE_CHOICE,
-	  .choices = options_table_mode_mouse_list,
-	  .default_num = 0
-	},
-
 	{ .name = "mode-style",
 	  .type = OPTIONS_TABLE_STYLE,
 	  .default_str = "bg=yellow,fg=black"
@@ -645,11 +592,45 @@ const struct options_table_entry window_options_table[] = {
 	  .default_num = 0
 	},
 
+	{ .name = "pane-active-border-bg",
+	  .type = OPTIONS_TABLE_COLOUR,
+	  .default_num = 8,
+	  .style = "pane-active-border-style"
+	},
+
+	{ .name = "pane-active-border-fg",
+	  .type = OPTIONS_TABLE_COLOUR,
+	  .default_num = 2,
+	  .style = "pane-active-border-style"
+	},
+
+	{ .name = "pane-active-border-style",
+	  .type = OPTIONS_TABLE_STYLE,
+	  .default_str = "fg=green"
+	},
+
 	{ .name = "pane-base-index",
 	  .type = OPTIONS_TABLE_NUMBER,
 	  .minimum = 0,
 	  .maximum = USHRT_MAX,
 	  .default_num = 0
+	},
+
+	{ .name = "pane-border-bg",
+	  .type = OPTIONS_TABLE_COLOUR,
+	  .default_num = 8,
+	  .style = "pane-border-style"
+	},
+
+	{ .name = "pane-border-fg",
+	  .type = OPTIONS_TABLE_COLOUR,
+	  .default_num = 8,
+	  .style = "pane-border-style"
+	},
+
+	{ .name = "pane-border-style",
+	  .type = OPTIONS_TABLE_STYLE,
+	  .default_str = "default"
 	},
 
 	{ .name = "remain-on-exit",
@@ -665,6 +646,16 @@ const struct options_table_entry window_options_table[] = {
 	{ .name = "utf8",
 	  .type = OPTIONS_TABLE_FLAG,
 	  .default_num = 0 /* overridden in main() */
+	},
+
+	{ .name = "window-active-style",
+	  .type = OPTIONS_TABLE_STYLE,
+	  .default_str = "default"
+	},
+
+	{ .name = "window-style",
+	  .type = OPTIONS_TABLE_STYLE,
+	  .default_str = "default"
 	},
 
 	{ .name = "window-status-activity-attr",

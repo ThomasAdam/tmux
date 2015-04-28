@@ -108,10 +108,7 @@ cmd_new_window_exec(struct cmd *self, struct cmd_q *cmdq)
 
 	if (args_has(args, 'c')) {
 		ft = format_create();
-		format_client(ft, c);
-		format_session(ft, s);
-		format_winlink(ft, s, s->curw);
-		format_window_pane(ft, s->curw->window->active);
+		format_defaults(ft, c, s, NULL, NULL);
 		cp = format_expand(ft, args_get(args, 'c'));
 		format_free(ft);
 
@@ -171,10 +168,7 @@ cmd_new_window_exec(struct cmd *self, struct cmd_q *cmdq)
 			template = NEW_WINDOW_TEMPLATE;
 
 		ft = format_create();
-		format_client(ft, c);
-		format_session(ft, s);
-		format_winlink(ft, s, wl);
-		format_window_pane(ft, wl->window->active);
+		format_defaults(ft, c, s, wl, NULL);
 
 		cp = format_expand(ft, template);
 		cmdq_print(cmdq, "%s", cp);
