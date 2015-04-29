@@ -35,7 +35,6 @@ int		 cmd_find_index(struct cmd_q *, const char *,
 		     struct session **);
 struct winlink	*cmd_find_pane(struct cmd_q *, const char *, struct session **,
 		     struct window_pane **);
-int		 cmd_has_session_alert(struct session *, struct alert **);
 
 const struct cmd_entry *cmd_table[] = {
 	&cmd_attach_session_entry,
