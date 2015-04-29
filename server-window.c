@@ -87,8 +87,10 @@ server_window_loop(void)
 
 				if (server_window_check_bell(s, wl) ||
 				    server_window_check_activity(s, wl) ||
-				    server_window_check_silence(s, wl))
+				    server_window_check_silence(s, wl)) {
+					server_window_run_hooks(s, wl);
 					server_status_session(s);
+				}
 			}
 		}
 	}

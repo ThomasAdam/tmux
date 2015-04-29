@@ -1848,6 +1848,8 @@ struct winlink	*cmd_mouse_window(struct mouse_event *, struct session **);
 struct window_pane *cmd_mouse_pane(struct mouse_event *, struct session **,
 		     struct winlink **);
 char		*cmd_template_replace(const char *, const char *, int);
+int		 cmd_has_session_alert(struct session *, struct alert **);
+
 extern const struct cmd_entry *cmd_table[];
 extern const struct cmd_entry cmd_attach_session_entry;
 extern const struct cmd_entry cmd_bind_key_entry;
