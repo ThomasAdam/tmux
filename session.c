@@ -659,3 +659,22 @@ session_renumber_windows(struct session *s)
 	RB_FOREACH_SAFE(wl, winlinks, &old_wins, wl1)
 		winlink_remove(&old_wins, wl);
 }
+
+/*
+ * Returns the number of refences on a window, which may be across a session
+ * group.
+ */
+u_int
+session_count_window_refs(struct session *s, struct winlink *wl)
+{
+	struct session_group	*sg;
+
+	if ((sg = session_group_find(s)) != NULL) {
+		/*
+		 * We only want to consider unique links for each session in a
+		 * group, and not all of them.
+		 */
+		return (session_group_count(sg) - wl->window->references);
+	} else
+		return (wl->window->references);
+}

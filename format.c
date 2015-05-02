@@ -602,6 +602,7 @@ format_defaults_winlink(struct format_tree *ft, struct session *s,
 {
 	struct window	*w = wl->window;
 	char		*flags;
+	int		 window_has_flags;
 
 	if (ft->w == NULL)
 		ft->w = wl->window;
@@ -622,6 +623,8 @@ format_defaults_winlink(struct format_tree *ft, struct session *s,
 	    !!(wl->flags & WINLINK_SILENCE));
 	format_add(ft, "window_last_flag", "%d",
 	    !!(wl == TAILQ_FIRST(&s->lastw)));
+	format_add(ft, "window_linked", "%d",
+	    session_count_window_refs(s, wl) > 1);
 
 	free(flags);
 }
