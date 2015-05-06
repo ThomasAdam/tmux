@@ -2,7 +2,7 @@
 
 # Miscellaneous autofoo bullshit.
 AC_INIT(tmux, 2.0)
-RELEASE=1.9a
+RELEASE=2.0
 AC_SUBST(RELEASE)
 
 AC_CONFIG_AUX_DIR(etc)
@@ -26,7 +26,7 @@ AC_PROG_INSTALL
 test "$sysconfdir" = '${prefix}/etc' && sysconfdir=/etc
 
 # Is this a debug build?
-found_debug=yes
+#found_debug=
 AC_ARG_ENABLE(
 	debug,
 	AC_HELP_STRING(--enable-debug, create a debug build),
