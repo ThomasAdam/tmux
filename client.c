@@ -352,6 +352,7 @@ client_main(int argc, char **argv, int flags)
 void
 client_send_identify(int flags)
 {
+	pid_t		 cpid;
 	const char	*s;
 	char		**ss;
 	int		 fd;
@@ -373,6 +374,9 @@ client_send_identify(int flags)
 	if ((fd = dup(STDIN_FILENO)) == -1)
 		fatal("dup failed");
 	client_write_one(MSG_IDENTIFY_STDIN, fd, NULL, 0);
+
+	cpid = getpid();
+	client_write_one(MSG_IDENTIFY_CLIENTPID, -1, &cpid, sizeof cpid);
 
 	for (ss = environ; *ss != NULL; ss++)
 		client_write_one(MSG_IDENTIFY_ENVIRON, -1, *ss, strlen(*ss) + 1);
