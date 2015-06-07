@@ -48,6 +48,8 @@ cmd_switch_client_exec(struct cmd *self, struct cmd_q *cmdq)
 	struct window_pane	*wp = NULL;
 	const char		*tflag, *tablename, *update;
 	struct key_table	*table;
+	struct environ_entry	*envent;
+	char			*var, *next;
 
 	if ((c = cmd_find_client(cmdq, args_get(args, 'c'), 0)) == NULL)
 		return (CMD_RETURN_ERROR);
@@ -121,7 +123,17 @@ cmd_switch_client_exec(struct cmd *self, struct cmd_q *cmdq)
 
 	if (c != NULL && s != c->session) {
 		update = options_get_string(&s->options, "update-environment");
-		environ_update(update, &c->environ, &s->environ);
+
+		next = xstrdup(update);
+		while ((var = strsep(&next, " ")) != NULL) {
+			if ((envent = environ_find(&c->environ, var)) == NULL)
+				continue;
+			else {
+				environ_set(&s->environ, envent->name,
+				    envent->value);
+			}
+		}
+		free(next);
 	}
 
 	if (c->session != NULL)
