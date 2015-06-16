@@ -145,11 +145,21 @@ if test "x$found_curses" = xno; then
 fi
 
 # Look for utempter.
-AC_CHECK_HEADER(utempter.h, have_utempter=yes, have_utempter=no)
-if test "x$have_utempter" = xyes; then
-	AC_DEFINE(HAVE_UTEMPTER)
-	LIBS="$LIBS -lutempter"
-fi
+AC_ARG_WITH([utempter],
+  [AS_HELP_STRING([--with-utempter], [write utmp entries using libutempter])],
+  [with_utempter="$withval"],
+  [with_utempter="check"])
+AS_IF([test x"$with_utempter" != xno],
+	[AC_SEARCH_LIBS([utempter_remove_added_record], [utempter],
+	[AC_DEFINE([HAVE_UTEMPTER], [1], [Define if libutempter is available.])],
+    [AS_IF([test x"$with_utempter" = xcheck],
+      [AC_MSG_WARN([Unable to find libutempter.
+	  ])],
+		[AC_MSG_ERROR([
+			--with-utempter was given but libutempter was not found.])
+		])
+	])
+])
 
 # Check for b64_ntop.
 AC_MSG_CHECKING(for b64_ntop)
