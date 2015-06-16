@@ -52,7 +52,6 @@ cmd_send_keys_exec(struct cmd *self, struct cmd_q *cmdq)
 	struct window_pane	*wp = cmdq->state.tflag.wp;
 	struct session		*s = cmdq->state.tflag.s;
 	struct mouse_event	*m = &cmdq->item->mouse;
-	struct input_ctx	*ictx;
 	const u_char		*str;
 	int			 i, key;
 

@@ -49,8 +49,6 @@ cmd_kill_window_exec(struct cmd *self, struct cmd_q *cmdq)
 	struct winlink		*wl = cmdq->state.tflag.wl, *wl2, *wl3;
 	struct window		*w = wl->window;
 	struct session		*s = cmdq->state.tflag.s;
-	struct session_group	*sg;
-	u_int			 references;
 
 	if (self->entry == &cmd_unlink_window_entry) {
 		if (!args_has(self->args, 'k') && !session_is_linked(s, w)) {
