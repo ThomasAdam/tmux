@@ -1,9 +1,7 @@
 # $Id$
 
-# Miscellaneous autofoo bullshit.
-AC_INIT(tmux, 2.0)
-RELEASE=1.9a
-AC_SUBST(RELEASE)
+# Miscellaneous bits.
+AC_INIT(tmux, 2.1)
 
 AC_CONFIG_AUX_DIR(etc)
 AM_INIT_AUTOMAKE([foreign subdir-objects])
@@ -46,19 +44,6 @@ fi
 
 # Is this gcc?
 AM_CONDITIONAL(IS_GCC, test "x$GCC" = xyes)
-AC_MSG_CHECKING(for gcc that whines about -I)
-AC_EGREP_CPP(
-	yes,
-	[
-		#if __GNUC__ > 3
-		yes
-		#endif
-	],
-	found_gcc4=yes,
-	found_gcc4=no
-)
-AM_CONDITIONAL(IS_GCC4, test "x$found_gcc4" = xyes)
-AC_MSG_RESULT($found_gcc4)
 
 # Is this Sun CC?
 AC_EGREP_CPP(

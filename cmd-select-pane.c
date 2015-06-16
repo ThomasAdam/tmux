@@ -28,8 +28,8 @@ enum cmd_retval	 cmd_select_pane_exec(struct cmd *, struct cmd_q *);
 
 const struct cmd_entry cmd_select_pane_entry = {
 	"select-pane", "selectp",
-	"DdeLlP:Rt:U", 0, 0,
-	"[-DdeLlRU] [-P style] " CMD_TARGET_PANE_USAGE,
+	"DdegLlMmP:Rt:U", 0, 0,
+	"[-DdegLlMmRU] [-P style] " CMD_TARGET_PANE_USAGE,
 	CMD_PREP_PANE_T,
 	cmd_select_pane_exec
 };
@@ -47,7 +47,8 @@ cmd_select_pane_exec(struct cmd *self, struct cmd_q *cmdq)
 {
 	struct args		*args = self->args;
 	struct winlink		*wl = cmdq->state.tflag.wl;
-	struct window_pane	*wp = cmdq->state.tflag.wp;
+	struct window_pane	*wp = cmdq->state.tflag.wp, *lastwp, *markedwp;
+	struct session		*s = cmdq->state.tflag.s;
 	const char		*style;
 
 	if (self->entry == &cmd_last_pane_entry || args_has(args, 'l')) {
@@ -74,6 +75,28 @@ cmd_select_pane_exec(struct cmd *self, struct cmd_q *cmdq)
 	if (!window_pane_visible(wp)) {
 		cmdq_error(cmdq, "pane not visible");
 		return (CMD_RETURN_ERROR);
+	}
+
+	if (args_has(args, 'm') || args_has(args, 'M')) {
+		if (args_has(args, 'm') && !window_pane_visible(wp))
+			return (CMD_RETURN_NORMAL);
+		lastwp = marked_window_pane;
+
+		if (args_has(args, 'M') || server_is_marked(s, wl, wp))
+			server_clear_marked();
+		else
+			server_set_marked(s, wl, wp);
+		markedwp = marked_window_pane;
+
+		if (lastwp != NULL) {
+			server_redraw_window_borders(lastwp->window);
+			server_status_window(lastwp->window);
+		}
+		if (markedwp != NULL) {
+			server_redraw_window_borders(markedwp->window);
+			server_status_window(markedwp->window);
+		}
+		return (CMD_RETURN_NORMAL);
 	}
 
 	if (args_has(self->args, 'P') || args_has(self->args, 'g')) {

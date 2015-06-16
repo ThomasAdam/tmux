@@ -30,7 +30,6 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <syslog.h>
 #include <termios.h>
 #include <time.h>
 #include <unistd.h>
@@ -41,28 +40,91 @@
  * Main server functions.
  */
 
-/* Client list. */
 struct clients	 clients;
-struct clients	 dead_clients;
 
 int		 server_fd;
 int		 server_shutdown;
 struct event	 server_ev_accept;
 struct event	 server_ev_second;
 
-int		 server_create_socket(void);
-void		 server_loop(void);
-int		 server_should_shutdown(void);
-void		 server_send_shutdown(void);
-void		 server_clean_dead(void);
-void		 server_accept_callback(int, short, void *);
-void		 server_signal_callback(int, short, void *);
-void		 server_child_signal(void);
-void		 server_child_exited(pid_t, int);
-void		 server_child_stopped(pid_t, int);
-void		 server_second_callback(int, short, void *);
-void		 server_lock_server(void);
-void		 server_lock_sessions(void);
+struct session		*marked_session;
+struct winlink		*marked_winlink;
+struct window		*marked_window;
+struct window_pane	*marked_window_pane;
+struct layout_cell	*marked_layout_cell;
+
+int	server_create_socket(void);
+void	server_loop(void);
+int	server_should_shutdown(void);
+void	server_send_shutdown(void);
+void	server_accept_callback(int, short, void *);
+void	server_signal_callback(int, short, void *);
+void	server_child_signal(void);
+void	server_child_exited(pid_t, int);
+void	server_child_stopped(pid_t, int);
+void	server_second_callback(int, short, void *);
+void	server_lock_server(void);
+void	server_lock_sessions(void);
+
+/* Set marked pane. */
+void
+server_set_marked(struct session *s, struct winlink *wl, struct window_pane *wp)
+{
+	marked_session = s;
+	marked_winlink = wl;
+	marked_window = wl->window;
+	marked_window_pane = wp;
+	marked_layout_cell = wp->layout_cell;
+}
+
+/* Clear marked pane. */
+void
+server_clear_marked(void)
+{
+	marked_session = NULL;
+	marked_winlink = NULL;
+	marked_window = NULL;
+	marked_window_pane = NULL;
+	marked_layout_cell = NULL;
+}
+
+/* Is this the marked pane? */
+int
+server_is_marked(struct session *s, struct winlink *wl, struct window_pane *wp)
+{
+	if (s == NULL || wl == NULL || wp == NULL)
+		return (0);
+	if (marked_session != s || marked_winlink != wl)
+		return (0);
+	if (marked_window_pane != wp)
+		return (0);
+	return (server_check_marked());
+}
+
+/* Check if the marked pane is still valid. */
+int
+server_check_marked(void)
+{
+	struct winlink	*wl;
+
+	if (marked_window_pane == NULL)
+		return (0);
+	if (marked_layout_cell != marked_window_pane->layout_cell)
+		return (0);
+
+	if (!session_alive(marked_session))
+		return (0);
+	RB_FOREACH(wl, winlinks, &marked_session->windows) {
+		if (wl->window == marked_window && wl == marked_winlink)
+			break;
+	}
+	if (wl == NULL)
+		return (0);
+
+	if (!window_has_pane(marked_window, marked_window_pane))
+		return (0);
+	return (window_pane_visible(marked_window_pane));
+}
 
 /* Create server socket. */
 int
@@ -129,9 +191,9 @@ server_start(int lockfd, char *lockfile)
 		fatal("daemon failed");
 
 	/* event_init() was called in our parent, need to reinit. */
+	clear_signals(0);
 	if (event_reinit(ev_base) != 0)
 		fatal("event_reinit failed");
-	clear_signals(0);
 
 	logfile("server");
 	log_debug("server started, pid %ld", (long) getpid());
@@ -139,9 +201,7 @@ server_start(int lockfd, char *lockfile)
 	RB_INIT(&windows);
 	RB_INIT(&all_window_panes);
 	TAILQ_INIT(&clients);
-	TAILQ_INIT(&dead_clients);
 	RB_INIT(&sessions);
-	RB_INIT(&dead_sessions);
 	TAILQ_INIT(&session_groups);
 	RB_INIT(&alerts);
 	mode_key_init_trees();
@@ -204,8 +264,6 @@ server_loop(void)
 
 		server_window_loop();
 		server_client_loop();
-
-		server_clean_dead();
 	}
 }
 
@@ -255,29 +313,6 @@ server_send_shutdown(void)
 
 	RB_FOREACH_SAFE(s, sessions, &sessions, s1)
 		session_destroy(s);
-}
-
-/* Free dead, unreferenced clients and sessions. */
-void
-server_clean_dead(void)
-{
-	struct session	*s, *s1;
-	struct client	*c, *c1;
-
-	RB_FOREACH_SAFE(s, sessions, &dead_sessions, s1) {
-		if (s->references != 0)
-			continue;
-		RB_REMOVE(sessions, &dead_sessions, s);
-		free(s->name);
-		free(s);
-	}
-
-	TAILQ_FOREACH_SAFE(c, &dead_clients, entry, c1) {
-		if (c->references != 0)
-			continue;
-		TAILQ_REMOVE(&dead_clients, c, entry);
-		free(c);
-	}
 }
 
 /* Update socket execute permissions based on whether sessions are attached. */
@@ -486,6 +521,8 @@ server_second_callback(unused int fd, unused short events, unused void *arg)
 	}
 
 	server_client_status_timer();
+
+	format_clean();
 
 	evtimer_del(&server_ev_second);
 	memset(&tv, 0, sizeof tv);

@@ -26,11 +26,11 @@
 
 #include "tmux.h"
 
-/* Global session list. */
 struct sessions	sessions;
-struct sessions dead_sessions;
 u_int		next_session_id;
 struct session_groups session_groups;
+
+void	session_free(int, short, void *);
 
 struct winlink *session_next_alert(struct winlink *);
 struct winlink *session_previous_alert(struct winlink *);
@@ -108,7 +108,7 @@ session_create(const char *name, int argc, char **argv, const char *path,
 	struct winlink	*wl;
 
 	s = xmalloc(sizeof *s);
-	s->references = 0;
+	s->references = 1;
 	s->flags = 0;
 
 	if (gettimeofday(&s->creation_time, NULL) != 0)
@@ -164,6 +164,29 @@ session_create(const char *name, int argc, char **argv, const char *path,
 	return (s);
 }
 
+/* Remove a reference from a session. */
+void
+session_unref(struct session *s)
+{
+	log_debug("session %s has %d references", s->name, s->references);
+
+	s->references--;
+	if (s->references == 0)
+		event_once(-1, EV_TIMEOUT, session_free, s, NULL);
+}
+
+/* Free session. */
+void
+session_free(unused int fd, unused short events, void *arg)
+{
+	struct session	*s = arg;
+
+	log_debug("sesson %s freed (%d references)", s->name, s->references);
+
+	if (s->references == 0)
+		free(s);
+}
+
 /* Destroy a session. */
 void
 session_destroy(struct session *s)
@@ -192,7 +215,7 @@ session_destroy(struct session *s)
 
 	close(s->cwd);
 
-	RB_INSERT(sessions, &dead_sessions, s);
+	session_unref(s);
 }
 
 /* Check a session name is valid: not empty and no colons or periods. */
@@ -336,6 +359,20 @@ session_has(struct session *s, struct window *w)
 			return (1);
 	}
 	return (0);
+}
+
+/*
+ * Return 1 if a window is linked outside this session (not including session
+ * groups). The window must be in this session!
+ */
+int
+session_is_linked(struct session *s, struct window *w)
+{
+	struct session_group	*sg;
+
+	if ((sg = session_group_find(s)) != NULL)
+		return (w->references != session_group_count(sg));
+	return (w->references != 1);
 }
 
 struct winlink *

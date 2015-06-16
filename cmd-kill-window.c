@@ -53,12 +53,7 @@ cmd_kill_window_exec(struct cmd *self, struct cmd_q *cmdq)
 	u_int			 references;
 
 	if (self->entry == &cmd_unlink_window_entry) {
-		sg = session_group_find(s);
-		if (sg != NULL)
-			references = session_group_count(sg);
-		else
-			references = 1;
-		if (!args_has(self->args, 'k') && w->references == references) {
+		if (!args_has(self->args, 'k') && !session_is_linked(s, w)) {
 			cmdq_error(cmdq, "window only linked to one session");
 			return (CMD_RETURN_ERROR);
 		}

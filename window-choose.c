@@ -22,6 +22,7 @@
 #include <stdlib.h>
 #include <string.h>
 
+#include "array.h"
 #include "tmux.h"
 
 struct screen *window_choose_init(struct window_pane *);
@@ -57,6 +58,14 @@ const struct window_mode window_choose_mode = {
 	window_choose_resize,
 	window_choose_key,
 	NULL,
+};
+
+struct window_choose_mode_item {
+	struct window_choose_data	*wcd;
+	char				*name;
+	int				 pos;
+	int				 state;
+#define TREE_EXPANDED 0x1
 };
 
 struct window_choose_mode_data {
@@ -200,11 +209,11 @@ window_choose_data_create(int type, struct client *c, struct session *s)
 void
 window_choose_data_free(struct window_choose_data *wcd)
 {
-	wcd->start_client->references--;
-	wcd->start_session->references--;
+	server_client_unref(wcd->start_client);
+	session_unref(wcd->start_session);
 
 	if (wcd->tree_session != NULL)
-		wcd->tree_session->references--;
+		session_unref(wcd->tree_session);
 
 	free(wcd->ft_template);
 	format_free(wcd->ft);
@@ -559,10 +568,10 @@ window_choose_key(struct window_pane *wp, unused struct client *c,
 			break;
 		if (item->state & TREE_EXPANDED) {
 			window_choose_collapse(wp, item->wcd->tree_session,
-			    item->wcd->idx);
+			    data->selected);
 		} else {
 			window_choose_expand(wp, item->wcd->tree_session,
-			    item->wcd->idx);
+			    data->selected);
 		}
 		window_choose_redraw_screen(wp);
 		break;

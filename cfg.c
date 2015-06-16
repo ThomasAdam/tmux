@@ -107,7 +107,7 @@ cfg_default_done(unused struct cmd_q *cmdq)
 		 */
 		if (!TAILQ_EMPTY(&cfg_client->cmdq->queue))
 			cmdq_continue(cfg_client->cmdq);
-		cfg_client->references--;
+		server_client_unref(cfg_client);
 		cfg_client = NULL;
 	}
 }
@@ -120,7 +120,7 @@ cfg_add_cause(const char *fmt, ...)
 
 	va_start(ap, fmt);
 	xvasprintf(&msg, fmt, ap);
-	va_end (ap);
+	va_end(ap);
 
 	cfg_ncauses++;
 	cfg_causes = xreallocarray(cfg_causes, cfg_ncauses, sizeof *cfg_causes);

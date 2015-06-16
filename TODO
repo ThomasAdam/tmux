@@ -1,13 +1,10 @@
 - command bits and pieces:
-	* why doesn't command-prompt work if made read-only?
 	* allow multiple targets: fnmatch for -t/-c, for example detach all
 	  clients with -t*
 	* add -c for new-session like new-window
 	* ' and " should be parsed the same (eg "\e" vs '\e') in config
 	  and command prompt
 	* last-pane across sessions
-	* exact match operator for targets (or break the substring match
-	  and require eg x* instead of just x)
 
 - make command sequences more usable
 	* don't require space after ;
@@ -18,10 +15,9 @@
 	* way to set socket path from config file
 
 - format improvements:
-	* last bits of status_replace into formats?
 	* option to quote format (#{session_name:quoted})
 	* formats need conditions for >0 (for #P)
-	* some way to pad # stuff with spaces, #!2T maybe
+	* some way to pad # stuff with spaces
 	* last window update time and format for it
 	* formats to show if a window is linked into multiple sessions, into
 	  multiple attached sessions, and is the active window in multiple
@@ -33,6 +29,9 @@
 	* flag to choose-* for sort order
 	* choose mode would be better per client than per window?
 	* two choices (first one then second, for swap-pane and join-pane)
+	* choose modes should ditch the key bindings and just have fixed keys, and
+          be more customized to their purpose (d to delete a buffer for choose-buffer,
+          a preview of buffer contents, etc)
 
 - improve monitor-*:
 	* straighten out rules for multiple clients
@@ -42,7 +41,6 @@
 
 - improve mouse support:
 	* bind commands to mouse in different areas? 
-	* more fine-grained options?
 	* commands executed when clicking on a pattern (URL)
 
 - hooks!
@@ -50,13 +48,14 @@
 - warts on current naming:
 	* display-time but message-fg/bg/attr
 	* list-* vs show-*
-	* split-window -> split-pane??
+	* split-window -> split-pane?
 
 - better UTF-8 support:
 	* window names and titles
 	* message display
 	* prompt input
 	* multibyte key input
+	* searching in copy mode
 
 - copy/paste improvements:
 	* incremental searching
@@ -84,8 +83,6 @@
 - terminfo bits
 	* use a better termcap internally instead of screen, perhaps xterm
 	* use screen-256color when started on 256 colour terminal?
-	* need a tmux terminfo entry to document the extensions we are using in
-	  upstream terminfo
 
 - code cleanup
 	* instead of separate window and session options, just one master
@@ -111,12 +108,6 @@
 	  tell when in the config file - then we use cmdq->c if we need a
 	  client w/o a session else cmd_current_client
 	* optimize pane redraws, 20120318184853.GK10965@yelena.nicm.ath.cx
-	* cmd_find_* could be much simpler - parse everything the same, only
-	  difference is what to choose when not given a ":" or "." (such as a
-	  plain "0" could be session, window or pane). So just cmd_find_target
-	  with a type (session, window, or pane)
-	* instead of all the obscure =, ^ -t codes, we should support something
-	  simpler and easier like -t:mouse:, -t:first:
 
 - miscellaneous
 	* way to keep a job running just read its last line of output for #()
@@ -129,3 +120,4 @@
 	  environments
 	* multiline status line?
 	* customizable command aliases
+	* automatic pane logging

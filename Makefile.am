@@ -6,12 +6,11 @@ CLEANFILES = tmux.1.mdoc tmux.1.man
 
 # Distribution tarball options.
 EXTRA_DIST = \
-	CHANGES FAQ README TODO COPYING examples compat \
+	CHANGES FAQ README TODO COPYING examples compat/*.[ch] \
 	array.h compat.h tmux.h osdep-*.c mdoc2man.awk tmux.1
 dist-hook:
 	make clean
 	grep "^#found_debug=" configure
-	find $(distdir) -name .svn -type d|xargs rm -Rf
 
 # Preprocessor flags.
 CPPFLAGS += @XOPEN_DEFINES@ -DTMUX_CONF="\"$(sysconfdir)/tmux.conf\""
@@ -22,8 +21,7 @@ if IS_GLIBC
 CFLAGS += -D_GNU_SOURCE
 endif
 
-# Set flags for gcc. gcc4 whines abouts silly stuff so it needs slightly
-# different flags.
+# Set flags for gcc.
 if IS_GCC
 CFLAGS += -std=gnu99 -O2
 if IS_DEBUG
@@ -32,17 +30,10 @@ CFLAGS += -Wno-long-long -Wall -W -Wnested-externs -Wformat=2
 CFLAGS += -Wmissing-prototypes -Wstrict-prototypes -Wmissing-declarations
 CFLAGS += -Wwrite-strings -Wshadow -Wpointer-arith -Wsign-compare
 CFLAGS += -Wundef -Wbad-function-cast -Winline -Wcast-align
-CFLAGS += -Wdeclaration-after-statement
+CFLAGS += -Wdeclaration-after-statement -Wno-pointer-sign
 CPPFLAGS += -DDEBUG
 endif
-if IS_GCC4
 CPPFLAGS += -iquote.
-if IS_DEBUG
-CFLAGS += -Wno-pointer-sign
-endif
-else
-CPPFLAGS += -I. -I-
-endif
 endif
 
 # Set flags for Solaris.
@@ -250,22 +241,3 @@ install-exec-hook:
 	$(mkdir_p) $(DESTDIR)$(mandir)/man1
 	$(INSTALL_DATA) $(srcdir)/tmux.1.@MANFORMAT@ \
 		$(DESTDIR)$(mandir)/man1/tmux.1
-
-# Update SF web site.
-upload-index.html: update-index.html
-	scp www/index.html www/main.css www/images/*.png \
-		www/logo.png www/favicon.ico \
-		${USER},tmux@web.sf.net:/home/groups/t/tm/tmux/htdocs
-	rm -f www/index.html www/images/small-*
-
-update-index.html:
-	(cd www/images && \
-		rm -f small-* && \
-		for i in *.png; do \
-			convert "$$i" \
-				-resize '150x' -resize 'x100<' \
-				-gravity center -crop 150x100+0+0 +repage \
-				"small-$$i"; \
-		done \
-	)
-	sed "s/%%RELEASE%%/${RELEASE}/g" www/index.html.in >www/index.html

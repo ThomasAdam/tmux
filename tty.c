@@ -500,24 +500,27 @@ tty_update_mode(struct tty *tty, int mode, struct screen *s)
 {
 	int	changed;
 
-	if (strcmp(s->ccolour, tty->ccolour))
+	if (s != NULL && strcmp(s->ccolour, tty->ccolour))
 		tty_force_cursor_colour(tty, s->ccolour);
 
 	if (tty->flags & TTY_NOCURSOR)
 		mode &= ~MODE_CURSOR;
 
 	changed = mode ^ tty->mode;
-	if (changed & (MODE_CURSOR|MODE_BLINKING)) {
-		if (mode & MODE_CURSOR) {
-			if (mode & MODE_BLINKING &&
-			    tty_term_has(tty->term, TTYC_CVVIS))
-				tty_putcode(tty, TTYC_CVVIS);
-			else
-				tty_putcode(tty, TTYC_CNORM);
-		} else
+	if (changed & MODE_BLINKING) {
+		if (tty_term_has(tty->term, TTYC_CVVIS))
+			tty_putcode(tty, TTYC_CVVIS);
+		else
+			tty_putcode(tty, TTYC_CNORM);
+		changed |= MODE_CURSOR;
+	}
+	if (changed & MODE_CURSOR) {
+		if (mode & MODE_CURSOR)
+			tty_putcode(tty, TTYC_CNORM);
+		else
 			tty_putcode(tty, TTYC_CIVIS);
 	}
-	if (tty->cstyle != s->cstyle) {
+	if (s != NULL && tty->cstyle != s->cstyle) {
 		if (tty_term_has(tty->term, TTYC_SS)) {
 			if (s->cstyle == 0 &&
 			    tty_term_has(tty->term, TTYC_SE))
@@ -667,8 +670,11 @@ tty_draw_line(struct tty *tty, const struct window_pane *wp,
 	struct grid_cell	 tmpgc;
 	struct utf8_data	 ud;
 	u_int			 i, sx;
+	int			 flags;
 
-	tty_update_mode(tty, tty->mode & ~MODE_CURSOR, s);
+	flags = tty->flags & TTY_NOCURSOR;
+	tty->flags |= TTY_NOCURSOR;
+	tty_update_mode(tty, tty->mode, s);
 
 	sx = screen_size_x(s);
 	if (sx > s->grid->linedata[s->grid->hsize + py].cellsize)
@@ -703,24 +709,40 @@ tty_draw_line(struct tty *tty, const struct window_pane *wp,
 			tty_cell(tty, gc, wp);
 	}
 
-	if (sx >= tty->sx) {
-		tty_update_mode(tty, tty->mode, s);
-		return;
-	}
-	tty_attributes(tty, &grid_default_cell, wp);
+	if (sx < tty->sx) {
+		tty_attributes(tty, &grid_default_cell, wp);
 
-	tty_cursor(tty, ox + sx, oy + py);
-	if (sx != screen_size_x(s) && ox + screen_size_x(s) >= tty->sx &&
-	    tty_term_has(tty->term, TTYC_EL) && !tty_fake_bce(tty, wp))
-		tty_putcode(tty, TTYC_EL);
-	else
-		tty_repeat_space(tty, screen_size_x(s) - sx);
+		tty_cursor(tty, ox + sx, oy + py);
+		if (sx != screen_size_x(s) &&
+		    ox + screen_size_x(s) >= tty->sx &&
+		    tty_term_has(tty->term, TTYC_EL) &&
+		    !tty_fake_bce(tty, wp))
+			tty_putcode(tty, TTYC_EL);
+		else
+			tty_repeat_space(tty, screen_size_x(s) - sx);
+	}
+
+	tty->flags = (tty->flags & ~TTY_NOCURSOR) | flags;
 	tty_update_mode(tty, tty->mode, s);
 }
 
+int
+tty_client_ready(struct client *c, struct window_pane *wp)
+{
+	if (c->session == NULL || c->tty.term == NULL)
+		return (0);
+	if (c->flags & CLIENT_SUSPENDED)
+		return (0);
+	if (c->tty.flags & TTY_FREEZE)
+		return (0);
+	if (c->session->curw->window != wp->window)
+		return (0);
+	return (1);
+}
+
 void
-tty_write(
-    void (*cmdfn)(struct tty *, const struct tty_ctx *), struct tty_ctx *ctx)
+tty_write(void (*cmdfn)(struct tty *, const struct tty_ctx *),
+    struct tty_ctx *ctx)
 {
 	struct window_pane	*wp = ctx->wp;
 	struct client		*c;
@@ -735,13 +757,7 @@ tty_write(
 		return;
 
 	TAILQ_FOREACH(c, &clients, entry) {
-		if (c->session == NULL || c->tty.term == NULL)
-			continue;
-		if (c->flags & CLIENT_SUSPENDED)
-			continue;
-		if (c->tty.flags & TTY_FREEZE)
-			continue;
-		if (c->session->curw->window != wp->window)
+		if (!tty_client_ready(c, wp))
 			continue;
 
 		ctx->xoff = wp->xoff;
