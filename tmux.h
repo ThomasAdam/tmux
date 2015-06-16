@@ -1317,6 +1317,25 @@ struct args {
 	char			**argv;
 };
 
+/* Context for a command about to be executed. */
+struct cmd_state {
+	struct client			*c;
+
+	struct {
+		struct session		*s;
+		struct winlink		*wl;
+		struct window_pane	*wp;
+		int			 idx;
+	} tflag;
+
+	struct {
+		struct session		*s;
+		struct winlink		*wl;
+		struct window_pane	*wp;
+		int			 idx;
+	} sflag;
+};
+
 /* Command and list of commands. */
 struct cmd {
 	const struct cmd_entry	*entry;
@@ -1366,6 +1385,8 @@ struct cmd_q {
 	struct cmd_q_item	*item;
 	struct cmd		*cmd;
 
+	struct cmd_state	 state;
+
 	time_t			 time;
 	u_int			 number;
 
@@ -1387,11 +1408,29 @@ struct cmd_entry {
 	const char	*usage;
 
 #define CMD_STARTSERVER 0x1
-#define CMD_READONLY 0x2
+#define CMD_CANTNEST 0x2
+#define CMD_READONLY 0x4
+#define CMD_PREP_SESSION_T 0x8
+#define CMD_PREP_SESSION_S 0x10
+#define CMD_PREP_WINDOW_T 0x20
+#define CMD_PREP_WINDOW_S 0x40
+#define CMD_PREP_PANE_T 0x80
+#define CMD_PREP_PANE_S 0x100
+#define CMD_PREP_CLIENT_T 0x200
+#define CMD_PREP_CLIENT_C 0x400
+#define CMD_PREP_INDEX_T 0x800
+#define CMD_PREP_INDEX_S 0x1000
+#define CMD_PREP_CANFAIL 0x2000
+#define CMD_PREP_PREFERUNATTACHED 0x4000
+#define CMD_PREP_SESSION_RENUM_T 0x8000
 	int		 flags;
 
 	enum cmd_retval	 (*exec)(struct cmd *, struct cmd_q *);
 };
+#define CMD_PREP_ALL_T (CMD_PREP_SESSION_T|CMD_PREP_WINDOW_T|CMD_PREP_PANE_T| \
+    CMD_PREP_INDEX_T|CMD_PREP_SESSION_RENUM_T)
+#define CMD_PREP_ALL_S (CMD_PREP_SESSION_S|CMD_PREP_WINDOW_S|CMD_PREP_PANE_S| \
+    CMD_PREP_INDEX_S)
 
 /* Key binding and key table. */
 struct key_binding {
@@ -1717,6 +1756,7 @@ char	       **cmd_copy_argv(int, char **);
 void		 cmd_free_argv(int, char **);
 char		*cmd_stringify_argv(int, char **);
 struct cmd	*cmd_parse(int, char **, const char *, u_int, char **);
+int		 cmd_prepare_state(struct cmd *, struct cmd_q *);
 size_t		 cmd_print(struct cmd *, char *, size_t);
 int		 cmd_mouse_at(struct window_pane *, struct mouse_event *,
 		     u_int *, u_int *, int);
