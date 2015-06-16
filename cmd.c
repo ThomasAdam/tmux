@@ -115,6 +115,10 @@ const struct cmd_entry *cmd_table[] = {
 	NULL
 };
 
+void		 cmd_clear_state(struct cmd_state *);
+struct client	*cmd_get_state_client(struct cmd_q *, int);
+int		 cmd_set_state_tflag(struct cmd *, struct cmd_q *);
+int		 cmd_set_state_sflag(struct cmd *, struct cmd_q *);
 int
 cmd_pack_argv(int argc, char **argv, char *buf, size_t len)
 {
@@ -294,6 +298,336 @@ usage:
 		args_free(args);
 	xasprintf(cause, "usage: %s %s", entry->name, entry->usage);
 	return (NULL);
+}
+
+void
+cmd_clear_state(struct cmd_state *state)
+{
+	state->c = NULL;
+
+	state->tflag.s = NULL;
+	state->tflag.wl = NULL;
+	state->tflag.wp = NULL;
+	state->tflag.idx = -1;
+
+	state->sflag.s = NULL;
+	state->sflag.wl = NULL;
+	state->sflag.wp = NULL;
+	state->sflag.idx = -1;
+}
+
+struct client *
+cmd_get_state_client(struct cmd_q *cmdq, int quiet)
+{
+	struct cmd	*cmd = cmdq->cmd;
+	struct args	*args = cmd->args;
+
+	switch (cmd->entry->flags & (CMD_PREP_CLIENT_C|CMD_PREP_CLIENT_T)) {
+	case 0:
+		return (cmd_find_client(cmdq, NULL, 1));
+	case CMD_PREP_CLIENT_C:
+		return (cmd_find_client(cmdq, args_get(args, 'c'), quiet));
+	case CMD_PREP_CLIENT_T:
+		return (cmd_find_client(cmdq, args_get(args, 't'), quiet));
+	default:
+		log_fatalx("both -t and -c for %s", cmd->entry->name);
+	}
+}
+
+int
+cmd_set_state_tflag(struct cmd *cmd, struct cmd_q *cmdq)
+{
+	struct cmd_state	*state = &cmdq->state;
+	const char		*tflag;
+	int			 flags = cmd->entry->flags, everything = 0;
+	int			 prefer = !!(flags & CMD_PREP_PREFERUNATTACHED);
+	struct session		*s;
+	struct window		*w;
+	struct winlink		*wl;
+	struct window_pane	*wp;
+
+	/*
+	 * If the command wants something for -t and no -t argument is present,
+	 * use the base command's -t instead.
+	 */
+	tflag = args_get(cmd->args, 't');
+	if (tflag == NULL) {
+		if ((flags & CMD_PREP_ALL_T) == 0)
+			return (0); /* doesn't care about -t */
+		cmd = cmdq->cmd;
+		everything = 1;
+		tflag = args_get(cmd->args, 't');
+	}
+
+	/*
+	 * If no -t and the current command is allowed to fail, just skip to
+	 * fill in as much we can. Otherwise continue and let cmd_find_* fail.
+	 */
+	if (tflag == NULL && (flags & CMD_PREP_CANFAIL))
+		goto complete_everything;
+
+	/* Fill in state using command (current or base) flags. */
+	switch (cmd->entry->flags & CMD_PREP_ALL_T) {
+	case 0:
+		break;
+	case CMD_PREP_SESSION_T|CMD_PREP_PANE_T:
+		if (tflag != NULL && tflag[strcspn(tflag, ":.")] != '\0') {
+			state->tflag.wl = cmd_find_pane(cmdq, tflag,
+			    &state->tflag.s, &state->tflag.wp);
+			if (state->tflag.wl == NULL)
+				return (-1);
+		} else {
+			state->tflag.s = cmd_find_session(cmdq, tflag, prefer);
+			if (state->tflag.s == NULL)
+				return (-1);
+
+			s = state->tflag.s;
+			if ((w = window_find_by_id_str(tflag)) != NULL)
+				wp = w->active;
+			else if ((wp = window_pane_find_by_id_str(tflag)) != NULL)
+				w = wp->window;
+			wl = winlink_find_by_window(&s->windows, w);
+			if (wl != NULL) {
+				state->tflag.wl = wl;
+				state->tflag.wp = wp;
+			}
+		}
+		break;
+	case CMD_PREP_SESSION_RENUM_T|CMD_PREP_INDEX_T:
+		state->tflag.s = cmd_find_session(cmdq, tflag, prefer);
+		if (state->tflag.s == NULL) {
+			state->tflag.idx = cmd_find_index(cmdq, tflag, &state->tflag.s);
+			if (state->tflag.idx == -2)
+				return (-1);
+		}
+		break;
+	case CMD_PREP_SESSION_T:
+		state->tflag.s = cmd_find_session(cmdq, tflag, prefer);
+		if (state->tflag.s == NULL)
+			return (-1);
+		break;
+	case CMD_PREP_WINDOW_T:
+		state->tflag.wl = cmd_find_window(cmdq, tflag, &state->tflag.s);
+		if (state->tflag.wl == NULL)
+			return (-1);
+		break;
+	case CMD_PREP_PANE_T:
+		state->tflag.wl = cmd_find_pane(cmdq, tflag, &state->tflag.s,
+		    &state->tflag.wp);
+		if (state->tflag.wl == NULL)
+			return (-1);
+		break;
+	case CMD_PREP_INDEX_T:
+		state->tflag.idx = cmd_find_index(cmdq, tflag, &state->tflag.s);
+		if (state->tflag.idx == -2)
+			return (-1);
+		break;
+	default:
+		log_fatalx("too many -t for %s", cmd->entry->name);
+	}
+
+	/*
+	 * If this is still the current command, it wants what it asked for and
+	 * nothing more. If it's the base command, fill in as much as possible
+	 * because the current command may have different flags.
+	 */
+	if (!everything)
+		return (0);
+
+complete_everything:
+	if (state->tflag.s == NULL) {
+		if (state->c != NULL)
+			state->tflag.s = state->c->session;
+		if (state->tflag.s == NULL)
+			state->tflag.s = cmd_find_current(cmdq);
+		if (state->tflag.s == NULL) {
+			if (flags & CMD_PREP_CANFAIL)
+				return (0);
+
+			cmdq_error(cmdq, "no current session");
+			return (-1);
+		}
+	}
+	if (state->tflag.wl == NULL)
+		state->tflag.wl = cmd_find_window(cmdq, tflag, &state->tflag.s);
+	if (state->tflag.wp == NULL) {
+		state->tflag.wl = cmd_find_pane(cmdq, tflag, &state->tflag.s,
+		    &state->tflag.wp);
+	}
+
+	return (0);
+}
+
+int
+cmd_set_state_sflag(struct cmd *cmd, struct cmd_q *cmdq)
+{
+	struct cmd_state	*state = &cmdq->state;
+	const char		*sflag;
+	int			 flags = cmd->entry->flags, everything = 0;
+	int			 prefer = !!(flags & CMD_PREP_PREFERUNATTACHED);
+	struct session		*s;
+	struct window		*w;
+	struct winlink		*wl;
+	struct window_pane	*wp;
+
+	/*
+	 * If the command wants something for -s and no -s argument is present,
+	 * use the base command's -s instead.
+	 */
+	sflag = args_get(cmd->args, 's');
+	if (sflag == NULL) {
+		if ((flags & CMD_PREP_ALL_S) == 0)
+			return (0); /* doesn't care about -s */
+		cmd = cmdq->cmd;
+		everything = 1;
+		sflag = args_get(cmd->args, 's');
+	}
+
+	/*
+	 * If no -s and the current command is allowed to fail, just skip to
+	 * fill in as much we can. Otherwise continue and let cmd_find_* fail.
+	 */
+	if (sflag == NULL && (flags & CMD_PREP_CANFAIL))
+		goto complete_everything;
+
+	/* Fill in state using command (current or base) flags. */
+	switch (cmd->entry->flags & CMD_PREP_ALL_S) {
+	case 0:
+		break;
+	case CMD_PREP_SESSION_S|CMD_PREP_PANE_S:
+		if (sflag != NULL && sflag[strcspn(sflag, ":.")] != '\0') {
+			state->sflag.wl = cmd_find_pane(cmdq, sflag,
+			    &state->sflag.s, &state->sflag.wp);
+			if (state->sflag.wl == NULL)
+				return (-1);
+		} else {
+			state->sflag.s = cmd_find_session(cmdq, sflag, prefer);
+			if (state->sflag.s == NULL)
+				return (-1);
+
+			s = state->sflag.s;
+			if ((w = window_find_by_id_str(sflag)) != NULL)
+				wp = w->active;
+			else if ((wp = window_pane_find_by_id_str(sflag)) != NULL)
+				w = wp->window;
+			wl = winlink_find_by_window(&s->windows, w);
+			if (wl != NULL) {
+				state->sflag.wl = wl;
+				state->sflag.wp = wp;
+			}
+		}
+		break;
+	case CMD_PREP_SESSION_S:
+		state->sflag.s = cmd_find_session(cmdq, sflag, prefer);
+		if (state->sflag.s == NULL)
+			return (-1);
+		break;
+	case CMD_PREP_WINDOW_S:
+		state->sflag.wl = cmd_find_window(cmdq, sflag, &state->sflag.s);
+		if (state->sflag.wl == NULL)
+			return (-1);
+		break;
+	case CMD_PREP_PANE_S:
+		state->sflag.wl = cmd_find_pane(cmdq, sflag, &state->sflag.s,
+		    &state->sflag.wp);
+		if (state->sflag.wl == NULL)
+			return (-1);
+		break;
+	case CMD_PREP_INDEX_S:
+		state->sflag.idx = cmd_find_index(cmdq, sflag, &state->sflag.s);
+		if (state->sflag.idx == -2)
+			return (-1);
+		break;
+	default:
+		log_fatalx("too many -s for %s", cmd->entry->name);
+	}
+
+	/*
+	 * If this is still the current command, it wants what it asked for and
+	 * nothing more. If it's the base command, fill in as much as possible
+	 * because the current command may have different flags.
+	 */
+	if (!everything)
+		return (0);
+
+complete_everything:
+	if (state->sflag.s == NULL) {
+		if (state->c != NULL)
+			state->sflag.s = state->c->session;
+
+		if (state->sflag.s == NULL)
+			state->sflag.s = cmd_find_current(cmdq);
+
+		if (state->sflag.s == NULL) {
+			if (flags & CMD_PREP_CANFAIL)
+				return (0);
+			cmdq_error(cmdq, "no current session");
+			return (-1);
+		}
+	}
+	if (state->sflag.wl == NULL) {
+		state->sflag.wl = cmd_find_pane(cmdq, sflag, &state->sflag.s,
+		    &state->sflag.wp);
+	}
+	if (state->sflag.wp == NULL) {
+		state->sflag.wl = cmd_find_pane(cmdq, sflag, &state->sflag.s,
+		    &state->sflag.wp);
+	}
+	return (0);
+}
+
+int
+cmd_prepare_state(struct cmd *cmd, struct cmd_q *cmdq)
+{
+	struct cmd_state	*state = &cmdq->state;
+	struct args		*args = cmd->args;
+	const char		*cflag;
+	const char		*tflag;
+	char                     tmp[BUFSIZ];
+	int			 error;
+
+	cmd_print(cmd, tmp, sizeof tmp);
+	log_debug("preparing state for: %s (client %d)", tmp,
+	    cmdq->client != NULL ? cmdq->client->ibuf.fd : -1);
+
+	/* Start with an empty state. */
+	cmd_clear_state(state);
+
+	/*
+	 * If the command wants a client and provides -c or -t, use it. If not,
+	 * try the base command instead via cmd_get_state_client. No client is
+	 * allowed if no flags, otherwise it must be available.
+	 */
+	switch (cmd->entry->flags & (CMD_PREP_CLIENT_C|CMD_PREP_CLIENT_T)) {
+	case 0:
+		state->c = cmd_get_state_client(cmdq, 1);
+		break;
+	case CMD_PREP_CLIENT_C:
+		cflag = args_get(args, 'c');
+		if (cflag == NULL)
+			state->c = cmd_get_state_client(cmdq, 0);
+		else
+			state->c = cmd_find_client(cmdq, cflag, 0);
+		if (state->c == NULL)
+			return (-1);
+		break;
+	case CMD_PREP_CLIENT_T:
+		tflag = args_get(args, 't');
+		if (tflag == NULL)
+			state->c = cmd_get_state_client(cmdq, 0);
+		else
+			state->c = cmd_find_client(cmdq, tflag, 0);
+		if (state->c == NULL)
+			return (-1);
+		break;
+	default:
+		log_fatalx("both -c and -t for %s", cmd->entry->name);
+	}
+
+	error = cmd_set_state_tflag(cmd, cmdq);
+	if (error == 0)
+		error = cmd_set_state_sflag(cmd, cmdq);
+	return (error);
 }
 
 size_t
