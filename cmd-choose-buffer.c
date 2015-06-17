@@ -36,7 +36,7 @@ const struct cmd_entry cmd_choose_buffer_entry = {
 	"choose-buffer", NULL,
 	"F:t:", 0, 1,
 	CMD_TARGET_WINDOW_USAGE " [-F format] [template]",
-	0,
+	CMD_PREP_WINDOW_T,
 	cmd_choose_buffer_exec
 };
 
@@ -44,25 +44,22 @@ enum cmd_retval
 cmd_choose_buffer_exec(struct cmd *self, struct cmd_q *cmdq)
 {
 	struct args			*args = self->args;
-	struct client			*c;
+	struct client			*c = cmdq->state.c;
+	struct winlink			*wl = cmdq->state.tflag.wl;
 	struct window_choose_data	*cdata;
-	struct winlink			*wl;
 	struct paste_buffer		*pb;
 	char				*action, *action_data;
 	const char			*template;
 	u_int				 idx;
 	int				 utf8flag;
 
-	if ((c = cmd_find_client(cmdq, NULL, 1)) == NULL) {
+	if (c == NULL) {
 		cmdq_error(cmdq, "no client available");
 		return (CMD_RETURN_ERROR);
 	}
 
 	if ((template = args_get(args, 'F')) == NULL)
 		template = CHOOSE_BUFFER_TEMPLATE;
-
-	if ((wl = cmd_find_window(cmdq, args_get(args, 't'), NULL)) == NULL)
-		return (CMD_RETURN_ERROR);
 	utf8flag = options_get_number(&wl->window->options, "utf8");
 
 	if (paste_get_top() == NULL)

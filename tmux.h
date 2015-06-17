@@ -1376,8 +1376,8 @@ TAILQ_HEAD(cmd_q_items, cmd_q_item);
 /* Command queue. */
 struct cmd_q {
 	int			 references;
-	int			 dead;
-
+	int			 flags;
+#define CMD_Q_DEAD 0x1
 	struct client		*client;
 	int			 client_exit;
 
@@ -1422,13 +1422,13 @@ struct cmd_entry {
 #define CMD_PREP_INDEX_S 0x1000
 #define CMD_PREP_CANFAIL 0x2000
 #define CMD_PREP_PREFERUNATTACHED 0x4000
-#define CMD_PREP_SESSION_RENUM_T 0x8000
+#define CMD_PREP_MOVEW_R 0x8000 /* For movew -r only */
 	int		 flags;
 
 	enum cmd_retval	 (*exec)(struct cmd *, struct cmd_q *);
 };
 #define CMD_PREP_ALL_T (CMD_PREP_SESSION_T|CMD_PREP_WINDOW_T|CMD_PREP_PANE_T| \
-    CMD_PREP_INDEX_T|CMD_PREP_SESSION_RENUM_T)
+    CMD_PREP_INDEX_T|CMD_PREP_MOVEW_R)
 #define CMD_PREP_ALL_S (CMD_PREP_SESSION_S|CMD_PREP_WINDOW_S|CMD_PREP_PANE_S| \
     CMD_PREP_INDEX_S)
 
@@ -1853,8 +1853,8 @@ extern const struct cmd_entry cmd_up_pane_entry;
 extern const struct cmd_entry cmd_wait_for_entry;
 
 /* cmd-attach-session.c */
-enum cmd_retval	 cmd_attach_session(struct cmd_q *, const char *, int, int,
-		     const char *, int);
+enum cmd_retval	 cmd_attach_session(struct cmd_q *, int, int, const char *,
+    int);
 
 /* cmd-list.c */
 struct cmd_list	*cmd_list_parse(int, char **, const char *, u_int, char **);
