@@ -34,7 +34,7 @@ const struct cmd_entry cmd_show_messages_entry = {
 	"show-messages", "showmsgs",
 	"IJTt:", 0, 0,
 	"[-IJT] " CMD_TARGET_CLIENT_USAGE,
-	0,
+	CMD_PREP_CLIENT_T,
 	cmd_show_messages_exec
 };
 
@@ -110,7 +110,7 @@ enum cmd_retval
 cmd_show_messages_exec(struct cmd *self, struct cmd_q *cmdq)
 {
 	struct args		*args = self->args;
-	struct client		*c;
+	struct client		*c = cmdq->state.c;
 	struct message_entry	*msg;
 	char			*tim;
 	int			 done, blank;
@@ -130,9 +130,6 @@ cmd_show_messages_exec(struct cmd *self, struct cmd_q *cmdq)
 	}
 	if (done)
 		return (CMD_RETURN_NORMAL);
-
-	if ((c = cmd_find_client(cmdq, args_get(args, 't'), 0)) == NULL)
-		return (CMD_RETURN_ERROR);
 
 	TAILQ_FOREACH(msg, &c->message_log, entry) {
 		tim = ctime(&msg->msg_time);

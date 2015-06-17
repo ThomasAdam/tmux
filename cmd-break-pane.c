@@ -34,7 +34,7 @@ const struct cmd_entry cmd_break_pane_entry = {
 	"break-pane", "breakp",
 	"dPF:s:t:", 0, 0,
 	"[-dP] [-F format] " CMD_SRCDST_PANE_USAGE,
-	0,
+	CMD_PREP_PANE_S|CMD_PREP_INDEX_T,
 	cmd_break_pane_exec
 };
 
@@ -42,22 +42,19 @@ enum cmd_retval
 cmd_break_pane_exec(struct cmd *self, struct cmd_q *cmdq)
 {
 	struct args		*args = self->args;
-	struct winlink		*wl;
-	struct session		*s;
-	struct window_pane	*wp;
-	struct window		*w;
+	struct winlink		*wl = cmdq->state.sflag.wl;
+	struct session		*src_s = cmdq->state.sflag.s;
+	struct session		*dst_s = cmdq->state.tflag.s;
+	struct window_pane	*wp = cmdq->state.sflag.wp;
+	struct window		*w = wl->window;
 	char			*name;
 	char			*cause;
-	int			 idx;
+	int			 idx = cmdq->state.tflag.idx;
 	struct format_tree	*ft;
 	const char		*template;
 	char			*cp;
 
-	if ((wl = cmd_find_pane(cmdq, args_get(args, 's'), &s, &wp)) == NULL)
-		return (CMD_RETURN_ERROR);
-	if ((idx = cmd_find_index(cmdq, args_get(args, 't'), &s)) == -2)
-		return (CMD_RETURN_ERROR);
-	if (idx != -1 && winlink_find_by_index(&s->windows, idx) != NULL) {
+	if (idx != -1 && winlink_find_by_index(&dst_s->windows, idx) != NULL) {
 		cmdq_error(cmdq, "index %d already in use", idx);
 		return (CMD_RETURN_ERROR);
 	}
@@ -67,14 +64,13 @@ cmd_break_pane_exec(struct cmd *self, struct cmd_q *cmdq)
 		return (CMD_RETURN_ERROR);
 	}
 
-	w = wl->window;
 	server_unzoom_window(w);
 
 	TAILQ_REMOVE(&w->panes, wp, entry);
 	window_lost_pane(w, wp);
 	layout_close_pane(wp);
 
-	w = wp->window = window_create1(s->sx, s->sy);
+	w = wp->window = window_create1(dst_s->sx, dst_s->sy);
 	TAILQ_INSERT_HEAD(&w->panes, wp, entry);
 	w->active = wp;
 	name = default_window_name(w);
@@ -83,20 +79,20 @@ cmd_break_pane_exec(struct cmd *self, struct cmd_q *cmdq)
 	layout_init(w, wp);
 
 	if (idx == -1)
-		idx = -1 - options_get_number(&s->options, "base-index");
-	wl = session_attach(s, w, idx, &cause); /* can't fail */
+		idx = -1 - options_get_number(&dst_s->options, "base-index");
+	wl = session_attach(dst_s, w, idx, &cause); /* can't fail */
 	if (!args_has(self->args, 'd'))
-		session_select(s, wl->idx);
+		session_select(dst_s, wl->idx);
 
-	server_redraw_session(s);
-	server_status_session_group(s);
+	server_redraw_session(src_s);
+	server_status_session_group(src_s);
 
 	if (args_has(args, 'P')) {
 		if ((template = args_get(args, 'F')) == NULL)
 			template = BREAK_PANE_TEMPLATE;
 
 		ft = format_create();
-		format_defaults(ft, cmd_find_client(cmdq, NULL, 1), s, wl, wp);
+		format_defaults(ft, cmdq->state.c, dst_s, wl, wp);
 
 		cp = format_expand(ft, template);
 		cmdq_print(cmdq, "%s", cp);
