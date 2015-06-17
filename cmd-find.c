@@ -282,15 +282,40 @@ cmd_find_current_session_with_client(struct cmd_find_state *fs)
 int
 cmd_find_current_session(struct cmd_find_state *fs)
 {
+	struct session	*s;
+	struct alert	*al;
+	struct winlink	*wl;
+
 	/* If we know the current client, use it. */
 	if (fs->cmdq->client != NULL) {
 		if (fs->cmdq->client->session == NULL)
 			return (cmd_find_current_session_with_client(fs));
-		fs->s = fs->cmdq->client->session;
-		fs->wl = fs->s->curw;
-		fs->idx = fs->wl->idx;
-		fs->w = fs->wl->window;
-		fs->wp = fs->w->active;
+		else {
+			RB_FOREACH(s, sessions, &sessions) {
+				if (cmd_has_session_alert(s, &al)) {
+					fs->s = s;
+					RB_FOREACH(wl, winlinks, &s->windows) {
+						if (wl->flags & al->flag) {
+							fs->wl = wl;
+							fs->idx = wl->idx;
+							fs->w = wl->window;
+							fs->wp = fs->w->active;
+
+							return (0);
+						}
+					}
+					break;
+				}
+			}
+		}
+
+		if (fs->s == NULL) {
+			fs->s = fs->cmdq->client->session;
+			fs->wl = fs->s->curw;
+			fs->idx = fs->wl->idx;
+			fs->w = fs->wl->window;
+			fs->wp = fs->w->active;
+		}
 		return (0);
 	}
 
@@ -1090,9 +1115,19 @@ struct winlink *
 cmd_find_window(struct cmd_q *cmdq, const char *target, struct session **sp)
 {
 	struct cmd_find_state	*fs;
+	struct alert		*al;
+	struct winlink		*wl;
 
 	fs = cmd_find_target(cmdq, target, CMD_FIND_WINDOW, 0);
 	cmd_find_log_state(__func__, target, fs);
+
+	if (cmd_has_session_alert(fs->s, &al)) {
+		RB_FOREACH(wl, winlinks, &fs->s->windows) {
+			if (wl->flags & al->flag)
+				return (wl);
+		}
+	}
+
 	if (fs == NULL)
 		return (NULL);
 
@@ -1125,6 +1160,8 @@ cmd_find_pane(struct cmd_q *cmdq, const char *target, struct session **sp,
     struct window_pane **wpp)
 {
 	struct cmd_find_state	*fs;
+	struct alert		*al;
+	struct winlink		*wl;
 
 	fs = cmd_find_target(cmdq, target, CMD_FIND_PANE, 0);
 	cmd_find_log_state(__func__, target, fs);
@@ -1135,6 +1172,19 @@ cmd_find_pane(struct cmd_q *cmdq, const char *target, struct session **sp,
 		*sp = fs->s;
 	if (wpp != NULL)
 		*wpp = fs->wp;
+
+	if (target == NULL) {
+		if (!cmd_has_session_alert(fs->s, &al))
+			return (fs->wl);
+		else {
+			RB_FOREACH(wl, winlinks, &al->windows) {
+				if (wl->flags & al->flag) {
+					*wpp = wl->window->active;
+					return (wl);
+				}
+			}
+		}
+	}
 	return (fs->wl);
 }
 

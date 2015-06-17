@@ -1103,6 +1103,16 @@ struct mouse_event {
 	u_int	sgr_b;
 };
 
+/* Alert information. */
+struct alert {
+	const char	*name;
+	int		 flag;
+	struct session	*s;
+	struct winlinks	 windows;
+	RB_ENTRY(alert)	 entry;
+};
+RB_HEAD(alerts, alert);
+
 /* TTY information. */
 struct tty_key {
 	char		 ch;
@@ -1796,6 +1806,8 @@ struct winlink	*cmd_mouse_window(struct mouse_event *, struct session **);
 struct window_pane *cmd_mouse_pane(struct mouse_event *, struct session **,
 		     struct winlink **);
 char		*cmd_template_replace(const char *, const char *, int);
+int		 cmd_has_session_alert(struct session *, struct alert **);
+
 extern const struct cmd_entry *cmd_table[];
 extern const struct cmd_entry cmd_attach_session_entry;
 extern const struct cmd_entry cmd_bind_key_entry;
@@ -1967,6 +1979,11 @@ void	 server_client_status_timer(void);
 void	 server_client_loop(void);
 
 /* server-window.c */
+extern struct alerts alerts;
+RB_PROTOTYPE(alerts, alert, entry, alert_cmp);
+int		 alert_cmp(struct alert *, struct alert *);
+struct alert	*alert_new(void);
+void		 alert_free(struct alert *);
 void	 server_window_loop(void);
 
 /* server-fn.c */

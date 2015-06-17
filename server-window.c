@@ -21,13 +21,55 @@
 #include <event.h>
 #include <stdlib.h>
 #include <unistd.h>
+#include <string.h>
 
 #include "tmux.h"
 
-int	server_window_check_bell(struct session *, struct winlink *);
-int	server_window_check_activity(struct session *, struct winlink *);
-int	server_window_check_silence(struct session *, struct winlink *);
-void	ring_bell(struct session *);
+struct alerts	 alerts;
+RB_GENERATE(alerts, alert, entry, alert_cmp);
+
+int	 server_window_check_bell(struct session *, struct winlink *);
+int	 server_window_check_activity(struct session *, struct winlink *);
+int	 server_window_check_silence(struct session *, struct winlink *);
+void	 server_window_run_hooks(struct session *, struct winlink *);
+void	 ring_bell(struct session *);
+
+struct window_flag_hook {
+	int		 flag;
+	const char	*name;
+};
+
+const struct window_flag_hook	 window_flag_hook_names[] = {
+	{WINLINK_BELL, "on-window-bell"},
+	{WINLINK_ACTIVITY, "on-window-activity"},
+	{WINLINK_SILENCE, "on-window-silence"},
+};
+
+int
+alert_cmp(struct alert *a1, struct alert *a2)
+{
+	return strcmp(a1->name, a2->name);
+}
+
+struct alert *
+alert_new(void)
+{
+	struct alert	*al;
+
+	al = xcalloc(1, sizeof *al);
+	return (al);
+}
+
+void
+alert_free(struct alert *al)
+{
+	struct winlink	*wl,* wl1;
+
+	RB_REMOVE(alerts, &alerts, al);
+	RB_FOREACH_SAFE(wl, winlinks, &al->windows, wl1)
+		winlink_remove(&al->windows, wl);
+	free(al);
+}
 
 /* Window functions that need to happen every loop. */
 void
@@ -45,12 +87,55 @@ server_window_loop(void)
 
 				if (server_window_check_bell(s, wl) ||
 				    server_window_check_activity(s, wl) ||
-				    server_window_check_silence(s, wl))
+				    server_window_check_silence(s, wl)) {
+					server_window_run_hooks(s, wl);
 					server_status_session(s);
+				}
 			}
 		}
 	}
 }
+
+/* Run any hooks associated with monitored events. */
+void
+server_window_run_hooks(struct session *s, struct winlink *wl)
+{
+	struct hooks	*hooks;
+	struct alert	*al, al_find;
+	struct winlink	*wl_new;
+	const char	*hook_name = NULL;
+	u_int		 i;
+	int		 flag;
+
+	for (i = 0; i < nitems(window_flag_hook_names); i++) {
+		if (wl->flags & window_flag_hook_names[i].flag) {
+			hook_name = window_flag_hook_names[i].name;
+			flag = window_flag_hook_names[i].flag;
+			break;
+		}
+	}
+
+	if (hook_name == NULL)
+		return;
+
+	al_find.name = hook_name;
+	if ((al = RB_FIND(alerts, &alerts, &al_find)) == NULL) {
+		al = alert_new();
+		al->name = hook_name;
+		al->flag = flag;
+		al->s = s;
+		RB_INIT(&al->windows);
+	}
+	wl_new = winlink_add(&al->windows, wl->idx);
+	winlink_set_window(wl_new, wl->window);
+	wl_new->flags |= wl->flags & WINLINK_ALERTFLAGS;
+	RB_INSERT(alerts, &alerts, al);
+
+	hooks = &s->hooks;
+	cmdq_hooks_run(hooks, NULL, hook_name, NULL);
+	alert_free(al);
+}
+
 
 /* Check for bell in window. */
 int
@@ -62,10 +147,8 @@ server_window_check_bell(struct session *s, struct winlink *wl)
 
 	if (!(w->flags & WINDOW_BELL) || wl->flags & WINLINK_BELL)
 		return (0);
-	if (s->curw != wl || s->flags & SESSION_UNATTACHED)
+	if (s->curw != wl)
 		wl->flags |= WINLINK_BELL;
-	if (s->flags & SESSION_UNATTACHED)
-		return (0);
 	if (s->curw->window == w)
 		w->flags &= ~WINDOW_BELL;
 
@@ -107,7 +190,7 @@ server_window_check_activity(struct session *s, struct winlink *wl)
 
 	if (!(w->flags & WINDOW_ACTIVITY) || wl->flags & WINLINK_ACTIVITY)
 		return (0);
-	if (s->curw == wl && !(s->flags & SESSION_UNATTACHED))
+	if (s->curw == wl)
 		return (0);
 
 	if (!options_get_number(&w->options, "monitor-activity"))
@@ -140,7 +223,7 @@ server_window_check_silence(struct session *s, struct winlink *wl)
 	if (!(w->flags & WINDOW_SILENCE) || wl->flags & WINLINK_SILENCE)
 		return (0);
 
-	if (s->curw == wl && !(s->flags & SESSION_UNATTACHED)) {
+	if (s->curw == wl) {
 		/*
 		 * Reset the timer for this window if we've focused it.  We
 		 * don't want the timer tripping as soon as we've switched away

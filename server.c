@@ -203,6 +203,7 @@ server_start(int lockfd, char *lockfile)
 	TAILQ_INIT(&clients);
 	RB_INIT(&sessions);
 	TAILQ_INIT(&session_groups);
+	RB_INIT(&alerts);
 	mode_key_init_trees();
 	key_bindings_init();
 	utf8_build();

@@ -649,6 +649,21 @@ cmd_print(struct cmd *cmd, char *buf, size_t len)
 	return (off);
 }
 
+int
+cmd_has_session_alert(struct session *s, struct alert **al)
+{
+	struct alert	*al1;
+
+	RB_FOREACH(al1, alerts, &alerts) {
+		if (al1->s == s) {
+			if (al != NULL)
+				*al = al1;
+			return (1);
+		}
+	}
+	return (0);
+}
+
 /* Adjust current mouse position for a pane. */
 int
 cmd_mouse_at(struct window_pane *wp, struct mouse_event *m, u_int *xp,
