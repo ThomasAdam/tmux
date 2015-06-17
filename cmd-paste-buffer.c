@@ -36,7 +36,7 @@ const struct cmd_entry cmd_paste_buffer_entry = {
 	"paste-buffer", "pasteb",
 	"db:prs:t:", 0, 0,
 	"[-dpr] [-s separator] " CMD_BUFFER_USAGE " " CMD_TARGET_PANE_USAGE,
-	0,
+	CMD_PREP_PANE_T,
 	cmd_paste_buffer_exec
 };
 
@@ -44,13 +44,9 @@ enum cmd_retval
 cmd_paste_buffer_exec(struct cmd *self, struct cmd_q *cmdq)
 {
 	struct args		*args = self->args;
-	struct window_pane	*wp;
-	struct session		*s;
+	struct window_pane	*wp = cmdq->state.tflag.wp;
 	struct paste_buffer	*pb;
 	const char		*sepstr, *bufname;
-
-	if (cmd_find_pane(cmdq, args_get(args, 't'), &s, &wp) == NULL)
-		return (CMD_RETURN_ERROR);
 
 	bufname = NULL;
 	if (args_has(args, 'b'))

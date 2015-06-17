@@ -67,8 +67,8 @@ struct options_entry *cmd_set_option_style(struct cmd *, struct cmd_q *,
 const struct cmd_entry cmd_set_option_entry = {
 	"set-option", "set",
 	"agoqst:uw", 1, 2,
-	"[-agosquw] [-t target-session|target-window] option [value]",
-	0,
+	"[-agosquw] [-t target-window] option [value]",
+	CMD_PREP_WINDOW_T|CMD_PREP_CANFAIL,
 	cmd_set_option_exec
 };
 
@@ -76,7 +76,7 @@ const struct cmd_entry cmd_set_window_option_entry = {
 	"set-window-option", "setw",
 	"agoqt:u", 1, 2,
 	"[-agoqu] " CMD_TARGET_WINDOW_USAGE " option [value]",
-	0,
+	CMD_PREP_WINDOW_T|CMD_PREP_CANFAIL,
 	cmd_set_option_exec
 };
 
@@ -84,12 +84,12 @@ enum cmd_retval
 cmd_set_option_exec(struct cmd *self, struct cmd_q *cmdq)
 {
 	struct args				*args = self->args;
-	const struct options_table_entry	*table, *oe;
-	struct session				*s;
-	struct winlink				*wl;
+	struct session				*s = cmdq->state.tflag.s;
+	struct winlink				*wl = cmdq->state.tflag.wl;
 	struct client				*c;
-	struct options				*oo;
 	struct window				*w;
+	const struct options_table_entry	*table, *oe;
+	struct options				*oo;
 	const char				*optstr, *valstr;
 
 	/* Get the option name and value. */
@@ -127,31 +127,13 @@ cmd_set_option_exec(struct cmd *self, struct cmd_q *cmdq)
 	else if (table == window_options_table) {
 		if (args_has(self->args, 'g'))
 			oo = &global_w_options;
-		else {
-			wl = cmd_find_window(cmdq, args_get(args, 't'), NULL);
-			if (wl == NULL) {
-				cmdq_error(cmdq,
-				    "couldn't set '%s'%s", optstr,
-				    (!args_has(args, 't') && !args_has(args,
-				    'g')) ? " need target window or -g" : "");
-				return (CMD_RETURN_ERROR);
-			}
+		else
 			oo = &wl->window->options;
-		}
 	} else if (table == session_options_table) {
 		if (args_has(self->args, 'g'))
 			oo = &global_s_options;
-		else {
-			s = cmd_find_session(cmdq, args_get(args, 't'), 0);
-			if (s == NULL) {
-				cmdq_error(cmdq,
-				    "couldn't set '%s'%s", optstr,
-				    (!args_has(args, 't') && !args_has(args,
-				    'g')) ? " need target session or -g" : "");
-				return (CMD_RETURN_ERROR);
-			}
+		else
 			oo = &s->options;
-		}
 	} else {
 		cmdq_error(cmdq, "unknown table");
 		return (CMD_RETURN_ERROR);
@@ -199,8 +181,8 @@ cmd_set_option_user(struct cmd *self, struct cmd_q *cmdq, const char *optstr,
     const char *valstr)
 {
 	struct args	*args = self->args;
-	struct session	*s;
-	struct winlink	*wl;
+	struct session	*s = cmdq->state.tflag.s;
+	struct winlink	*wl = cmdq->state.tflag.wl;
 	struct options	*oo;
 
 	if (args_has(args, 's'))
@@ -209,21 +191,13 @@ cmd_set_option_user(struct cmd *self, struct cmd_q *cmdq, const char *optstr,
 	    self->entry == &cmd_set_window_option_entry) {
 		if (args_has(self->args, 'g'))
 			oo = &global_w_options;
-		else {
-			wl = cmd_find_window(cmdq, args_get(args, 't'), NULL);
-			if (wl == NULL)
-				return (CMD_RETURN_ERROR);
+		else
 			oo = &wl->window->options;
-		}
 	} else {
 		if (args_has(self->args, 'g'))
 			oo = &global_s_options;
-		else {
-			s = cmd_find_session(cmdq, args_get(args, 't'), 0);
-			if (s == NULL)
-				return (CMD_RETURN_ERROR);
+		else
 			oo = &s->options;
-		}
 	}
 
 	if (args_has(args, 'u')) {

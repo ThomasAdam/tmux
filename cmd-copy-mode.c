@@ -30,7 +30,7 @@ const struct cmd_entry cmd_copy_mode_entry = {
 	"copy-mode", NULL,
 	"Mt:u", 0, 0,
 	"[-Mu] " CMD_TARGET_PANE_USAGE,
-	0,
+	CMD_PREP_PANE_T,
 	cmd_copy_mode_exec
 };
 
@@ -48,15 +48,14 @@ cmd_copy_mode_exec(struct cmd *self, struct cmd_q *cmdq)
 	struct args		*args = self->args;
 	struct client		*c = cmdq->client;
 	struct session		*s;
-	struct window_pane	*wp;
+	struct window_pane	*wp = cmdq->state.tflag.wp;
 
 	if (args_has(args, 'M')) {
 		if ((wp = cmd_mouse_pane(&cmdq->item->mouse, &s, NULL)) == NULL)
 			return (CMD_RETURN_NORMAL);
 		if (c == NULL || c->session != s)
 			return (CMD_RETURN_NORMAL);
-	} else if (cmd_find_pane(cmdq, args_get(args, 't'), NULL, &wp) == NULL)
-		return (CMD_RETURN_ERROR);
+	}
 
 	if (self->entry == &cmd_clock_mode_entry) {
 		window_pane_set_mode(wp, &window_clock_mode);

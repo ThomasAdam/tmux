@@ -39,7 +39,7 @@ const struct cmd_entry cmd_run_shell_entry = {
 	"run-shell", "run",
 	"bt:", 1, 1,
 	"[-b] " CMD_TARGET_PANE_USAGE " shell-command",
-	0,
+	CMD_PREP_PANE_T|CMD_PREP_CANFAIL,
 	cmd_run_shell_exec
 };
 
@@ -75,31 +75,18 @@ cmd_run_shell_exec(struct cmd *self, struct cmd_q *cmdq)
 	struct args			*args = self->args;
 	struct cmd_run_shell_data	*cdata;
 	char				*shellcmd;
-	struct client			*c;
-	struct session			*s = NULL;
-	struct winlink			*wl = NULL;
-	struct window_pane		*wp = NULL;
+	struct session			*s = cmdq->state.tflag.s;
+	struct winlink			*wl = cmdq->state.tflag.wl;
+	struct window_pane		*wp = cmdq->state.tflag.wp;
 	struct format_tree		*ft;
 	int				 cwd;
 
-	if (args_has(args, 't')) {
-		wl = cmd_find_pane(cmdq, args_get(args, 't'), &s, &wp);
-		cwd = wp->cwd;
-	} else {
-		c = cmd_find_client(cmdq, NULL, 1);
-		if (c != NULL && c->session != NULL) {
-			s = c->session;
-			wl = s->curw;
-			wp = wl->window->active;
-		}
-		if (cmdq->client != NULL && cmdq->client->session == NULL)
-			cwd = cmdq->client->cwd;
-		else if (s != NULL)
-			cwd = s->cwd;
-		else
-			cwd = -1;
-	}
-
+	if (cmdq->client != NULL && cmdq->client->session == NULL)
+		cwd = cmdq->client->cwd;
+	else if (s != NULL)
+		cwd = s->cwd;
+	else
+		cwd = -1;
 	ft = format_create();
 	format_defaults(ft, NULL, s, wl, wp);
 	shellcmd = format_expand(ft, args->argv[0]);
@@ -131,7 +118,7 @@ cmd_run_shell_callback(struct job *job)
 	int				 retcode;
 	u_int				 lines;
 
-	if (cmdq->dead)
+	if (cmdq->flags & CMD_Q_DEAD)
 		return;
 	cmd = cdata->cmd;
 
