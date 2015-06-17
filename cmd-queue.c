@@ -22,6 +22,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <time.h>
+#include <string.h>
 
 #include "tmux.h"
 
@@ -179,19 +180,26 @@ cmdq_continue_one(struct cmd_q *cmdq)
 
 	cmdq_guard(cmdq, "begin", flags);
 
+	if (cmd_prepare_state(cmd, cmdq) != 0)
+		goto error;
 	retval = cmd->entry->exec(cmd, cmdq);
-
 	if (retval == CMD_RETURN_ERROR)
-		cmdq_guard(cmdq, "error", flags);
-	else
-		cmdq_guard(cmdq, "end", flags);
+		goto error;
+
+	cmdq_guard(cmdq, "end", flags);
+
 	return (retval);
+
+error:
+	cmdq_guard(cmdq, "error", flags);
+	return (CMD_RETURN_ERROR);
 }
 
 /* Continue processing command queue. Returns 1 if finishes empty. */
 int
 cmdq_continue(struct cmd_q *cmdq)
 {
+	struct client		*c = cmdq->client;
 	struct cmd_q_item	*next;
 	enum cmd_retval		 retval;
 	int			 empty;
