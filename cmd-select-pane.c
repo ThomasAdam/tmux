@@ -47,16 +47,12 @@ cmd_select_pane_exec(struct cmd *self, struct cmd_q *cmdq)
 {
 	struct args		*args = self->args;
 	struct winlink		*wl = cmdq->state.tflag.wl;
-	struct window		*w;
+	struct window		*w = wl->window;
 	struct session		*s = cmdq->state.tflag.s;
 	struct window_pane	*wp = cmdq->state.tflag.wp, *lastwp, *markedwp;
 	const char		*style;
 
 	if (self->entry == &cmd_last_pane_entry || args_has(args, 'l')) {
-		wl = cmd_find_window(cmdq, args_get(args, 't'), NULL);
-		if (wl == NULL)
-			return (CMD_RETURN_ERROR);
-		w = wl->window;
 
 		if (wl->window->last == NULL) {
 			cmdq_error(cmdq, "no last pane");
