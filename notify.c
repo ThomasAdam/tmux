@@ -33,33 +33,79 @@ enum notify_type {
 	NOTIFY_SESSION_CLOSED
 };
 
+struct notify_hooks {
+	const enum notify_type	 type;
+	const char		*hook_name;
+};
+
+const struct notify_hooks notify_hooks_info[] = {
+	{NOTIFY_WINDOW_LAYOUT_CHANGED, "notify-window-layout-changed"},
+	{NOTIFY_WINDOW_UNLINKED, "notify-window-unlinked"},
+	{NOTIFY_WINDOW_LINKED, "notify-window-linked"},
+	{NOTIFY_WINDOW_RENAMED, "notify-window-renamed"},
+	{NOTIFY_ATTACHED_SESSION_CHANGED, "notify-attached-session-changed"},
+	{NOTIFY_SESSION_RENAMED, "notify-session-renamed"},
+	{NOTIFY_SESSION_CREATED, "notify-session-created"},
+	{NOTIFY_SESSION_CLOSED, "notify-session-closed"},
+};
+
 struct notify_entry {
 	enum notify_type	 type;
 
 	struct client		*client;
 	struct session		*session;
 	struct window		*window;
+	int			 do_free;
 
 	TAILQ_ENTRY(notify_entry) entry;
 };
 TAILQ_HEAD(, notify_entry) notify_queue = TAILQ_HEAD_INITIALIZER(notify_queue);
-int	notify_enabled = 1;
+int	notify_disabled;
 
 void	notify_drain(void);
 void	notify_add(enum notify_type, struct client *, struct session *,
 	    struct window *);
+void	notify_run_hook(struct notify_entry *);
+
+void
+notify_run_hook(struct notify_entry *ne)
+{
+	struct hooks	*hooks;
+	const char	*hook_name = NULL;
+	u_int		 i;
+
+	for (i = 0; i < nitems(notify_hooks_info); i++) {
+		if (notify_hooks_info[i].type == ne->type) {
+			hook_name = notify_hooks_info[i].hook_name;
+			break;
+		}
+	}
+
+	if (hook_name == NULL)
+	       return;
+
+	hooks = ne->session != NULL ? &ne->session->hooks : &global_hooks;
+
+	/* Run the hooked commands */
+	ne->do_free = 1;
+	cmdq_hooks_run(hooks, NULL, hook_name, NULL);
+}
 
 void
 notify_enable(void)
 {
-	notify_enabled = 1;
-	notify_drain();
+	if (notify_disabled == 0)
+		return;
+	if (--notify_disabled == 0)
+		notify_drain();
+	log_debug("notify enabled, now %d", notify_disabled);
 }
 
 void
 notify_disable(void)
 {
-	notify_enabled = 0;
+	notify_disabled++;
+	log_debug("notify disabled, now %d", notify_disabled);
 }
 
 void
@@ -68,11 +114,15 @@ notify_add(enum notify_type type, struct client *c, struct session *s,
 {
 	struct notify_entry	*ne;
 
+	if (!CONTROL_SHOULD_NOTIFY_CLIENT(c))
+		return;
+
 	ne = xcalloc(1, sizeof *ne);
 	ne->type = type;
 	ne->client = c;
 	ne->session = s;
 	ne->window = w;
+	ne->do_free = 0;
 	TAILQ_INSERT_TAIL(&notify_queue, ne, entry);
 
 	if (c != NULL)
@@ -87,8 +137,19 @@ void
 notify_drain(void)
 {
 	struct notify_entry	*ne, *ne1;
+	struct client		*c = NULL, *cloop = NULL;
 
-	if (!notify_enabled)
+	if (notify_disabled)
+		return;
+
+	/* If no clients want notifications, stop here! */
+	TAILQ_FOREACH(cloop, &clients, entry) {
+		if (!CONTROL_SHOULD_NOTIFY_CLIENT(cloop))
+			continue;
+		c = cloop;
+	}
+
+	if (c == NULL)
 		return;
 
 	TAILQ_FOREACH_SAFE(ne, &notify_queue, entry, ne1) {
@@ -127,7 +188,15 @@ notify_drain(void)
 			window_remove_ref(ne->window);
 
 		TAILQ_REMOVE(&notify_queue, ne, entry);
-		free(ne);
+
+		/*
+		 * If we are freeing ne here, then the hook has already run,
+		 * otherwise schedule the hook to run.
+		 */
+		if (ne->do_free)
+			free(ne);
+		else
+			notify_run_hook(ne);
 	}
 }
 
@@ -140,7 +209,7 @@ notify_input(struct window_pane *wp, struct evbuffer *input)
 	 * notify_input() is not queued and only does anything when
 	 * notifications are enabled.
 	 */
-	if (!notify_enabled)
+	if (notify_disabled)
 		return;
 
 	TAILQ_FOREACH(c, &clients, entry) {
