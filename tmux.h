@@ -1005,6 +1005,19 @@ struct environ_entry {
 };
 RB_HEAD(environ, environ_entry);
 
+/* Hooks. */
+struct hook {
+	const char	*name;
+	struct cmd_q	*cmdq;
+	struct cmd_list	*cmdlist;
+	RB_ENTRY(hook)	 entry;
+};
+
+struct hooks {
+	RB_HEAD(hooks_tree, hook) tree;
+	struct hooks	*parent;
+};
+
 /* Client session. */
 struct session_group {
 	TAILQ_HEAD(, session) sessions;
@@ -1030,6 +1043,7 @@ struct session {
 	struct winlink_stack lastw;
 	struct winlinks	 windows;
 
+	struct hooks	 hooks;
 	struct options	 options;
 
 #define SESSION_UNATTACHED 0x1	/* not attached to any clients */
@@ -1378,6 +1392,9 @@ struct cmd_q {
 	int			 references;
 	int			 flags;
 #define CMD_Q_DEAD 0x1
+#define CMD_Q_REENTRY 0x2
+#define CMD_Q_NOHOOKS 0x4
+
 	struct client		*client;
 	int			 client_exit;
 
@@ -1494,6 +1511,7 @@ struct options_table_entry {
 #define CMD_BUFFER_USAGE "[-b buffer-name]"
 
 /* tmux.c */
+extern struct hooks   global_hooks;
 extern struct options global_options;
 extern struct options global_s_options;
 extern struct options global_w_options;
@@ -1506,6 +1524,7 @@ extern time_t	 start_time;
 extern char	 socket_path[PATH_MAX];
 extern int	 login_shell;
 extern char	*environ_path;
+extern int	 running_hooks;
 void		 logfile(const char *);
 const char	*getshell(void);
 int		 checkshell(const char *);
@@ -1543,6 +1562,16 @@ void		 format_defaults_pane(struct format_tree *,
 void		 format_defaults_paste_buffer(struct format_tree *,
 		     struct paste_buffer *, int);
 
+/* hooks.c */
+int		 hooks_cmp(struct hook *, struct hook *);
+RB_PROTOTYPE(hooks_tree, hook, entry, hooks_cmp);
+void		 hooks_init(struct hooks *, struct hooks *);
+void		 hooks_free(struct hooks *);
+void		 hooks_add(struct hooks *, const char *, struct cmd_list *);
+void		 hooks_copy(struct hooks *, struct hooks *);
+void		 hooks_remove(struct hooks *, struct hook *);
+struct hook	*hooks_find(struct hooks *, const char *);
+
 /* mode-key.c */
 extern const struct mode_key_table mode_key_tables[];
 extern struct mode_key_tree mode_key_tree_vi_edit;
@@ -1563,6 +1592,9 @@ void	mode_key_init(struct mode_key_data *, struct mode_key_tree *);
 enum mode_key_cmd mode_key_lookup(struct mode_key_data *, int, const char **);
 
 /* notify.c */
+#define CONTROL_SHOULD_NOTIFY_CLIENT(c) \
+	((c) != NULL && ((c)->flags & CLIENT_CONTROL))
+
 void	notify_enable(void);
 void	notify_disable(void);
 void	notify_input(struct window_pane *, struct evbuffer *);
@@ -1833,10 +1865,12 @@ extern const struct cmd_entry cmd_send_prefix_entry;
 extern const struct cmd_entry cmd_server_info_entry;
 extern const struct cmd_entry cmd_set_buffer_entry;
 extern const struct cmd_entry cmd_set_environment_entry;
+extern const struct cmd_entry cmd_set_hook_entry;
 extern const struct cmd_entry cmd_set_option_entry;
 extern const struct cmd_entry cmd_set_window_option_entry;
 extern const struct cmd_entry cmd_show_buffer_entry;
 extern const struct cmd_entry cmd_show_environment_entry;
+extern const struct cmd_entry cmd_show_hooks_entry;
 extern const struct cmd_entry cmd_show_messages_entry;
 extern const struct cmd_entry cmd_show_options_entry;
 extern const struct cmd_entry cmd_show_window_options_entry;
@@ -1873,6 +1907,8 @@ void		 cmdq_append(struct cmd_q *, struct cmd_list *,
 		     struct mouse_event *);
 int		 cmdq_continue(struct cmd_q *);
 void		 cmdq_flush(struct cmd_q *);
+int		 cmdq_hooks_run(struct hooks *, const char *, const char *,
+    struct cmd_q *);
 
 /* cmd-string.c */
 int	cmd_string_parse(const char *, struct cmd_list **, const char *,
