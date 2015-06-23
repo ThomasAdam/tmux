@@ -650,6 +650,67 @@ $ tmux new-window \e; split-window -d
 
 $ tmux new-session -d 'vi /etc/passwd' \e; split-window -d \e; attach
 .Ed
+.Sh HOOKS
+.Nm
+allow for commands to run before or after a given command.
+A valid
+.Em hook-name
+has two parts to it, a prefix and a suffix.
+The prefix denotes when the hook should run.
+Valid prefixes are
+.Em before-
+and
+.Em after-
+The suffix is then the command name which the hook should be applied to.
+The following commands are available to manage hooks:
+.Bl -tag -width Ds
+.It Xo Ic set-hook
+.Op Fl g
+.Op Fl t Ar target-session
+.Ar hook-name
+.Ar command
+.Xc
+Sets the
+.Em hook-name
+to the given
+.Em command .
+Multiple commands for a given hook can be specified.
+See
+.Sx COMMANDS .
+If
+.Fl g
+is given, applies
+.Em hook-name
+to the global list of hooks which operate across all sessions.
+If
+.Fl t
+is given, applies to
+.Em target-session
+only.
+As with the
+.Em set-option
+command, session hooks inherit from the global ones.
+For example:
+.Bd -literal -offset indent
+set-hook -g before-new-window 'splitw'
+.Ed
+.Pp
+Would run the
+.Em split-window
+command on the current window before the
+.Em new-window
+command runs.
+.It Xo Ic show-hooks
+.Op Fl g
+.Op Fl t Ar target-session
+.Xc
+Shows the global list of hooks with
+.Fl g
+otherwise, the session hooks with
+.Fl t
+in
+.Em target-session .
+.Ed
 .Sh CLIENTS AND SESSIONS
 The
 .Nm
