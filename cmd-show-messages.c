@@ -32,8 +32,8 @@ enum cmd_retval	 cmd_show_messages_exec(struct cmd *, struct cmd_q *);
 
 const struct cmd_entry cmd_show_messages_entry = {
 	"show-messages", "showmsgs",
-	"IJTt:", 0, 0,
-	"[-IJT] " CMD_TARGET_CLIENT_USAGE,
+	"IJPTt:", 0, 0,
+	"[-IJPT] " CMD_TARGET_CLIENT_USAGE,
 	0,
 	cmd_show_messages_exec
 };
@@ -140,6 +140,7 @@ cmd_show_messages_exec(struct cmd *self, struct cmd_q *cmdq)
 	struct message_entry	*msg;
 	char			*tim;
 	int			 done, blank;
+	u_int			 i;
 
 	done = blank = 0;
 	if (args_has(args, 'I') || self->entry == &cmd_server_info_entry) {
@@ -152,6 +153,11 @@ cmd_show_messages_exec(struct cmd *self, struct cmd_q *cmdq)
 	}
 	if (args_has(args, 'J') || self->entry == &cmd_server_info_entry) {
 		cmd_show_messages_jobs(cmdq, blank);
+		done = 1;
+	}
+	if (args_has(args, 'P')) {
+		for (i = 0; i < status_prompt_hsize; i++)
+			cmdq_print(cmdq, "%s", status_prompt_hlist[i]);
 		done = 1;
 	}
 	if (done)

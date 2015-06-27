@@ -895,7 +895,7 @@ is specified, only update the client's status bar.
 Rename the session to
 .Ar new-name .
 .It Xo Ic show-messages
-.Op Fl IJT
+.Op Fl IJPT
 .Op Fl t Ar target-client
 .Xc
 .D1 (alias: Ic showmsgs )
@@ -909,10 +909,12 @@ With
 display the log for
 .Ar target-client .
 .Fl I ,
-.Fl J
+.Fl J ,
+.Fl P ,
 and
 .Fl T
-show debugging information about the running server, jobs and terminals.
+show debugging information about the running server, jobs, status prompt
+history  and terminals.
 .It Ic source-file Ar path
 .D1 (alias: Ic source )
 Execute commands from
