@@ -708,6 +708,8 @@ format_defaults_client(struct format_tree *ft, struct client *c)
 	format_add(ft, "client_pid", "%ld", (long) c->pid);
 	format_add(ft, "client_height", "%u", c->tty.sy);
 	format_add(ft, "client_width", "%u", c->tty.sx);
+	format_add(ft, "client_control_flag", "%d",
+		!!(c->flags & CLIENT_CONTROL));
 	if (c->tty.path != NULL)
 		format_add(ft, "client_tty", "%s", c->tty.path);
 	if (c->tty.termname != NULL)
