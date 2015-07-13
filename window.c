@@ -362,10 +362,7 @@ window_destroy(struct window *w)
 void
 window_remove_ref(struct window *w)
 {
-	if (w->references == 0)
-		fatal("bad reference count");
-	w->references--;
-	if (w->references == 0)
+	if (w->references-- == 0)
 		window_destroy(w);
 }
 
