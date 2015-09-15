@@ -860,6 +860,7 @@ struct window_pane {
 
 	const struct window_mode *mode;
 	void		*modedata;
+	const char	*modeaction;
 
 	TAILQ_ENTRY(window_pane) entry;
 	RB_ENTRY(window_pane) tree_entry;
@@ -1433,6 +1434,8 @@ void		 cfg_show_causes(struct session *);
 /* paste.c */
 struct paste_buffer;
 const char	*paste_buffer_name(struct paste_buffer *);
+u_int		 paste_buffer_order(struct paste_buffer *);
+time_t		 paste_buffer_created(struct paste_buffer *);
 const char	*paste_buffer_data(struct paste_buffer *, size_t *);
 struct paste_buffer *paste_walk(struct paste_buffer *);
 struct paste_buffer *paste_get_top(const char **);
@@ -2067,6 +2070,9 @@ int		 layout_set_lookup(const char *);
 u_int		 layout_set_select(struct window *, u_int);
 u_int		 layout_set_next(struct window *);
 u_int		 layout_set_previous(struct window *);
+
+/* window-buffer.c */
+extern const struct window_mode window_buffer_mode;
 
 /* window-clock.c */
 extern const struct window_mode window_clock_mode;
