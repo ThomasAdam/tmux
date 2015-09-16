@@ -1281,22 +1281,17 @@ struct args {
 };
 
 /* Context for a command about to be executed. */
+struct cmd_state_flag {
+	struct session		*s;
+	struct winlink		*wl;
+	struct window_pane	*wp;
+	int			 idx;
+
+};
 struct cmd_state {
-	struct client			*c;
-
-	struct {
-		struct session		*s;
-		struct winlink		*wl;
-		struct window_pane	*wp;
-		int			 idx;
-	} tflag;
-
-	struct {
-		struct session		*s;
-		struct winlink		*wl;
-		struct window_pane	*wp;
-		int			 idx;
-	} sflag;
+	struct client		*c;
+	struct cmd_state_flag	 tflag;
+	struct cmd_state_flag	 sflag;
 };
 
 /* Command and list of commands. */
