@@ -230,6 +230,7 @@ enum cmd_retval
 cmdq_continue_one(struct cmd_q *cmdq)
 {
 	struct cmd	*cmd = cmdq->cmd;
+	const char	*name = cmd->entry->name;
 	struct session	*s;
 	struct hooks	*hooks;
 	enum cmd_retval	 retval;
@@ -263,10 +264,8 @@ cmdq_continue_one(struct cmd_q *cmdq)
 
 		if (~cmdq->flags & CMD_Q_REENTRY) {
 			cmdq->flags |= CMD_Q_REENTRY;
-			if (cmdq_hooks_run(hooks, "before",
-			    cmd->entry->name,cmdq)) {
+			if (cmdq_hooks_run(hooks, "before", name, cmdq))
 				return (CMD_RETURN_WAIT);
-			}
 		}
 	} else
 		hooks = NULL;
@@ -278,10 +277,8 @@ cmdq_continue_one(struct cmd_q *cmdq)
 	if (retval == CMD_RETURN_ERROR)
 		goto error;
 
-	if (hooks != NULL && cmdq_hooks_run(hooks, "after",
-	    cmd->entry->name, cmdq)) {
+	if (hooks != NULL && cmdq_hooks_run(hooks, "after", name, cmdq))
 		retval = CMD_RETURN_WAIT;
-	}
 	cmdq_guard(cmdq, "end", flags);
 
 	return (retval);
