@@ -26,7 +26,9 @@
 
 #include "tmux.h"
 
-void				cmdq_hooks_emptyfn(struct cmd_q *);
+int		cmdq_hooks_run(struct hooks *, const char *, const char *,
+		    struct cmd_q *);
+void		cmdq_hooks_emptyfn(struct cmd_q *);
 enum cmd_retval	cmdq_continue_one(struct cmd_q *);
 
 /* Create new command queue. */

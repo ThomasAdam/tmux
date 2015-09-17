@@ -1544,9 +1544,6 @@ void	mode_key_init(struct mode_key_data *, struct mode_key_tree *);
 enum mode_key_cmd mode_key_lookup(struct mode_key_data *, int, const char **);
 
 /* notify.c */
-#define CONTROL_SHOULD_NOTIFY_CLIENT(c) \
-	((c) != NULL && ((c)->flags & CLIENT_CONTROL))
-
 void	notify_enable(void);
 void	notify_disable(void);
 void	notify_input(struct window_pane *, struct evbuffer *);
@@ -1757,8 +1754,6 @@ void		 cmdq_append(struct cmd_q *, struct cmd_list *,
 		     struct mouse_event *);
 int		 cmdq_continue(struct cmd_q *);
 void		 cmdq_flush(struct cmd_q *);
-int		 cmdq_hooks_run(struct hooks *, const char *, const char *,
-    struct cmd_q *);
 
 /* cmd-string.c */
 int	cmd_string_parse(const char *, struct cmd_list **, const char *,
