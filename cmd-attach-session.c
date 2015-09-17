@@ -106,22 +106,6 @@ cmd_attach_session(struct cmd_q *cmdq, int dflag, int rflag, const char *cflag,
 			}
 		}
 
-		if (cflag != NULL) {
-			ft = format_create();
-			format_defaults(ft, cmd_find_client(cmdq, NULL, 1), s,
-			    NULL, NULL);
-			cp = format_expand(ft, cflag);
-			format_free(ft);
-
-			fd = open(cp, O_RDONLY|O_DIRECTORY);
-			free(cp);
-			if (fd == -1) {
-				cmdq_error(cmdq, "bad working directory: %s",
-				    strerror(errno));
-				return (CMD_RETURN_ERROR);
-			}
-		}
-
 		if (!Eflag) {
 			update = options_get_string(&s->options,
 			    "update-environment");
