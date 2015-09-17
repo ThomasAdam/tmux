@@ -59,11 +59,10 @@ cmd_break_pane_exec(struct cmd *self, struct cmd_q *cmdq)
 		return (CMD_RETURN_ERROR);
 	}
 
-	if (window_count_panes(wl->window) == 1) {
+	if (window_count_panes(w) == 1) {
 		cmdq_error(cmdq, "can't break with only one pane");
 		return (CMD_RETURN_ERROR);
 	}
-
 	server_unzoom_window(w);
 
 	TAILQ_REMOVE(&w->panes, wp, entry);
@@ -85,7 +84,11 @@ cmd_break_pane_exec(struct cmd *self, struct cmd_q *cmdq)
 		session_select(dst_s, wl->idx);
 
 	server_redraw_session(src_s);
+	if (src_s != dst_s)
+		server_redraw_session(dst_s);
 	server_status_session_group(src_s);
+	if (src_s != dst_s)
+		server_status_session_group(dst_s);
 
 	if (args_has(args, 'P')) {
 		if ((template = args_get(args, 'F')) == NULL)
