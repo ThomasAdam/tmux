@@ -36,8 +36,8 @@ const struct cmd_entry cmd_attach_session_entry = {
 	"attach-session", "attach",
 	"c:dErt:", 0, 0,
 	"[-dEr] [-c working-directory] " CMD_TARGET_SESSION_USAGE,
-	CMD_CANTNEST|CMD_STARTSERVER|CMD_PREP_SESSION_T|CMD_PREP_PANE_T|
-	    CMD_PREP_PREFERUNATTACHED,
+	CMD_STARTSERVER|CMD_PREP_SESSION_T|CMD_PREP_PANE_T|
+	CMD_PREP_PREFERUNATTACHED,
 	cmd_attach_session_exec
 };
 

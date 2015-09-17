@@ -1369,21 +1369,20 @@ struct cmd_entry {
 	const char	*usage;
 
 #define CMD_STARTSERVER 0x1
-#define CMD_CANTNEST 0x2
-#define CMD_READONLY 0x4
-#define CMD_PREP_SESSION_T 0x8
-#define CMD_PREP_SESSION_S 0x10
-#define CMD_PREP_WINDOW_T 0x20
-#define CMD_PREP_WINDOW_S 0x40
-#define CMD_PREP_PANE_T 0x80
-#define CMD_PREP_PANE_S 0x100
-#define CMD_PREP_CLIENT_T 0x200
-#define CMD_PREP_CLIENT_C 0x400
-#define CMD_PREP_INDEX_T 0x800
-#define CMD_PREP_INDEX_S 0x1000
-#define CMD_PREP_CANFAIL 0x2000
-#define CMD_PREP_PREFERUNATTACHED 0x4000
-#define CMD_PREP_MOVEW_R 0x8000 /* For movew -r only */
+#define CMD_READONLY 0x2
+#define CMD_PREP_SESSION_T 0x4
+#define CMD_PREP_SESSION_S 0x8
+#define CMD_PREP_WINDOW_T 0x10
+#define CMD_PREP_WINDOW_S 0x20
+#define CMD_PREP_PANE_T 0x40
+#define CMD_PREP_PANE_S 0x80
+#define CMD_PREP_CLIENT_T 0x100
+#define CMD_PREP_CLIENT_C 0x200
+#define CMD_PREP_INDEX_T 0x400
+#define CMD_PREP_INDEX_S 0x800
+#define CMD_PREP_CANFAIL 0x1000
+#define CMD_PREP_PREFERUNATTACHED 0x2000
+#define CMD_PREP_MOVEW_R 0x4000 /* for movew -r only */
 	int		 flags;
 
 	enum cmd_retval	 (*exec)(struct cmd *, struct cmd_q *);
