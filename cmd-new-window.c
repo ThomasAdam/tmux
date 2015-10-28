@@ -77,7 +77,7 @@ cmd_new_window_exec(struct cmd *self, struct cmd_q *cmdq)
 	detached = args_has(args, 'd');
 
 	if (args->argc == 0) {
-		cmd = options_get_string(&s->options, "default-command");
+		cmd = options_get_string(s->options, "default-command");
 		if (cmd != NULL && *cmd != '\0') {
 			argc = 1;
 			argv = (char **)&cmd;
@@ -112,7 +112,7 @@ cmd_new_window_exec(struct cmd *self, struct cmd_q *cmdq)
 				    strerror(errno));
 				return (CMD_RETURN_ERROR);
 			}
-		} else if (cp != NULL)
+		} else
 			free(cp);
 		cwd = fd;
 	} else if (cmdq->client != NULL && cmdq->client->session == NULL)
@@ -141,7 +141,7 @@ cmd_new_window_exec(struct cmd *self, struct cmd_q *cmdq)
 	}
 
 	if (idx == -1)
-		idx = -1 - options_get_number(&s->options, "base-index");
+		idx = -1 - options_get_number(s->options, "base-index");
 	wl = session_new(s, args_get(args, 'n'), argc, argv, path, cwd, idx,
 		&cause);
 	if (wl == NULL) {

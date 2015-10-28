@@ -18,7 +18,6 @@
 
 #include <sys/types.h>
 
-#include <netdb.h>
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
@@ -195,8 +194,6 @@ screen_resize_y(struct screen *s, u_int sy)
 		 * Now just increase the history size, if possible, to take
 		 * over the lines which are left. If history is off, delete
 		 * lines from the top.
-		 *
-		 * XXX Should apply history limit?
 		 */
 		available = s->cy;
 		if (gd->flags & GRID_HISTORY)

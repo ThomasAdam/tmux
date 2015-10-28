@@ -1,7 +1,7 @@
 # configure.ac
 
 # Miscellaneous bits.
-AC_INIT(tmux, 2.1)
+AC_INIT(tmux, 2.2)
 
 AC_CONFIG_AUX_DIR(etc)
 AM_INIT_AUTOMAKE([foreign subdir-objects])

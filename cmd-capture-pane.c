@@ -193,22 +193,23 @@ cmd_capture_pane_exec(struct cmd *self, struct cmd_q *cmdq)
 		if (c == NULL ||
 		    (c->session != NULL && !(c->flags & CLIENT_CONTROL))) {
 			cmdq_error(cmdq, "can't write to stdout");
+			free(buf);
 			return (CMD_RETURN_ERROR);
 		}
 		evbuffer_add(c->stdout_data, buf, len);
+		free(buf);
 		if (args_has(args, 'P') && len > 0)
 		    evbuffer_add(c->stdout_data, "\n", 1);
 		server_push_stdout(c);
 	} else {
-
 		bufname = NULL;
 		if (args_has(args, 'b'))
 			bufname = args_get(args, 'b');
 
 		if (paste_set(buf, len, bufname, &cause) != 0) {
 			cmdq_error(cmdq, "%s", cause);
-			free(buf);
 			free(cause);
+			free(buf);
 			return (CMD_RETURN_ERROR);
 		}
 	}

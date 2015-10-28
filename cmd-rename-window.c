@@ -43,7 +43,7 @@ cmd_rename_window_exec(struct cmd *self, struct cmd_q *cmdq)
 	struct winlink	*wl = cmdq->state.tflag.wl;
 
 	window_set_name(wl->window, args->argv[0]);
-	options_set_number(&wl->window->options, "automatic-rename", 0);
+	options_set_number(wl->window->options, "automatic-rename", 0);
 
 	server_status_window(wl->window);
 

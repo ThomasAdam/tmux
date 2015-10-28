@@ -63,7 +63,7 @@ cmd_new_session_exec(struct cmd *self, struct cmd_q *cmdq)
 	struct window		*w;
 	struct environ		 env;
 	struct termios		 tio, *tiop;
-	const char		*newname, *update, *errstr, *template;
+	const char		*newname, *target, *update, *errstr, *template;
 	const char		*path;
 	char		       **argv, *cmd, *cause, *cp;
 	int			 detached, already_attached, idx, cwd, fd = -1;
@@ -109,6 +109,9 @@ cmd_new_session_exec(struct cmd *self, struct cmd_q *cmdq)
 		}
 	}
 
+	if ((target = args_get(args, 't')) == NULL)
+		groupwith = NULL;
+
 	/* Set -d if no client. */
 	detached = args_has(args, 'd');
 	if (c == NULL)
@@ -134,7 +137,7 @@ cmd_new_session_exec(struct cmd *self, struct cmd_q *cmdq)
 				    strerror(errno));
 				return (CMD_RETURN_ERROR);
 			}
-		} else if (cp != NULL)
+		} else
 			free(cp);
 		cwd = fd;
 	} else if (c != NULL && c->session == NULL)
@@ -196,7 +199,7 @@ cmd_new_session_exec(struct cmd *self, struct cmd_q *cmdq)
 			goto error;
 		}
 	}
-	if (sy > 0 && options_get_number(&global_s_options, "status"))
+	if (sy > 0 && options_get_number(global_s_options, "status"))
 		sy--;
 	if (sx == 0)
 		sx = 1;
@@ -209,8 +212,8 @@ cmd_new_session_exec(struct cmd *self, struct cmd_q *cmdq)
 	if (!args_has(args, 't') && args->argc != 0) {
 		argc = args->argc;
 		argv = args->argv;
-	} else {
-		cmd = options_get_string(&global_s_options, "default-command");
+	} else if (target == NULL) {
+		cmd = options_get_string(global_s_options, "default-command");
 		if (cmd != NULL && *cmd != '\0') {
 			argc = 1;
 			argv = &cmd;
@@ -231,13 +234,13 @@ cmd_new_session_exec(struct cmd *self, struct cmd_q *cmdq)
 	/* Construct the environment. */
 	environ_init(&env);
 	if (c != NULL && !args_has(args, 'E')) {
-		update = options_get_string(&global_s_options,
+		update = options_get_string(global_s_options,
 		    "update-environment");
 		environ_update(update, &c->environ, &env);
 	}
 
 	/* Create the new session. */
-	idx = -1 - options_get_number(&global_s_options, "base-index");
+	idx = -1 - options_get_number(global_s_options, "base-index");
 	s = session_create(newname, argc, argv, path, cwd, &env, tiop, idx, sx,
 	    sy, &cause);
 	if (s == NULL) {
@@ -251,7 +254,7 @@ cmd_new_session_exec(struct cmd *self, struct cmd_q *cmdq)
 	if (argc >= 0 && args_has(args, 'n')) {
 		w = s->curw->window;
 		window_set_name(w, args_get(args, 'n'));
-		options_set_number(&w->options, "automatic-rename", 0);
+		options_set_number(w->options, "automatic-rename", 0);
 	}
 
 	/*
@@ -269,9 +272,10 @@ cmd_new_session_exec(struct cmd *self, struct cmd_q *cmdq)
 	 * taking this session and needs to get MSG_READY and stay around.
 	 */
 	if (!detached) {
-		if (!already_attached)
-			server_write_ready(c);
-		else if (c->session != NULL)
+		if (!already_attached) {
+			if (~c->flags & CLIENT_CONTROL)
+				proc_send(c->peer, MSG_READY, -1, NULL, 0);
+		} else if (c->session != NULL)
 			c->last_session = c->session;
 		c->session = s;
 		status_timer_start(c);

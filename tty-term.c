@@ -454,13 +454,13 @@ tty_term_find(char *name, int fd, char **cause)
 			if (n == -1)
 				break;
 			code->type = TTYCODE_FLAG;
-			code->value.number = n;
+			code->value.flag = n;
 			break;
 		}
 	}
 
 	/* Apply terminal overrides. */
-	s = options_get_string(&global_options, "terminal-overrides");
+	s = options_get_string(global_options, "terminal-overrides");
 	tty_term_override(term, s);
 
 	/* Delete curses data. */
