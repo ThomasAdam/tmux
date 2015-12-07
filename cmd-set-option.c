@@ -84,9 +84,10 @@ enum cmd_retval
 cmd_set_option_exec(struct cmd *self, struct cmd_q *cmdq)
 {
 	struct args				*args = self->args;
-<<<<<<< HEAD
 	struct session				*s = cmdq->state.tflag.s;
 	struct winlink				*wl = cmdq->state.tflag.wl;
+	struct window				*w;
+	struct client				*c;
 	const struct options_table_entry	*oe;
 	struct options				*oo;
 	const char				*optstr, *valstr;
