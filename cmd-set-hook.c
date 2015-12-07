@@ -52,22 +52,23 @@ cmd_set_hook_exec(struct cmd *self, struct cmd_q *cmdq)
 	struct cmd_list	*cmdlist;
 	struct hooks	*hooks;
 	struct hook	*hook;
-	char		*cause;
+	char		*cause, *tmp;
 	const char	*name, *cmd;
-	char		 tmp[BUFSIZ];
 	size_t		 used;
 
 	if (args_has(args, 'g'))
-		hooks = &global_hooks;
+		hooks = global_hooks;
 	else
-		hooks = &cmdq->state.tflag.s->hooks;
+		hooks = cmdq->state.tflag.s->hooks;
 
 	if (self->entry == &cmd_show_hooks_entry) {
-		RB_FOREACH(hook, hooks_tree, &hooks->tree) {
-			used = xsnprintf(tmp, sizeof tmp, "%s -> ", hook->name);
-			cmd_list_print(hook->cmdlist, tmp + used,
-			    (sizeof tmp) - used);
-			cmdq_print(cmdq, "%s", tmp);
+		hook = hooks_first(hooks);
+		while (hook != NULL) {
+			tmp = cmd_list_print(hook->cmdlist);
+			cmdq_print(cmdq, "%s -> %s", hook->name, tmp);
+			free(tmp);
+
+			hook = hooks_next(hook);
 		}
 		return (CMD_RETURN_NORMAL);
 	}

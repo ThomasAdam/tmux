@@ -60,9 +60,9 @@ cmd_set_environment_exec(struct cmd *self, struct cmd_q *cmdq)
 		value = args->argv[1];
 
 	if (args_has(self->args, 'g'))
-		env = &global_environ;
+		env = global_environ;
 	else
-		env = &cmdq->state.tflag.s->environ;
+		env = cmdq->state.tflag.s->environ;
 
 	if (args_has(self->args, 'u')) {
 		if (value != NULL) {

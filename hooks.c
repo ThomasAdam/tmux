@@ -23,6 +23,13 @@
 
 #include "tmux.h"
 
+struct hooks {
+	RB_HEAD(hooks_tree, hook) tree;
+	struct hooks	*parent;
+};
+
+int	hooks_cmp(struct hook *, struct hook *);
+RB_PROTOTYPE(hooks_tree, hook, entry, hooks_cmp);
 RB_GENERATE(hooks_tree, hook, entry, hooks_cmp);
 
 struct hook	*hooks_find1(struct hooks *, const char *);
@@ -33,11 +40,15 @@ hooks_cmp(struct hook *hook1, struct hook *hook2)
 	return (strcmp(hook1->name, hook2->name));
 }
 
-void
-hooks_init(struct hooks *hooks, struct hooks *parent)
+struct hooks *
+hooks_create(struct hooks *parent)
 {
+	struct hooks	*hooks;
+
+	hooks = xcalloc(1, sizeof *hooks);
 	RB_INIT(&hooks->tree);
 	hooks->parent = parent;
+	return (hooks);
 }
 
 void
@@ -47,6 +58,19 @@ hooks_free(struct hooks *hooks)
 
 	RB_FOREACH_SAFE(hook, hooks_tree, &hooks->tree, hook1)
 		hooks_remove(hooks, hook);
+	free(hooks);
+}
+
+struct hook *
+hooks_first(struct hooks *hooks)
+{
+	return (RB_MIN(hooks_tree, &hooks->tree));
+}
+
+struct hook *
+hooks_next(struct hook *hook)
+{
+	return (RB_NEXT(hooks_tree, &hooks->tree, hook));
 }
 
 void

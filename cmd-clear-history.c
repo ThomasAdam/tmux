@@ -35,7 +35,7 @@ const struct cmd_entry cmd_clear_history_entry = {
 };
 
 enum cmd_retval
-cmd_clear_history_exec(unused struct cmd *self, struct cmd_q *cmdq)
+cmd_clear_history_exec(__unused struct cmd *self, struct cmd_q *cmdq)
 {
 	struct window_pane	*wp = cmdq->state.tflag.wp;
 	struct grid		*gd;

@@ -247,12 +247,12 @@ cmdq_continue_one(struct cmd_q *cmdq)
 	struct session	*s;
 	struct hooks	*hooks;
 	enum cmd_retval	 retval;
-	char		*s;
 	int		 flags = !!(cmd->flags & CMD_CONTROL);
+	char		*tmp;
 
-	s = cmd_print(cmd);
-	log_debug("cmdq %p: %s", cmdq, s);
-	free(s);
+	tmp = cmd_print(cmd);
+	log_debug("cmdq %p: %s", cmdq, tmp);
+	free(tmp);
 
 	cmdq->time = time(NULL);
 	cmdq->number++;
@@ -272,9 +272,9 @@ cmdq_continue_one(struct cmd_q *cmdq)
 		else if (cmdq->state.c != NULL)
 			s = cmdq->state.c->session;
 		if (s != NULL)
-			hooks = &s->hooks;
+			hooks = s->hooks;
 		else
-			hooks = &global_hooks;
+			hooks = global_hooks;
 
 		if (~cmdq->flags & CMD_Q_REENTRY) {
 			cmdq->flags |= CMD_Q_REENTRY;

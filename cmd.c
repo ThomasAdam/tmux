@@ -420,7 +420,7 @@ cmd_get_state_client(struct cmd_q *cmdq, int quiet)
 	case CMD_PREP_CLIENT_T:
 		return (cmd_find_client(cmdq, args_get(args, 't'), quiet));
 	default:
-		log_fatalx("both -t and -c for %s", cmd->entry->name);
+		fatalx("both -t and -c for %s", cmd->entry->name);
 	}
 }
 
@@ -428,7 +428,7 @@ int
 cmd_set_state_flag(struct cmd *cmd, struct cmd_q *cmdq, char c)
 {
 	struct cmd_state	*state = &cmdq->state;
-	struct cmd_state_flag	*statef;
+	struct cmd_state_flag	*statef = NULL;
 	const char		*flag;
 	int			 flags = cmd->entry->flags, everything = 0;
 	int			 allflags = 0;
@@ -532,7 +532,7 @@ cmd_set_state_flag(struct cmd *cmd, struct cmd_q *cmdq, char c)
 			return (-1);
 		break;
 	default:
-		log_fatalx("too many -%c for %s", c, cmd->entry->name);
+		fatalx("too many -%c for %s", c, cmd->entry->name);
 	}
 
 	/*
@@ -570,14 +570,14 @@ cmd_prepare_state(struct cmd *cmd, struct cmd_q *cmdq)
 {
 	struct cmd_state	*state = &cmdq->state;
 	struct args		*args = cmd->args;
-	const char		*cflag;
-	const char		*tflag;
-	char                     tmp[BUFSIZ];
+	const char		*cflag, *tflag;
+	char			*tmp;
 	int			 error;
 
-	cmd_print(cmd, tmp, sizeof tmp);
+	tmp = cmd_print(cmd);
 	log_debug("preparing state for: %s (client %d)", tmp,
 	    cmdq->client != NULL ? cmdq->client->fd : -1);
+	free(tmp);
 
 	/* Start with an empty state. */
 	cmd_clear_state(state);
@@ -610,7 +610,7 @@ cmd_prepare_state(struct cmd *cmd, struct cmd_q *cmdq)
 			return (-1);
 		break;
 	default:
-		log_fatalx("both -c and -t for %s", cmd->entry->name);
+		fatalx("both -c and -t for %s", cmd->entry->name);
 	}
 
 	error = cmd_set_state_flag(cmd, cmdq, 't');

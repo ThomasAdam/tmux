@@ -693,6 +693,14 @@ struct grid {
 	struct grid_line	*linedata;
 };
 
+/* Hook data structures. */
+struct hook {
+	const char	*name;
+	struct cmd_q	*cmdq;
+	struct cmd_list	*cmdlist;
+	RB_ENTRY(hook)	 entry;
+};
+
 /* Option data structures. */
 struct options_entry {
 	char		*name;
@@ -985,19 +993,6 @@ struct environ_entry {
 	RB_ENTRY(environ_entry) entry;
 };
 
-/* Hooks. */
-struct hook {
-	const char	*name;
-	struct cmd_q	*cmdq;
-	struct cmd_list	*cmdlist;
-	RB_ENTRY(hook)	 entry;
-};
-
-struct hooks {
-	RB_HEAD(hooks_tree, hook) tree;
-	struct hooks	*parent;
-};
-
 /* Client session. */
 struct session_group {
 	TAILQ_HEAD(, session) sessions;
@@ -1026,7 +1021,7 @@ struct session {
 	struct winlink_stack lastw;
 	struct winlinks	 windows;
 
-	struct hooks	 hooks;
+	struct hooks	*hooks;
 	struct options	*options;
 
 #define SESSION_UNATTACHED 0x1	/* not attached to any clients */
@@ -1478,11 +1473,11 @@ struct options_table_entry {
 #define CMD_BUFFER_USAGE "[-b buffer-name]"
 
 /* tmux.c */
-extern struct hooks   global_hooks;
-extern struct options *global_options;
-extern struct options *global_s_options;
-extern struct options *global_w_options;
-extern struct environ *global_environ;
+extern struct hooks	*global_hooks;
+extern struct options	*global_options;
+extern struct options	*global_s_options;
+extern struct options	*global_w_options;
+extern struct environ	*global_environ;
 extern struct timeval	 start_time;
 extern const char	*socket_path;
 const char	*getshell(void);
@@ -1548,10 +1543,11 @@ void		 format_defaults_paste_buffer(struct format_tree *,
 		     struct paste_buffer *);
 
 /* hooks.c */
-int		 hooks_cmp(struct hook *, struct hook *);
-RB_PROTOTYPE(hooks_tree, hook, entry, hooks_cmp);
-void		 hooks_init(struct hooks *, struct hooks *);
+struct hook;
+struct hooks	*hooks_create(struct hooks *);
 void		 hooks_free(struct hooks *);
+struct hook	*hooks_first(struct hooks *);
+struct hook	*hooks_next(struct hook *);
 void		 hooks_add(struct hooks *, const char *, struct cmd_list *);
 void		 hooks_copy(struct hooks *, struct hooks *);
 void		 hooks_remove(struct hooks *, struct hook *);

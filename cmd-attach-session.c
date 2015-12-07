@@ -50,9 +50,8 @@ cmd_attach_session(struct cmd_q *cmdq, int dflag, int rflag, const char *cflag,
 	struct winlink		*wl = cmdq->state.tflag.wl;
 	struct window_pane	*wp = cmdq->state.tflag.wp;
 	const char		*update;
-	char			*cause;
+	char			*cause, *cwd, *cp;
 	struct format_tree	*ft;
-	char			*cwd;
 
 	if (RB_EMPTY(&sessions)) {
 		cmdq_error(cmdq, "no sessions");
