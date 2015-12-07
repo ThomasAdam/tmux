@@ -18,6 +18,7 @@
 
 #include <sys/types.h>
 
+#include <stdlib.h>
 #include <string.h>
 
 #include "tmux.h"
@@ -29,7 +30,7 @@
 enum cmd_retval	 cmd_list_keys_exec(struct cmd *, struct cmd_q *);
 
 enum cmd_retval	 cmd_list_keys_table(struct cmd *, struct cmd_q *);
-enum cmd_retval	 cmd_list_keys_commands(struct cmd *, struct cmd_q *);
+enum cmd_retval	 cmd_list_keys_commands(struct cmd_q *);
 
 const struct cmd_entry cmd_list_keys_entry = {
 	"list-keys", "lsk",
@@ -54,12 +55,11 @@ cmd_list_keys_exec(struct cmd *self, struct cmd_q *cmdq)
 	struct key_table	*table;
 	struct key_binding	*bd;
 	const char		*key, *tablename, *r;
-	char			 tmp[BUFSIZ];
-	size_t			 used;
+	char			*cp, tmp[BUFSIZ];
 	int			 repeat, width, tablewidth, keywidth;
 
 	if (self->entry == &cmd_list_commands_entry)
-		return (cmd_list_keys_commands(self, cmdq));
+		return (cmd_list_keys_commands(cmdq));
 
 	if (args_has(args, 't'))
 		return (cmd_list_keys_table(self, cmdq));
@@ -81,10 +81,10 @@ cmd_list_keys_exec(struct cmd *self, struct cmd_q *cmdq)
 			if (bd->can_repeat)
 				repeat = 1;
 
-			width = strlen(table->name);
+			width = utf8_cstrwidth(table->name);
 			if (width > tablewidth)
-				tablewidth =width;
-			width = strlen(key);
+				tablewidth = width;
+			width = utf8_cstrwidth(key);
 			if (width > keywidth)
 				keywidth = width;
 		}
@@ -102,12 +102,21 @@ cmd_list_keys_exec(struct cmd *self, struct cmd_q *cmdq)
 				r = "-r ";
 			else
 				r = "   ";
-			used = xsnprintf(tmp, sizeof tmp, "%s-T %-*s %-*s ", r,
-			    (int)tablewidth, table->name, (int)keywidth, key);
-			if (used < sizeof tmp) {
-				cmd_list_print(bd->cmdlist, tmp + used,
-				    (sizeof tmp) - used);
-			}
+			xsnprintf(tmp, sizeof tmp, "%s-T ", r);
+
+			cp = utf8_padcstr(table->name, tablewidth);
+			strlcat(tmp, cp, sizeof tmp);
+			strlcat(tmp, " ", sizeof tmp);
+			free(cp);
+
+			cp = utf8_padcstr(key, keywidth);
+			strlcat(tmp, cp, sizeof tmp);
+			strlcat(tmp, " ", sizeof tmp);
+			free(cp);
+
+			cp = cmd_list_print(bd->cmdlist);
+			strlcat(tmp, cp, sizeof tmp);
+			free(cp);
 
 			cmdq_print(cmdq, "bind-key %s", tmp);
 		}
@@ -166,7 +175,7 @@ cmd_list_keys_table(struct cmd *self, struct cmd_q *cmdq)
 }
 
 enum cmd_retval
-cmd_list_keys_commands(unused struct cmd *self, struct cmd_q *cmdq)
+cmd_list_keys_commands(struct cmd_q *cmdq)
 {
 	const struct cmd_entry	**entryp;
 	const struct cmd_entry	 *entry;

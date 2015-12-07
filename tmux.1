@@ -190,13 +190,11 @@ flag explicitly informs
 .Nm
 that UTF-8 is supported.
 .Pp
-If the server is started from a client passed
-.Fl u
-or where UTF-8 is detected, the
-.Ic utf8
-and
-.Ic status-utf8
-options are enabled in the global window and session options respectively.
+Note that
+.Nm
+itself always accepts UTF-8; this controls whether it will send UTF-8
+characters to the terminal it is running (if not, they are replaced by
+.Ql _ ) .
 .It Fl v
 Request verbose logging.
 This option may be specified multiple times for increasing verbosity.
@@ -781,8 +779,7 @@ is used,
 .Ic update-environment
 option will not be applied.
 .It Xo Ic detach-client
-.Op Fl P
-.Op Fl a
+.Op Fl aP
 .Op Fl s Ar target-session
 .Op Fl t Ar target-client
 .Xc
@@ -808,7 +805,7 @@ Kill the
 .Nm
 server and clients and destroy all sessions.
 .It Xo Ic kill-session
-.Op Fl a
+.Op Fl aC
 .Op Fl t Ar target-session
 .Xc
 Destroy the given session, closing any windows linked to it and no other
@@ -816,6 +813,10 @@ sessions, and detaching all clients attached to it.
 If
 .Fl a
 is given, all sessions but the specified one is killed.
+The
+.Fl C
+flag clears alerts (bell, activity, or silence) in all windows linked to the
+session.
 .It Xo Ic list-clients
 .Op Fl F Ar format
 .Op Fl t Ar target-session
@@ -935,7 +936,6 @@ If
 is used,
 .Ic update-environment
 option will not be applied.
-.Ic update-environment .
 .It Xo Ic refresh-client
 .Op Fl S
 .Op Fl t Ar target-client
@@ -955,7 +955,7 @@ is specified, only update the client's status bar.
 Rename the session to
 .Ar new-name .
 .It Xo Ic show-messages
-.Op Fl IJT
+.Op Fl JT
 .Op Fl t Ar target-client
 .Xc
 .D1 (alias: Ic showmsgs )
@@ -968,11 +968,10 @@ With
 .Fl t ,
 display the log for
 .Ar target-client .
-.Fl I ,
 .Fl J
 and
 .Fl T
-show debugging information about the running server, jobs and terminals.
+show debugging information about jobs and terminals.
 .It Ic source-file Ar path
 .D1 (alias: Ic source )
 Execute commands from
@@ -2624,6 +2623,7 @@ command appear.
 .It Ic display-time Ar time
 Set the amount of time for which status line messages and other on-screen
 indicators are displayed.
+If set to 0, messages and indicators are displayed until a key is pressed.
 .Ar time
 is in milliseconds.
 .It Ic history-limit Ar lines
@@ -2720,10 +2720,6 @@ captures the mouse and allows mouse events to be bound as key bindings.
 See the
 .Sx MOUSE SUPPORT
 section for details.
-.It Xo Ic mouse-utf8
-.Op Ic on | off
-.Xc
-If enabled, request mouse input as UTF-8 on UTF-8 terminals.
 .It Ic prefix Ar key
 Set the key accepted as a prefix key.
 .It Ic prefix2 Ar key
@@ -2839,12 +2835,6 @@ Examples are:
 #[fg=yellow,bold]#(apm -l)%%#[default] [#S]
 .Ed
 .Pp
-By default, UTF-8 in
-.Ar string
-is not interpreted, to enable UTF-8, use the
-.Ic status-utf8
-option.
-.Pp
 The default is
 .Ql "[#S] " .
 .It Ic status-left-length Ar length
@@ -2873,10 +2863,8 @@ As with
 .Ic status-left ,
 .Ar string
 will be passed to
-.Xr strftime 3 ,
-character pairs are replaced, and UTF-8 is dependent on the
-.Ic status-utf8
-option.
+.Xr strftime 3
+and character pairs are replaced.
 .It Ic status-right-length Ar length
 Set the maximum
 .Ar length
@@ -2896,17 +2884,6 @@ For how to specify
 see the
 .Ic message-command-style
 option.
-.It Xo Ic status-utf8
-.Op Ic on | off
-.Xc
-Instruct
-.Nm
-to treat top-bit-set characters in the
-.Ic status-left
-and
-.Ic status-right
-strings as UTF-8; notably, this is important for wide characters.
-This option defaults to off.
 .It Ic update-environment Ar variables
 Set a space-separated string containing a list of environment variables to be
 copied into the session environment when a new session is created or an
@@ -3152,13 +3129,6 @@ command.
 .Xc
 Duplicate input to any pane to all other panes in the same window (only
 for panes that are not in any special mode).
-.Pp
-.It Xo Ic utf8
-.Op Ic on | off
-.Xc
-Instructs
-.Nm
-to expect UTF-8 sequences to appear in this window.
 .Pp
 .It Ic window-active-style Ar style
 Set the style for the window's active pane.
@@ -3408,6 +3378,13 @@ prefixes are
 and
 .Xr dirname 3
 of the variable respectively.
+A prefix of the form
+.Ql s/foo/bar/:
+will substitute
+.Ql foo
+with
+.Ql bar
+throughout.
 .Pp
 In addition, the first line of a shell command's output may be inserted using
 .Ql #() .
@@ -3463,7 +3440,6 @@ The following variables are available, where appropriate:
 .It Li "mouse_any_flag" Ta "" Ta "Pane mouse any flag"
 .It Li "mouse_button_flag" Ta "" Ta "Pane mouse button flag"
 .It Li "mouse_standard_flag" Ta "" Ta "Pane mouse standard flag"
-.It Li "mouse_utf8_flag" Ta "" Ta "Pane mouse UTF-8 flag"
 .It Li "pane_active" Ta "" Ta "1 if active pane"
 .It Li "pane_bottom" Ta "" Ta "Bottom of pane"
 .It Li "pane_current_command" Ta "" Ta "Current command if available"
@@ -3502,6 +3478,8 @@ The following variables are available, where appropriate:
 .It Li "session_name" Ta "#S" Ta "Name of session"
 .It Li "session_width" Ta "" Ta "Width of session"
 .It Li "session_windows" Ta "" Ta "Number of windows in session"
+.It Li "socket_path" Ta "" "Server socket path"
+.It Li "start_time" Ta "" Ta "Server start time"
 .It Li "window_activity" Ta "" Ta "Integer time of window last activity"
 .It Li "window_active" Ta "" Ta "1 if window active"
 .It Li "window_bell_flag" Ta "" Ta "1 if window has bell"
@@ -3511,11 +3489,12 @@ The following variables are available, where appropriate:
 .It Li "window_id" Ta "" Ta "Unique window ID"
 .It Li "window_index" Ta "#I" Ta "Index of window"
 .It Li "window_last_flag" Ta "" Ta "1 if window is the last used"
-.It Li "window_layout" Ta "" Ta "Window layout description"
+.It Li "window_layout" Ta "" Ta "Window layout description, ignoring zoomed window panes"
 .It Li "window_linked" Ta "" Ta "1 if window is linked across sessions"
 .It Li "window_name" Ta "#W" Ta "Name of window"
 .It Li "window_panes" Ta "" Ta "Number of panes in window"
 .It Li "window_silence_flag" Ta "" Ta "1 if window has silence alert"
+.It Li "window_visible_layout" Ta "" Ta "Window layout description, respecting zoomed window panes"
 .It Li "window_width" Ta "" Ta "Width of window"
 .It Li "window_zoomed_flag" Ta "" Ta "1 if window is zoomed"
 .It Li "wrap_flag" Ta "" Ta "Pane wrap flag"
@@ -4106,12 +4085,16 @@ or an error occurred.
 If present,
 .Ar reason
 describes why the client exited.
-.It Ic %layout-change Ar window-id Ar window-layout
+.It Ic %layout-change Ar window-id Ar window-layout Ar window-visible-layout Ar window-flags
 The layout of a window with ID
 .Ar window-id
 changed.
 The new layout is
 .Ar window-layout .
+The window's visible layout is
+.Ar window-visible-layout
+and the window flags are
+.Ar window-flags .
 .It Ic %output Ar pane-id Ar value
 A window pane produced output.
 .Ar value

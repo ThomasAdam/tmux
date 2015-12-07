@@ -65,7 +65,7 @@ cmd_if_shell_exec(struct cmd *self, struct cmd_q *cmdq)
 	struct winlink			*wl = cmdq->state.tflag.wl;
 	struct window_pane		*wp = cmdq->state.tflag.wp;
 	struct format_tree		*ft;
-	int				 cwd;
+	const char			*cwd;
 
 	cwd = wp->cwd;
 
@@ -86,6 +86,7 @@ cmd_if_shell_exec(struct cmd *self, struct cmd_q *cmdq)
 			cmd = args->argv[1];
 		else if (args->argc == 3)
 			cmd = args->argv[2];
+		free(shellcmd);
 		if (cmd == NULL)
 			return (CMD_RETURN_NORMAL);
 		if (cmd_string_parse(cmd, &cmdlist, NULL, 0, &cause) != 0) {

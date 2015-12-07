@@ -446,11 +446,11 @@ const struct input_transition input_state_ground_table[] = {
 	{ 0x1c, 0x1f, input_c0_dispatch, NULL },
 	{ 0x20, 0x7e, input_print,	 NULL },
 	{ 0x7f, 0x7f, NULL,		 NULL },
-	{ 0x80, 0xc1, input_print,	 NULL },
+	{ 0x80, 0xc1, NULL,		 NULL },
 	{ 0xc2, 0xdf, input_utf8_open,	 &input_state_utf8_one },
 	{ 0xe0, 0xef, input_utf8_open,	 &input_state_utf8_two },
 	{ 0xf0, 0xf4, input_utf8_open,	 &input_state_utf8_three },
-	{ 0xf5, 0xff, input_print,	 NULL },
+	{ 0xf5, 0xff, NULL,		 NULL },
 
 	{ -1, -1, NULL, NULL }
 };
@@ -1006,7 +1006,7 @@ input_print(struct input_ctx *ictx)
 	else
 		ictx->cell.cell.attr &= ~GRID_ATTR_CHARSET;
 
-	grid_cell_one(&ictx->cell.cell, ictx->ch);
+	utf8_set(&ictx->cell.cell.data, ictx->ch);
 	screen_write_cell(&ictx->ctx, &ictx->cell.cell);
 
 	ictx->cell.cell.attr &= ~GRID_ATTR_CHARSET;
@@ -1921,14 +1921,13 @@ input_exit_rename(struct input_ctx *ictx)
 int
 input_utf8_open(struct input_ctx *ictx)
 {
-	if (!options_get_number(ictx->wp->window->options, "utf8")) {
-		/* Print, and do not switch state. */
-		input_print(ictx);
-		return (-1);
-	}
-	log_debug("%s", __func__);
+	struct utf8_data	*ud = &ictx->utf8data;
 
-	utf8_open(&ictx->utf8data, ictx->ch);
+	if (utf8_open(ud, ictx->ch) != UTF8_MORE)
+		fatalx("UTF-8 open invalid %#x", ictx->ch);
+
+	log_debug("%s %hhu", __func__, ud->size);
+
 	return (0);
 }
 
@@ -1936,9 +1935,13 @@ input_utf8_open(struct input_ctx *ictx)
 int
 input_utf8_add(struct input_ctx *ictx)
 {
+	struct utf8_data	*ud = &ictx->utf8data;
+
+	if (utf8_append(ud, ictx->ch) != UTF8_MORE)
+		fatalx("UTF-8 add invalid %#x", ictx->ch);
+
 	log_debug("%s", __func__);
 
-	utf8_append(&ictx->utf8data, ictx->ch);
 	return (0);
 }
 
@@ -1946,11 +1949,15 @@ input_utf8_add(struct input_ctx *ictx)
 int
 input_utf8_close(struct input_ctx *ictx)
 {
-	log_debug("%s", __func__);
+	struct utf8_data	*ud = &ictx->utf8data;
 
-	utf8_append(&ictx->utf8data, ictx->ch);
+	if (utf8_append(ud, ictx->ch) != UTF8_DONE)
+		fatalx("UTF-8 close invalid %#x", ictx->ch);
 
-	grid_cell_set(&ictx->cell.cell, &ictx->utf8data);
+	log_debug("%s %hhu '%*s' (width %hhu)", __func__, ud->size,
+	    (int)ud->size, ud->data, ud->width);
+
+	utf8_copy(&ictx->cell.cell.data, ud);
 	screen_write_cell(&ictx->ctx, &ictx->cell.cell);
 
 	return (0);

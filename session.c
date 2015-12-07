@@ -103,8 +103,8 @@ session_find_by_id(u_int id)
 /* Create a new session. */
 struct session *
 session_create(const char *name, int argc, char **argv, const char *path,
-    int cwd, struct environ *env, struct termios *tio, int idx, u_int sx,
-    u_int sy, char **cause)
+    const char *cwd, struct environ *env, struct termios *tio, int idx,
+    u_int sx, u_int sy, char **cause)
 {
 	struct session	*s;
 	struct winlink	*wl;
@@ -113,15 +113,15 @@ session_create(const char *name, int argc, char **argv, const char *path,
 	s->references = 1;
 	s->flags = 0;
 
-	s->cwd = dup(cwd);
+	s->cwd = xstrdup(cwd);
 
 	s->curw = NULL;
 	TAILQ_INIT(&s->lastw);
 	RB_INIT(&s->windows);
 
-	environ_init(&s->environ);
+	s->environ = environ_create();
 	if (env != NULL)
-		environ_copy(env, &s->environ);
+		environ_copy(env, s->environ);
 	s->options = options_create(global_s_options);
 	hooks_init(&s->hooks, &global_hooks);
 
@@ -130,10 +130,6 @@ session_create(const char *name, int argc, char **argv, const char *path,
 		s->tio = xmalloc(sizeof *s->tio);
 		memcpy(s->tio, tio, sizeof *s->tio);
 	}
-
-	if (gettimeofday(&s->creation_time, NULL) != 0)
-		fatal("gettimeofday failed");
-	session_update_activity(s, &s->creation_time);
 
 	s->sx = sx;
 	s->sy = sy;
@@ -150,6 +146,8 @@ session_create(const char *name, int argc, char **argv, const char *path,
 		} while (RB_FIND(sessions, &sessions, s) != NULL);
 	}
 	RB_INSERT(sessions, &sessions, s);
+
+	log_debug("new session %s $%u", s->name, s->id);
 
 	if (gettimeofday(&s->creation_time, NULL) != 0)
 		fatal("gettimeofday failed");
@@ -183,14 +181,14 @@ session_unref(struct session *s)
 
 /* Free session. */
 void
-session_free(unused int fd, unused short events, void *arg)
+session_free(__unused int fd, __unused short events, void *arg)
 {
 	struct session	*s = arg;
 
 	log_debug("session %s freed (%d references)", s->name, s->references);
 
 	if (s->references == 0) {
-		environ_free(&s->environ);
+		environ_free(s->environ);
 		options_free(s->options);
 		hooks_free(&s->hooks);
 
@@ -225,7 +223,7 @@ session_destroy(struct session *s)
 		winlink_remove(&s->windows, wl);
 	}
 
-	close(s->cwd);
+	free((void *)s->cwd);
 
 	session_unref(s);
 }
@@ -239,7 +237,7 @@ session_check_name(const char *name)
 
 /* Lock session if it has timed out. */
 void
-session_lock_timer(unused int fd, unused short events, void *arg)
+session_lock_timer(__unused int fd, __unused short events, void *arg)
 {
 	struct session	*s = arg;
 
@@ -265,6 +263,10 @@ session_update_activity(struct session *s, struct timeval *from)
 		gettimeofday(&s->activity_time, NULL);
 	else
 		memcpy(&s->activity_time, from, sizeof s->activity_time);
+
+	log_debug("session %s activity %lld.%06d (last %lld.%06d)", s->name,
+	    (long long)s->activity_time.tv_sec, (int)s->activity_time.tv_usec,
+	    (long long)last->tv_sec, (int)last->tv_usec);
 
 	if (evtimer_initialized(&s->lock_timer))
 		evtimer_del(&s->lock_timer);
@@ -316,11 +318,11 @@ session_previous_session(struct session *s)
 /* Create a new window on a session. */
 struct winlink *
 session_new(struct session *s, const char *name, int argc, char **argv,
-    const char *path, int cwd, int idx, char **cause)
+    const char *path, const char *cwd, int idx, char **cause)
 {
 	struct window	*w;
 	struct winlink	*wl;
-	struct environ	 env;
+	struct environ	*env;
 	const char	*shell;
 	u_int		 hlimit;
 
@@ -329,26 +331,26 @@ session_new(struct session *s, const char *name, int argc, char **argv,
 		return (NULL);
 	}
 
-	environ_init(&env);
-	environ_copy(&global_environ, &env);
-	environ_copy(&s->environ, &env);
-	server_fill_environ(s, &env);
+	env = environ_create();
+	environ_copy(global_environ, env);
+	environ_copy(s->environ, env);
+	server_fill_environ(s, env);
 
 	shell = options_get_string(s->options, "default-shell");
 	if (*shell == '\0' || areshell(shell))
 		shell = _PATH_BSHELL;
 
 	hlimit = options_get_number(s->options, "history-limit");
-	w = window_create(name, argc, argv, path, shell, cwd, &env, s->tio,
+	w = window_create(name, argc, argv, path, shell, cwd, env, s->tio,
 	    s->sx, s->sy, hlimit, cause);
 	if (w == NULL) {
 		winlink_remove(&s->windows, wl);
-		environ_free(&env);
+		environ_free(env);
 		return (NULL);
 	}
 	winlink_set_window(wl, w);
 	notify_window_linked(s, w);
-	environ_free(&env);
+	environ_free(env);
 
 	if (options_get_number(s->options, "set-remain-on-exit"))
 		options_set_number(w->options, "remain-on-exit", 1);

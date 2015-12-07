@@ -30,7 +30,7 @@ CFLAGS += -Wno-long-long -Wall -W -Wnested-externs -Wformat=2
 CFLAGS += -Wmissing-prototypes -Wstrict-prototypes -Wmissing-declarations
 CFLAGS += -Wwrite-strings -Wshadow -Wpointer-arith -Wsign-compare
 CFLAGS += -Wundef -Wbad-function-cast -Winline -Wcast-align
-CFLAGS += -Wdeclaration-after-statement -Wno-pointer-sign
+CFLAGS += -Wdeclaration-after-statement -Wno-pointer-sign -Wno-attributes
 CPPFLAGS += -DDEBUG
 endif
 if IS_COVERAGE
@@ -137,7 +137,6 @@ dist_tmux_SOURCES = \
 	control-notify.c \
 	environ.c \
 	format.c \
-	grid-cell.c \
 	grid-view.c \
 	grid.c \
 	hooks.c \
@@ -236,6 +235,9 @@ nodist_tmux_SOURCES += compat/cfmakeraw.c
 endif
 if NO_OPENAT
 nodist_tmux_SOURCES += compat/openat.c
+endif
+if NO_REALLOCARRAY
+nodist_tmux_SOURCES += compat/reallocarray.c
 endif
 
 # Install tmux.1 in the right format.

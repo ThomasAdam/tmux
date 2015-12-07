@@ -79,14 +79,14 @@ cmd_run_shell_exec(struct cmd *self, struct cmd_q *cmdq)
 	struct winlink			*wl = cmdq->state.tflag.wl;
 	struct window_pane		*wp = cmdq->state.tflag.wp;
 	struct format_tree		*ft;
-	int				 cwd;
+	const char			*cwd;
 
 	if (cmdq->client != NULL && cmdq->client->session == NULL)
 		cwd = cmdq->client->cwd;
 	else if (s != NULL)
 		cwd = s->cwd;
 	else
-		cwd = -1;
+		cwd = NULL;
 	ft = format_create();
 	format_defaults(ft, NULL, s, wl, wp);
 	shellcmd = format_expand(ft, args->argv[0]);

@@ -51,7 +51,7 @@ const struct cmd_entry cmd_lock_client_entry = {
 };
 
 enum cmd_retval
-cmd_lock_server_exec(struct cmd *self, unused struct cmd_q *cmdq)
+cmd_lock_server_exec(struct cmd *self, __unused struct cmd_q *cmdq)
 {
 	if (self->entry == &cmd_lock_server_entry)
 		server_lock();

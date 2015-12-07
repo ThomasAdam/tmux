@@ -55,9 +55,9 @@ cmd_new_window_exec(struct cmd *self, struct cmd_q *cmdq)
 	struct session		*s = cmdq->state.tflag.s;
 	struct winlink		*wl = cmdq->state.tflag.wl;
 	struct client		*c = cmdq->state.c;
-	const char		*cmd, *path, *template;
+	const char		*cmd, *path, *template, *cwd, *to_free;
 	char		       **argv, *cause, *cp;
-	int			 argc, idx, detached, cwd, fd = -1;
+	int			 argc, idx, detached;
 	struct format_tree	*ft;
 	struct environ_entry	*envent;
 
@@ -92,29 +92,18 @@ cmd_new_window_exec(struct cmd *self, struct cmd_q *cmdq)
 
 	path = NULL;
 	if (cmdq->client != NULL && cmdq->client->session == NULL)
-		envent = environ_find(&cmdq->client->environ, "PATH");
+		envent = environ_find(cmdq->client->environ, "PATH");
 	else
-		envent = environ_find(&s->environ, "PATH");
+		envent = environ_find(s->environ, "PATH");
 	if (envent != NULL)
 		path = envent->value;
 
+	to_free = NULL;
 	if (args_has(args, 'c')) {
 		ft = format_create();
 		format_defaults(ft, c, s, NULL, NULL);
-		cp = format_expand(ft, args_get(args, 'c'));
+		cwd = to_free = format_expand(ft, args_get(args, 'c'));
 		format_free(ft);
-
-		if (cp != NULL && *cp != '\0') {
-			fd = open(cp, O_RDONLY|O_DIRECTORY);
-			free(cp);
-			if (fd == -1) {
-				cmdq_error(cmdq, "bad working directory: %s",
-				    strerror(errno));
-				return (CMD_RETURN_ERROR);
-			}
-		} else
-			free(cp);
-		cwd = fd;
 	} else if (cmdq->client != NULL && cmdq->client->session == NULL)
 		cwd = cmdq->client->cwd;
 	else
@@ -169,12 +158,12 @@ cmd_new_window_exec(struct cmd *self, struct cmd_q *cmdq)
 		format_free(ft);
 	}
 
-	if (fd != -1)
-		close(fd);
+	if (to_free != NULL)
+		free((void *)to_free);
 	return (CMD_RETURN_NORMAL);
 
 error:
-	if (fd != -1)
-		close(fd);
+	if (to_free != NULL)
+		free((void *)to_free);
 	return (CMD_RETURN_ERROR);
 }

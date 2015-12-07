@@ -49,6 +49,8 @@ void	 format_cb_host_short(struct format_tree *, struct format_entry *);
 void	 format_cb_pid(struct format_tree *, struct format_entry *);
 void	 format_cb_session_alerts(struct format_tree *, struct format_entry *);
 void	 format_cb_window_layout(struct format_tree *, struct format_entry *);
+void	 format_cb_window_visible_layout(struct format_tree *,
+	     struct format_entry *);
 void	 format_cb_start_command(struct format_tree *, struct format_entry *);
 void	 format_cb_current_command(struct format_tree *, struct format_entry *);
 void	 format_cb_current_path(struct format_tree *, struct format_entry *);
@@ -99,6 +101,7 @@ format_job_cmp(struct format_job *fj1, struct format_job *fj2)
 #define FORMAT_TIMESTRING 0x1
 #define FORMAT_BASENAME 0x2
 #define FORMAT_DIRNAME 0x4
+#define FORMAT_SUBSTITUTE 0x8
 
 /* Entry in format tree. */
 struct format_entry {
@@ -241,7 +244,7 @@ format_job_get(struct format_tree *ft, const char *cmd)
 
 	t = time(NULL);
 	if (fj->job == NULL && ((ft->flags & FORMAT_FORCE) || fj->last != t)) {
-		fj->job = job_run(fj->cmd, NULL, -1, format_job_callback,
+		fj->job = job_run(fj->cmd, NULL, NULL, format_job_callback,
 		    NULL, fj);
 		if (fj->job == NULL) {
 			free(fj->out);
@@ -258,7 +261,7 @@ format_job_get(struct format_tree *ft, const char *cmd)
 
 /* Remove old jobs. */
 void
-format_job_timer(unused int fd, unused short events, unused void *arg)
+format_job_timer(__unused int fd, __unused short events, __unused void *arg)
 {
 	struct format_job	*fj, *fj1;
 	time_t			 now;
@@ -287,7 +290,7 @@ format_job_timer(unused int fd, unused short events, unused void *arg)
 
 /* Callback for host. */
 void
-format_cb_host(unused struct format_tree *ft, struct format_entry *fe)
+format_cb_host(__unused struct format_tree *ft, struct format_entry *fe)
 {
 	char host[HOST_NAME_MAX + 1];
 
@@ -299,7 +302,7 @@ format_cb_host(unused struct format_tree *ft, struct format_entry *fe)
 
 /* Callback for host_short. */
 void
-format_cb_host_short(unused struct format_tree *ft, struct format_entry *fe)
+format_cb_host_short(__unused struct format_tree *ft, struct format_entry *fe)
 {
 	char host[HOST_NAME_MAX + 1], *cp;
 
@@ -314,7 +317,7 @@ format_cb_host_short(unused struct format_tree *ft, struct format_entry *fe)
 
 /* Callback for pid. */
 void
-format_cb_pid(unused struct format_tree *ft, struct format_entry *fe)
+format_cb_pid(__unused struct format_tree *ft, struct format_entry *fe)
 {
 	xasprintf(&fe->value, "%ld", (long)getpid());
 }
@@ -362,6 +365,18 @@ format_cb_window_layout(struct format_tree *ft, struct format_entry *fe)
 		fe->value = layout_dump(w->saved_layout_root);
 	else
 		fe->value = layout_dump(w->layout_root);
+}
+
+/* Callback for window_visible_layout. */
+void
+format_cb_window_visible_layout(struct format_tree *ft, struct format_entry *fe)
+{
+	struct window	*w = ft->w;
+
+	if (w == NULL)
+		return;
+
+	fe->value = layout_dump(w->layout_root);
 }
 
 /* Callback for pane_start_command. */
@@ -432,6 +447,7 @@ format_cb_history_bytes(struct format_tree *ft, struct format_entry *fe)
 	for (i = 0; i < gd->hsize; i++) {
 		gl = &gd->linedata[i];
 		size += gl->cellsize * sizeof *gl->celldata;
+		size += gl->extdsize * sizeof *gl->extddata;
 	}
 	size += gd->hsize * sizeof *gd->linedata;
 
@@ -489,6 +505,8 @@ format_create_flags(int flags)
 	format_add_cb(ft, "host", format_cb_host);
 	format_add_cb(ft, "host_short", format_cb_host_short);
 	format_add_cb(ft, "pid", format_cb_pid);
+	format_add(ft, "socket_path", "%s", socket_path);
+	format_add_tv(ft, "start_time", &start_time);
 
 	return (ft);
 }
@@ -648,9 +666,9 @@ format_find(struct format_tree *ft, const char *key, int modifiers)
 	if (~modifiers & FORMAT_TIMESTRING) {
 		envent = NULL;
 		if (ft->s != NULL)
-			envent = environ_find(&ft->s->environ, key);
+			envent = environ_find(ft->s->environ, key);
 		if (envent == NULL)
-			envent = environ_find(&global_environ, key);
+			envent = environ_find(global_environ, key);
 		if (envent != NULL) {
 			found = envent->value;
 			goto found;
@@ -684,8 +702,9 @@ int
 format_replace(struct format_tree *ft, const char *key, size_t keylen,
     char **buf, size_t *len, size_t *off)
 {
-	char		*copy, *copy0, *endptr, *ptr, *saved, *trimmed, *value;
-	size_t		 valuelen;
+	char		*copy, *copy0, *endptr, *ptr, *found, *new, *value;
+	char		*from = NULL, *to = NULL;
+	size_t		 valuelen, newlen, fromlen, tolen, used;
 	u_long		 limit = 0;
 	int		 modifiers = 0, brackets;
 
@@ -723,6 +742,29 @@ format_replace(struct format_tree *ft, const char *key, size_t keylen,
 		modifiers |= FORMAT_TIMESTRING;
 		copy += 2;
 		break;
+	case 's':
+		if (copy[1] != '/')
+			break;
+		from = copy + 2;
+		for (copy = from; *copy != '\0' && *copy != '/'; copy++)
+			/* nothing */;
+		if (copy[0] != '/' || copy == from) {
+			copy = copy0;
+			break;
+		}
+		copy[0] = '\0';
+		to = copy + 1;
+		for (copy = to; *copy != '\0' && *copy != '/'; copy++)
+			/* nothing */;
+		if (copy[0] != '/' || copy[1] != ':') {
+			copy = copy0;
+			break;
+		}
+		copy[0] = '\0';
+
+		modifiers |= FORMAT_SUBSTITUTE;
+		copy += 2;
+		break;
 	}
 
 	/*
@@ -736,7 +778,7 @@ format_replace(struct format_tree *ft, const char *key, size_t keylen,
 		*ptr = '\0';
 
 		value = ptr + 1;
-		saved = format_find(ft, copy + 1, modifiers);
+		found = format_find(ft, copy + 1, modifiers);
 
 		brackets = 0;
 		for (ptr = ptr + 1; *ptr != '\0'; ptr++) {
@@ -750,29 +792,56 @@ format_replace(struct format_tree *ft, const char *key, size_t keylen,
 		if (*ptr == '\0')
 			goto fail;
 
-		if (saved != NULL && *saved != '\0' &&
-		    (saved[0] != '0' || saved[1] != '\0')) {
+		if (found != NULL && *found != '\0' &&
+		    (found[0] != '0' || found[1] != '\0')) {
 			*ptr = '\0';
 		} else
 			value = ptr + 1;
 		value = format_expand(ft, value);
-		free(saved);
-		saved = value;
+		free(found);
 	} else {
-		saved = value = format_find(ft, copy, modifiers);
+		value = format_find(ft, copy, modifiers);
 		if (value == NULL)
-			saved = value = xstrdup("");
+			value = xstrdup("");
+	}
+
+	/* Perform substitution if any. */
+	if (modifiers & FORMAT_SUBSTITUTE) {
+		fromlen = strlen(from);
+		tolen = strlen(to);
+
+		newlen = strlen(value) + 1;
+		copy = new = xmalloc(newlen);
+		for (ptr = value; *ptr != '\0'; /* nothing */) {
+			if (strncmp(ptr, from, fromlen) != 0) {
+				*new++ = *ptr++;
+				continue;
+			}
+			used = new - copy;
+
+			newlen += tolen;
+			copy = xrealloc(copy, newlen);
+
+			new = copy + used;
+			memcpy(new, to, tolen);
+
+			new += tolen;
+			ptr += fromlen;
+		}
+		*new = '\0';
+		free(value);
+		value = copy;
 	}
 
 	/* Truncate the value if needed. */
 	if (limit != 0) {
-		value = trimmed = utf8_trimcstr(value, limit);
-		free(saved);
-		saved = trimmed;
+		new = utf8_trimcstr(value, limit);
+		free(value);
+		value = new;
 	}
-	valuelen = strlen(value);
 
 	/* Expand the buffer and copy in the value. */
+	valuelen = strlen(value);
 	while (*len - *off < valuelen + 1) {
 		*buf = xreallocarray(*buf, 2, *len);
 		*len *= 2;
@@ -780,7 +849,7 @@ format_replace(struct format_tree *ft, const char *key, size_t keylen,
 	memcpy(*buf + *off, value, valuelen);
 	*off += valuelen;
 
-	free(saved);
+	free(value);
 	free(copy0);
 	return (0);
 
@@ -1040,6 +1109,8 @@ format_defaults_window(struct format_tree *ft, struct window *w)
 	format_add(ft, "window_width", "%u", w->sx);
 	format_add(ft, "window_height", "%u", w->sy);
 	format_add_cb(ft, "window_layout", format_cb_window_layout);
+	format_add_cb(ft, "window_visible_layout",
+	    format_cb_window_visible_layout);
 	format_add(ft, "window_panes", "%u", window_count_panes(w));
 	format_add(ft, "window_zoomed_flag", "%d",
 	    !!(w->flags & WINDOW_ZOOMED));
@@ -1156,16 +1227,13 @@ format_defaults_pane(struct format_tree *ft, struct window_pane *wp)
 	    !!(wp->base.mode & MODE_MOUSE_STANDARD));
 	format_add(ft, "mouse_button_flag", "%d",
 	    !!(wp->base.mode & MODE_MOUSE_BUTTON));
-	format_add(ft, "mouse_utf8_flag", "%d",
-	    !!(wp->base.mode & MODE_MOUSE_UTF8));
 
 	format_add_cb(ft, "pane_tabs", format_cb_pane_tabs);
 }
 
 /* Set default format keys for paste buffer. */
 void
-format_defaults_paste_buffer(struct format_tree *ft, struct paste_buffer *pb,
-    int utf8flag)
+format_defaults_paste_buffer(struct format_tree *ft, struct paste_buffer *pb)
 {
 	size_t	 bufsize;
 	char	*s;
@@ -1174,7 +1242,7 @@ format_defaults_paste_buffer(struct format_tree *ft, struct paste_buffer *pb,
 	format_add(ft, "buffer_size", "%zu", bufsize);
 	format_add(ft, "buffer_name", "%s", paste_buffer_name(pb));
 
-	s = paste_make_sample(pb, utf8flag);
+	s = paste_make_sample(pb);
 	format_add(ft, "buffer_sample", "%s", s);
 	free(s);
 }

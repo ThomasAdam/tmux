@@ -51,9 +51,8 @@ cmd_attach_session(struct cmd_q *cmdq, int dflag, int rflag, const char *cflag,
 	struct window_pane	*wp = cmdq->state.tflag.wp;
 	const char		*update;
 	char			*cause;
-	int			 fd;
 	struct format_tree	*ft;
-	char			*cp;
+	char			*cwd;
 
 	if (RB_EMPTY(&sessions)) {
 		cmdq_error(cmdq, "no sessions");
@@ -80,15 +79,8 @@ cmd_attach_session(struct cmd_q *cmdq, int dflag, int rflag, const char *cflag,
 		cp = format_expand(ft, cflag);
 		format_free(ft);
 
-		fd = open(cp, O_RDONLY|O_DIRECTORY);
-		free(cp);
-		if (fd == -1) {
-			cmdq_error(cmdq, "bad working directory: %s",
-			    strerror(errno));
-			return (CMD_RETURN_ERROR);
-		}
-		close(s->cwd);
-		s->cwd = fd;
+		free((void *)s->cwd);
+		s->cwd = cwd;
 	}
 
 	if (c->session != NULL) {
@@ -96,14 +88,14 @@ cmd_attach_session(struct cmd_q *cmdq, int dflag, int rflag, const char *cflag,
 			TAILQ_FOREACH(c_loop, &clients, entry) {
 				if (c_loop->session != s || c == c_loop)
 					continue;
-				proc_send_s(c->peer, MSG_DETACH, s->name);
+				proc_send_s(c_loop->peer, MSG_DETACH, s->name);
 			}
 		}
 
 		if (!Eflag) {
 			update = options_get_string(s->options,
 			    "update-environment");
-			environ_update(update, &c->environ, &s->environ);
+			environ_update(update, c->environ, s->environ);
 		}
 
 		c->session = s;
@@ -127,14 +119,14 @@ cmd_attach_session(struct cmd_q *cmdq, int dflag, int rflag, const char *cflag,
 			TAILQ_FOREACH(c_loop, &clients, entry) {
 				if (c_loop->session != s || c == c_loop)
 					continue;
-				proc_send_s(c->peer, MSG_DETACH, s->name);
+				proc_send_s(c_loop->peer, MSG_DETACH, s->name);
 			}
 		}
 
 		if (!Eflag) {
 			update = options_get_string(s->options,
 			    "update-environment");
-			environ_update(update, &c->environ, &s->environ);
+			environ_update(update, c->environ, s->environ);
 		}
 
 		c->session = s;
@@ -150,6 +142,7 @@ cmd_attach_session(struct cmd_q *cmdq, int dflag, int rflag, const char *cflag,
 		cmdq->client_exit = 0;
 	}
 	recalculate_sizes();
+	alerts_check_session(s);
 	server_update_socket();
 
 	return (CMD_RETURN_NORMAL);

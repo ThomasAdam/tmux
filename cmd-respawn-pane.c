@@ -46,7 +46,7 @@ cmd_respawn_pane_exec(struct cmd *self, struct cmd_q *cmdq)
 	struct window		*w = wl->window;
 	struct window_pane	*wp = cmdq->state.tflag.wp;
 	struct session		*s = cmdq->state.tflag.s;
-	struct environ		 env;
+	struct environ		*env;
 	const char		*path;
 	char			*cause;
 	u_int			 idx;
@@ -60,10 +60,10 @@ cmd_respawn_pane_exec(struct cmd *self, struct cmd_q *cmdq)
 		return (CMD_RETURN_ERROR);
 	}
 
-	environ_init(&env);
-	environ_copy(&global_environ, &env);
-	environ_copy(&s->environ, &env);
-	server_fill_environ(s, &env);
+	env = environ_create();
+	environ_copy(global_environ, env);
+	environ_copy(s->environ, env);
+	server_fill_environ(s, env);
 
 	window_pane_reset_mode(wp);
 	screen_reinit(&wp->base);
@@ -71,22 +71,22 @@ cmd_respawn_pane_exec(struct cmd *self, struct cmd_q *cmdq)
 
 	path = NULL;
 	if (cmdq->client != NULL && cmdq->client->session == NULL)
-		envent = environ_find(&cmdq->client->environ, "PATH");
+		envent = environ_find(cmdq->client->environ, "PATH");
 	else
-		envent = environ_find(&s->environ, "PATH");
+		envent = environ_find(s->environ, "PATH");
 	if (envent != NULL)
 		path = envent->value;
 
-	if (window_pane_spawn(wp, args->argc, args->argv, path, NULL, -1, &env,
+	if (window_pane_spawn(wp, args->argc, args->argv, path, NULL, NULL, env,
 	    s->tio, &cause) != 0) {
 		cmdq_error(cmdq, "respawn pane failed: %s", cause);
 		free(cause);
-		environ_free(&env);
+		environ_free(env);
 		return (CMD_RETURN_ERROR);
 	}
 	wp->flags |= PANE_REDRAW;
 	server_status_window(w);
 
-	environ_free(&env);
+	environ_free(env);
 	return (CMD_RETURN_NORMAL);
 }

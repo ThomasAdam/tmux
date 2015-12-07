@@ -61,13 +61,12 @@ cmd_new_session_exec(struct cmd *self, struct cmd_q *cmdq)
 	struct session		*s, *attach_sess;
 	struct session		*groupwith = cmdq->state.tflag.s;
 	struct window		*w;
-	struct environ		 env;
+	struct environ		*env;
 	struct termios		 tio, *tiop;
 	const char		*newname, *target, *update, *errstr, *template;
-	const char		*path;
+	const char		*path, *cwd, *to_free;
 	char		       **argv, *cmd, *cause, *cp;
-	int			 detached, already_attached, idx, cwd, fd = -1;
-	int			 argc;
+	int			 detached, already_attached, idx, argc;
 	u_int			 sx, sy;
 	struct format_tree	*ft;
 	struct environ_entry	*envent;
@@ -123,29 +122,17 @@ cmd_new_session_exec(struct cmd *self, struct cmd_q *cmdq)
 		already_attached = 1;
 
 	/* Get the new session working directory. */
+	to_free = NULL;
 	if (args_has(args, 'c')) {
 		ft = format_create();
 		format_defaults(ft, c, NULL, NULL, NULL);
 		cp = format_expand(ft, args_get(args, 'c'));
+		to_free = cwd = format_expand(ft, args_get(args, 'c'));
 		format_free(ft);
-
-		if (cp != NULL && *cp != '\0') {
-			fd = open(cp, O_RDONLY|O_DIRECTORY);
-			free(cp);
-			if (fd == -1) {
-				cmdq_error(cmdq, "bad working directory: %s",
-				    strerror(errno));
-				return (CMD_RETURN_ERROR);
-			}
-		} else
-			free(cp);
-		cwd = fd;
 	} else if (c != NULL && c->session == NULL)
 		cwd = c->cwd;
-	else {
-		fd = open(".", O_RDONLY);
-		cwd = fd;
-	}
+	else
+		cwd = ".";
 
 	/*
 	 * If this is a new client, check for nesting and save the termios
@@ -225,30 +212,30 @@ cmd_new_session_exec(struct cmd *self, struct cmd_q *cmdq)
 
 	path = NULL;
 	if (c != NULL && c->session == NULL)
-		envent = environ_find(&c->environ, "PATH");
+		envent = environ_find(c->environ, "PATH");
 	else
-		envent = environ_find(&global_environ, "PATH");
+		envent = environ_find(global_environ, "PATH");
 	if (envent != NULL)
 		path = envent->value;
 
 	/* Construct the environment. */
-	environ_init(&env);
+	env = environ_create();
 	if (c != NULL && !args_has(args, 'E')) {
 		update = options_get_string(global_s_options,
 		    "update-environment");
-		environ_update(update, &c->environ, &env);
+		environ_update(update, c->environ, env);
 	}
 
 	/* Create the new session. */
 	idx = -1 - options_get_number(global_s_options, "base-index");
-	s = session_create(newname, argc, argv, path, cwd, &env, tiop, idx, sx,
+	s = session_create(newname, argc, argv, path, cwd, env, tiop, idx, sx,
 	    sy, &cause);
+	environ_free(env);
 	if (s == NULL) {
 		cmdq_error(cmdq, "create session failed: %s", cause);
 		free(cause);
 		goto error;
 	}
-	environ_free(&env);
 
 	/* Set the initial window name if one given. */
 	if (argc >= 0 && args_has(args, 'n')) {
@@ -312,12 +299,12 @@ cmd_new_session_exec(struct cmd *self, struct cmd_q *cmdq)
 	if (!detached)
 		cmdq->client_exit = 0;
 
-	if (fd != -1)
-		close(fd);
+	if (to_free != NULL)
+		free((void *)to_free);
 	return (CMD_RETURN_NORMAL);
 
 error:
-	if (fd != -1)
-		close(fd);
+	if (to_free != NULL)
+		free((void *)to_free);
 	return (CMD_RETURN_ERROR);
 }

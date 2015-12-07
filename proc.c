@@ -17,8 +17,8 @@
  */
 
 #include <sys/types.h>
-#include <sys/queue.h>
 #include <sys/uio.h>
+#include <sys/utsname.h>
 
 #include <errno.h>
 #include <event.h>
@@ -48,18 +48,19 @@ struct tmuxpeer {
 	void		*arg;
 };
 
-static void proc_update_event(struct tmuxpeer *);
+static int	peer_check_version(struct tmuxpeer *, struct imsg *);
+static void	proc_update_event(struct tmuxpeer *);
 
 static void
-proc_event_cb(unused int fd, short events, void *arg)
+proc_event_cb(__unused int fd, short events, void *arg)
 {
 	struct tmuxpeer	*peer = arg;
 	ssize_t		 n;
 	struct imsg	 imsg;
-	int		 v;
 
 	if (!(peer->flags & PEER_BAD) && (events & EV_READ)) {
-		if ((n = imsg_read(&peer->ibuf)) == -1 || n == 0) {
+		if (((n = imsg_read(&peer->ibuf)) == -1 && errno != EAGAIN) ||
+		    n == 0) {
 			peer->dispatchcb(NULL, peer->arg);
 			return;
 		}
@@ -72,14 +73,7 @@ proc_event_cb(unused int fd, short events, void *arg)
 				break;
 			log_debug("peer %p message %d", peer, imsg.hdr.type);
 
-			v = imsg.hdr.peerid;
-			if (imsg.hdr.type != MSG_VERSION &&
-			    v != PROTOCOL_VERSION) {
-				log_debug("peer %p bad version %d", peer, v);
-
-				proc_send(peer, MSG_VERSION, -1, NULL, 0);
-				peer->flags |= PEER_BAD;
-
+			if (peer_check_version(peer, &imsg) != 0) {
 				if (imsg.fd != -1)
 					close(imsg.fd);
 				imsg_free(&imsg);
@@ -107,11 +101,28 @@ proc_event_cb(unused int fd, short events, void *arg)
 }
 
 static void
-proc_signal_cb(int signo, unused short events, void *arg)
+proc_signal_cb(int signo, __unused short events, void *arg)
 {
 	struct tmuxproc	*tp = arg;
 
 	tp->signalcb(signo);
+}
+
+static int
+peer_check_version(struct tmuxpeer *peer, struct imsg *imsg)
+{
+	int	version;
+
+	version = imsg->hdr.peerid & 0xff;
+	if (imsg->hdr.type != MSG_VERSION && version != PROTOCOL_VERSION) {
+		log_debug("peer %p bad version %d", peer, version);
+
+		proc_send(peer, MSG_VERSION, -1, NULL, 0);
+		peer->flags |= PEER_BAD;
+
+		return (-1);
+	}
+	return (0);
 }
 
 static void
@@ -159,6 +170,7 @@ proc_start(const char *name, struct event_base *base, int forkflag,
     void (*signalcb)(int))
 {
 	struct tmuxproc	*tp;
+	struct utsname	 u;
 
 	if (forkflag) {
 		switch (fork()) {
@@ -177,14 +189,19 @@ proc_start(const char *name, struct event_base *base, int forkflag,
 			fatalx("event_reinit failed");
 	}
 
-	logfile(name);
+	log_open(name);
 
 #ifdef HAVE_SETPROCTITLE
 	setproctitle("%s (%s)", name, socket_path);
 #endif
 
+	if (uname(&u) < 0)
+		memset(&u, 0, sizeof u);
+
 	log_debug("%s started (%ld): socket %s, protocol %d", name,
 	    (long)getpid(), socket_path, PROTOCOL_VERSION);
+	log_debug("on %s %s %s; libevent %s (%s)", u.sysname, u.release,
+	    u.version, event_get_version(), event_get_method());
 
 	tp = xcalloc(1, sizeof *tp);
 	tp->name = xstrdup(name);
