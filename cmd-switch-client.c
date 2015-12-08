@@ -50,12 +50,8 @@ cmd_switch_client_exec(struct cmd *self, struct cmd_q *cmdq)
 	struct key_table	*table;
 
 
-	if (args_has(args, 'r')) {
-		if (c->flags & CLIENT_READONLY)
-			c->flags &= ~CLIENT_READONLY;
-		else
-			c->flags |= CLIENT_READONLY;
-	}
+	if (args_has(args, 'r'))
+		c->flags ^= CLIENT_READONLY;
 
 	tablename = args_get(args, 'T');
 	if (tablename != NULL) {

@@ -28,13 +28,13 @@ struct hooks {
 	struct hooks	*parent;
 };
 
-int	hooks_cmp(struct hook *, struct hook *);
+static int	hooks_cmp(struct hook *, struct hook *);
 RB_PROTOTYPE(hooks_tree, hook, entry, hooks_cmp);
 RB_GENERATE(hooks_tree, hook, entry, hooks_cmp);
 
 struct hook	*hooks_find1(struct hooks *, const char *);
 
-int
+static int
 hooks_cmp(struct hook *hook1, struct hook *hook2)
 {
 	return (strcmp(hook1->name, hook2->name));
@@ -120,4 +120,20 @@ hooks_find(struct hooks *hooks, const char *name)
 		hook = RB_FIND(hooks_tree, &hooks->tree, &hook0);
 	}
 	return (hook);
+}
+
+void
+hooks_run(struct hooks *hooks, const char *name, struct client *c)
+{
+	struct hook	*hook;
+	struct cmd_q	*cmdq;
+
+	hook = hooks_find(hooks, name);
+	if (hook == NULL)
+		return;
+	log_debug("running hook %s", name);
+
+	cmdq = cmdq_new(c);
+	cmdq_run(cmdq, hook->cmdlist, NULL);
+	cmdq_free(cmdq);
 }

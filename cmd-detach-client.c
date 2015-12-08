@@ -67,22 +67,20 @@ cmd_detach_client_exec(struct cmd *self, struct cmd_q *cmdq)
 	if (args_has(args, 's')) {
 		s = cmdq->state.sflag.s;
 		TAILQ_FOREACH(cloop, &clients, entry) {
-			if (cloop->session != s)
-				continue;
-			proc_send_s(cloop->peer, msgtype, cloop->session->name);
+			if (cloop->session == s)
+				server_client_detach(cloop, msgtype);
 		}
 		return (CMD_RETURN_STOP);
 	}
 
 	if (args_has(args, 'a')) {
 		TAILQ_FOREACH(cloop, &clients, entry) {
-			if (cloop->session == NULL || cloop == c)
-				continue;
-			proc_send_s(cloop->peer, msgtype, cloop->session->name);
+			if (cloop->session != NULL && cloop != c)
+				server_client_detach(cloop, msgtype);
 		}
 		return (CMD_RETURN_NORMAL);
 	}
 
-	proc_send_s(c->peer, msgtype, c->session->name);
+	server_client_detach(c, msgtype);
 	return (CMD_RETURN_STOP);
 }

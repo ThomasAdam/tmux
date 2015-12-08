@@ -54,7 +54,6 @@ cmd_set_hook_exec(struct cmd *self, struct cmd_q *cmdq)
 	struct hook	*hook;
 	char		*cause, *tmp;
 	const char	*name, *cmd;
-	size_t		 used;
 
 	if (args_has(args, 'g'))
 		hooks = global_hooks;

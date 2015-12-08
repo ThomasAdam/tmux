@@ -1552,6 +1552,7 @@ void		 hooks_add(struct hooks *, const char *, struct cmd_list *);
 void		 hooks_copy(struct hooks *, struct hooks *);
 void		 hooks_remove(struct hooks *, struct hook *);
 struct hook	*hooks_find(struct hooks *, const char *);
+void		 hooks_run(struct hooks *, const char *, struct client *);
 
 /* mode-key.c */
 extern const struct mode_key_table mode_key_tables[];
@@ -1841,6 +1842,7 @@ void	 server_client_create(int);
 int	 server_client_open(struct client *, char **);
 void	 server_client_unref(struct client *);
 void	 server_client_lost(struct client *);
+void	 server_client_detach(struct client *, enum msgtype);
 void	 server_client_loop(void);
 void	 server_client_push_stdout(struct client *);
 void	 server_client_push_stderr(struct client *);
