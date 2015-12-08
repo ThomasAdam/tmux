@@ -100,7 +100,7 @@ cmd_new_window_exec(struct cmd *self, struct cmd_q *cmdq)
 
 	to_free = NULL;
 	if (args_has(args, 'c')) {
-		ft = format_create();
+		ft = format_create(cmdq, 0);
 		format_defaults(ft, c, s, NULL, NULL);
 		cwd = to_free = format_expand(ft, args_get(args, 'c'));
 		format_free(ft);
@@ -148,7 +148,7 @@ cmd_new_window_exec(struct cmd *self, struct cmd_q *cmdq)
 		if ((template = args_get(args, 'F')) == NULL)
 			template = NEW_WINDOW_TEMPLATE;
 
-		ft = format_create();
+		ft = format_create(cmdq, 0);
 		format_defaults(ft, c, s, wl, NULL);
 
 		cp = format_expand(ft, template);

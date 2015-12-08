@@ -72,7 +72,7 @@ cmd_attach_session(struct cmd_q *cmdq, int dflag, int rflag, const char *cflag,
 	}
 
 	if (cflag != NULL) {
-		ft = format_create();
+		ft = format_create(cmdq, 0);
 		format_defaults(ft, c, s, wl, wp);
 		cp = format_expand(ft, cflag);
 		format_free(ft);

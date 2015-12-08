@@ -1357,6 +1357,7 @@ struct cmd_q {
 	struct cmd_q_items	 queue;
 	struct cmd_q_item	*item;
 	struct cmd		*cmd;
+	struct cmd		*parent;
 
 	struct cmd_state	 state;
 
@@ -1526,8 +1527,7 @@ char		*paste_make_sample(struct paste_buffer *);
 #define FORMAT_STATUS 0x1
 #define FORMAT_FORCE 0x2
 struct format_tree;
-struct format_tree *format_create(void);
-struct format_tree *format_create_flags(int);
+struct format_tree *format_create(struct cmd_q *, int);
 void		 format_free(struct format_tree *);
 void printflike(3, 4) format_add(struct format_tree *, const char *,
 		     const char *, ...);

@@ -67,7 +67,7 @@ cmd_list_clients_exec(struct cmd *self, struct cmd_q *cmdq)
 		if (c->session == NULL || (s != NULL && s != c->session))
 			continue;
 
-		ft = format_create();
+		ft = format_create(cmdq, 0);
 		format_add(ft, "line", "%u", idx);
 		format_defaults(ft, c, NULL, NULL, NULL);
 

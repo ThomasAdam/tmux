@@ -26,7 +26,7 @@
 
 #include "tmux.h"
 
-int		cmdq_hooks_run(struct hooks *, const char *, const char *,
+int		cmdq_hooks_run(struct hooks *, const char *, struct cmd *,
 		    struct cmd_q *);
 void		cmdq_hooks_emptyfn(struct cmd_q *);
 enum cmd_retval	cmdq_continue_one(struct cmd_q *);
@@ -170,14 +170,14 @@ cmdq_run(struct cmd_q *cmdq, struct cmd_list *cmdlist, struct mouse_event *m)
  * running. This returns to the previous cmdq after the hook is done.
  */
 int
-cmdq_hooks_run(struct hooks *hooks, const char *prefix, const char *name,
+cmdq_hooks_run(struct hooks *hooks, const char *prefix, struct cmd *parent,
     struct cmd_q *cmdq)
 {
 	struct hook     *hook;
 	struct cmd_q	*hooks_cmdq;
 	char            *s;
 
-	xasprintf(&s, "%s-%s", prefix, name);
+	xasprintf(&s, "%s-%s", prefix, parent->entry->name);
 
 	hook = hooks_find(hooks, s);
 	if (hook == NULL) {
@@ -187,6 +187,7 @@ cmdq_hooks_run(struct hooks *hooks, const char *prefix, const char *name,
 
 	hooks_cmdq = cmdq_new(cmdq != NULL ? cmdq->client : NULL);
 	hooks_cmdq->flags |= CMD_Q_NOHOOKS;
+	hooks_cmdq->parent = parent;
 
 	hooks_cmdq->emptyfn = cmdq_hooks_emptyfn;
 	hooks_cmdq->data = cmdq;
@@ -240,7 +241,6 @@ enum cmd_retval
 cmdq_continue_one(struct cmd_q *cmdq)
 {
 	struct cmd	*cmd = cmdq->cmd;
-	const char	*name = cmd->entry->name;
 	struct session	*s;
 	struct hooks	*hooks;
 	enum cmd_retval	 retval;
@@ -275,7 +275,7 @@ cmdq_continue_one(struct cmd_q *cmdq)
 
 		if (~cmdq->flags & CMD_Q_REENTRY) {
 			cmdq->flags |= CMD_Q_REENTRY;
-			if (cmdq_hooks_run(hooks, "before", name, cmdq))
+			if (cmdq_hooks_run(hooks, "before", cmd, cmdq))
 				return (CMD_RETURN_WAIT);
 		}
 	} else
@@ -288,7 +288,7 @@ cmdq_continue_one(struct cmd_q *cmdq)
 	if (retval == CMD_RETURN_ERROR)
 		goto error;
 
-	if (hooks != NULL && cmdq_hooks_run(hooks, "after", name, cmdq))
+	if (hooks != NULL && cmdq_hooks_run(hooks, "after", cmd, cmdq))
 		retval = CMD_RETURN_WAIT;
 	cmdq_guard(cmdq, "end", flags);
 

@@ -482,14 +482,7 @@ format_cb_pane_tabs(struct format_tree *ft, struct format_entry *fe)
 
 /* Create a new tree. */
 struct format_tree *
-format_create(void)
-{
-	return (format_create_flags(0));
-}
-
-/* Create a new tree for the status line. */
-struct format_tree *
-format_create_flags(int flags)
+format_create(struct cmd_q *cmdq, int flags)
 {
 	struct format_tree	*ft;
 
@@ -507,6 +500,9 @@ format_create_flags(int flags)
 	format_add_cb(ft, "pid", format_cb_pid);
 	format_add(ft, "socket_path", "%s", socket_path);
 	format_add_tv(ft, "start_time", &start_time);
+
+	if (cmdq != NULL && cmdq->parent != NULL)
+		format_add(ft, "command_name", cmdq->parent->entry->name);
 
 	return (ft);
 }
