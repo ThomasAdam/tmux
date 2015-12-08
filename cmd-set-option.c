@@ -131,7 +131,6 @@ cmd_set_option_exec(struct cmd *self, struct cmd_q *cmdq)
 		if (args_has(self->args, 'g'))
 			oo = global_w_options;
 		else {
-			wl = cmd_find_window(cmdq, args_get(args, 't'), NULL);
 			if (wl == NULL) {
 				cmdq_error(cmdq,
 				    "couldn't set '%s'%s", optstr,
@@ -145,7 +144,6 @@ cmd_set_option_exec(struct cmd *self, struct cmd_q *cmdq)
 		if (args_has(self->args, 'g'))
 			oo = global_s_options;
 		else {
-			s = cmd_find_session(cmdq, args_get(args, 't'), 0);
 			if (s == NULL) {
 				cmdq_error(cmdq,
 				    "couldn't set '%s'%s", optstr,
@@ -215,21 +213,13 @@ cmd_set_option_user(struct cmd *self, struct cmd_q *cmdq, const char *optstr,
 	    self->entry == &cmd_set_window_option_entry) {
 		if (args_has(self->args, 'g'))
 			oo = global_w_options;
-		else {
-			wl = cmd_find_window(cmdq, args_get(args, 't'), NULL);
-			if (wl == NULL)
-				return (CMD_RETURN_ERROR);
+		else
 			oo = wl->window->options;
-		}
 	} else {
 		if (args_has(self->args, 'g'))
 			oo = global_s_options;
-		else {
-			s = cmd_find_session(cmdq, args_get(args, 't'), 0);
-			if (s == NULL)
-				return (CMD_RETURN_ERROR);
+		else
 			oo = s->options;
-		}
 	}
 
 	if (args_has(args, 'u')) {
