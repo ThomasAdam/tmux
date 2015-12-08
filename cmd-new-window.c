@@ -55,24 +55,18 @@ cmd_new_window_exec(struct cmd *self, struct cmd_q *cmdq)
 	struct session		*s = cmdq->state.tflag.s;
 	struct winlink		*wl = cmdq->state.tflag.wl;
 	struct client		*c = cmdq->state.c;
+	int			 idx = cmdq->state.tflag.idx;
 	const char		*cmd, *path, *template, *cwd, *to_free;
 	char		       **argv, *cause, *cp;
-	int			 argc, idx, detached;
+	int			 argc, detached;
 	struct format_tree	*ft;
 	struct environ_entry	*envent;
 
 	if (args_has(args, 'a')) {
-		wl = cmd_find_window(cmdq, args_get(args, 't'), &s);
-		if (wl == NULL)
-			return (CMD_RETURN_ERROR);
 		if ((idx = winlink_shuffle_up(s, wl)) == -1) {
 			cmdq_error(cmdq, "no free window indexes");
 			return (CMD_RETURN_ERROR);
 		}
-	} else {
-		idx = cmd_find_index(cmdq, args_get(args, 't'), &s);
-		if (idx == -2)
-			return (CMD_RETURN_ERROR);
 	}
 	detached = args_has(args, 'd');
 
