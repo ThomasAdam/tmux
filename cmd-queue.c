@@ -181,8 +181,8 @@ cmdq_hooks_run(struct hooks *hooks, const char *prefix, const char *cmd_name,
 		xasprintf(&s, "%s-%s", prefix, cmd_name);
 	else
 		xasprintf(&s, "%s", cmd_name);
-	hook = hooks_find(hooks, s);
 
+	hook = hooks_find(hooks, s);
 	if (hook == NULL) {
 		free(s);
 		return (0);
