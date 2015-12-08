@@ -49,7 +49,7 @@ cmd_attach_session(struct cmd_q *cmdq, int dflag, int rflag, const char *cflag,
 	struct winlink		*wl = cmdq->state.tflag.wl;
 	struct window_pane	*wp = cmdq->state.tflag.wp;
 	const char		*update;
-	char			*cause, *cwd, *cp;
+	char			*cause, *cwd;
 	struct format_tree	*ft;
 
 	if (RB_EMPTY(&sessions)) {
@@ -74,7 +74,7 @@ cmd_attach_session(struct cmd_q *cmdq, int dflag, int rflag, const char *cflag,
 	if (cflag != NULL) {
 		ft = format_create(cmdq, 0);
 		format_defaults(ft, c, s, wl, wp);
-		cp = format_expand(ft, cflag);
+		cwd = format_expand(ft, cflag);
 		format_free(ft);
 
 		free((void *)s->cwd);

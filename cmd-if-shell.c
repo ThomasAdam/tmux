@@ -74,7 +74,7 @@ cmd_if_shell_exec(struct cmd *self, struct cmd_q *cmdq)
 	else if (s != NULL)
 		cwd = s->cwd;
 	else
-		cwd = -1;
+		cwd = NULL;
 	ft = format_create(cmdq, 0);
 	format_defaults(ft, NULL, s, wl, wp);
 	shellcmd = format_expand(ft, args->argv[0]);
