@@ -167,20 +167,17 @@ cmdq_run(struct cmd_q *cmdq, struct cmd_list *cmdlist, struct mouse_event *m)
 
 /*
  * Run hooks based on the hooks prefix (before/after). Returns 1 if hooks are
- * running.
+ * running. This returns to the previous cmdq after the hook is done.
  */
 int
-cmdq_hooks_run(struct hooks *hooks, const char *prefix, const char *cmd_name,
+cmdq_hooks_run(struct hooks *hooks, const char *prefix, const char *name,
     struct cmd_q *cmdq)
 {
 	struct hook     *hook;
 	struct cmd_q	*hooks_cmdq;
 	char            *s;
 
-	if (prefix != NULL && cmd_name != NULL)
-		xasprintf(&s, "%s-%s", prefix, cmd_name);
-	else
-		xasprintf(&s, "%s", cmd_name);
+	xasprintf(&s, "%s-%s", prefix, name);
 
 	hook = hooks_find(hooks, s);
 	if (hook == NULL) {
