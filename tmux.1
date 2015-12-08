@@ -647,67 +647,6 @@ $ tmux new-window \e; split-window -d
 
 $ tmux new-session -d 'vi /etc/passwd' \e; split-window -d \e; attach
 .Ed
-.Sh HOOKS
-.Nm
-allow for commands to run before or after a given command.
-A valid
-.Em hook-name
-has two parts to it, a prefix and a suffix.
-The prefix denotes when the hook should run.
-Valid prefixes are
-.Em before-
-and
-.Em after-
-The suffix is then the command name which the hook should be applied to.
-The following commands are available to manage hooks:
-.Bl -tag -width Ds
-.It Xo Ic set-hook
-.Op Fl g
-.Op Fl t Ar target-session
-.Ar hook-name
-.Ar command
-.Xc
-Sets the
-.Em hook-name
-to the given
-.Em command .
-Multiple commands for a given hook can be specified.
-See
-.Sx COMMANDS .
-If
-.Fl g
-is given, applies
-.Em hook-name
-to the global list of hooks which operate across all sessions.
-If
-.Fl t
-is given, applies to
-.Em target-session
-only.
-As with the
-.Em set-option
-command, session hooks inherit from the global ones.
-For example:
-.Bd -literal -offset indent
-set-hook -g before-new-window 'splitw'
-.Ed
-.Pp
-Would run the
-.Em split-window
-command on the current window before the
-.Em new-window
-command runs.
-.It Xo Ic show-hooks
-.Op Fl g
-.Op Fl t Ar target-session
-.Xc
-Shows the global list of hooks with
-.Fl g
-otherwise, the session hooks with
-.Fl t
-in
-.Em target-session .
-.Ed
 .Sh CLIENTS AND SESSIONS
 The
 .Nm
@@ -2371,7 +2310,7 @@ Commands which set options are as follows:
 .Bl -tag -width Ds
 .It Xo Ic set-option
 .Op Fl agoqsuw
-.Op Fl t Ar target-window
+.Op Fl t Ar target-session | Ar target-window
 .Ar option Ar value
 .Xc
 .D1 (alias: Ic set )
@@ -3257,6 +3196,52 @@ or the global window options if
 is used.
 .Fl v
 shows only the option value, not the name.
+.El
+.Sh HOOKS
+.Nm
+allows commands to run on various triggers, called
+.Em hooks .
+Each hook has a
+.Em name .
+The following hooks are available:
+.Bl -tag -width "XXXXXXXXXXXXXXXX"
+.It client-attached
+Run when a client is attached.
+.It client-detached
+Run when a client is detached
+.It client-resized
+Run when a client is resized.
+.El
+.Pp
+Hooks are managed with these commands:
+.Bl -tag -width Ds
+.It Xo Ic set-hook
+.Op Fl g
+.Op Fl t Ar target-session
+.Ar hook-name
+.Ar command
+.Xc
+Sets hook
+.Ar hook-name
+to
+.Ar command .
+If
+.Fl g
+is given,
+.Em hook-name
+is added to the global list of hooks, otherwise it is added to the session
+hooks (for
+.Ar target-session
+with
+.Fl t ) .
+Like options, session hooks inherit from the global ones.
+.It Xo Ic show-hooks
+.Op Fl g
+.Op Fl t Ar target-session
+.Xc
+Shows the global list of hooks with
+.Fl g ,
+otherwise the session hooks.
 .El
 .Sh MOUSE SUPPORT
 If the
