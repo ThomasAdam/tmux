@@ -37,7 +37,7 @@ const struct cmd_entry cmd_confirm_before_entry = {
 	"confirm-before", "confirm",
 	"p:t:", 1, 1,
 	"[-p prompt] " CMD_TARGET_CLIENT_USAGE " command",
-	CMD_PREP_CLIENT_T,
+	CMD_CLIENT_T,
 	cmd_confirm_before_exec
 };
 

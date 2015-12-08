@@ -412,12 +412,12 @@ cmd_get_state_client(struct cmd_q *cmdq, int quiet)
 	struct cmd	*cmd = cmdq->cmd;
 	struct args	*args = cmd->args;
 
-	switch (cmd->entry->flags & (CMD_PREP_CLIENT_C|CMD_PREP_CLIENT_T)) {
+	switch (cmd->entry->flags & (CMD_CLIENT_C|CMD_CLIENT_T)) {
 	case 0:
 		return (cmd_find_client(cmdq, NULL, 1));
-	case CMD_PREP_CLIENT_C:
+	case CMD_CLIENT_C:
 		return (cmd_find_client(cmdq, args_get(args, 'c'), quiet));
-	case CMD_PREP_CLIENT_T:
+	case CMD_CLIENT_T:
 		return (cmd_find_client(cmdq, args_get(args, 't'), quiet));
 	default:
 		fatalx("both -t and -c for %s", cmd->entry->name);
@@ -432,7 +432,7 @@ cmd_set_state_flag(struct cmd *cmd, struct cmd_q *cmdq, char c)
 	const char		*flag;
 	int			 flags = cmd->entry->flags, everything = 0;
 	int			 allflags = 0;
-	int			 prefer = !!(flags & CMD_PREP_PREFERUNATTACHED);
+	int			 prefer = !!(flags & CMD_PREFERUNATTACHED);
 	struct session		*s;
 	struct window		*w;
 	struct winlink		*wl;
@@ -440,10 +440,10 @@ cmd_set_state_flag(struct cmd *cmd, struct cmd_q *cmdq, char c)
 
 	if (c == 't') {
 		statef = &cmdq->state.tflag;
-		allflags = CMD_PREP_ALL_T;
+		allflags = CMD_ALL_T;
 	} else if (c == 's') {
 		statef = &cmdq->state.sflag;
-		allflags = CMD_PREP_ALL_S;
+		allflags = CMD_ALL_S;
 	}
 
 	/*
@@ -463,15 +463,15 @@ cmd_set_state_flag(struct cmd *cmd, struct cmd_q *cmdq, char c)
 	 * If no flag and the current command is allowed to fail, just skip to
 	 * fill in as much we can. Otherwise continue and let cmd_find_* fail.
 	 */
-	if (flag == NULL && (flags & CMD_PREP_CANFAIL))
+	if (flag == NULL && (flags & CMD_CANFAIL))
 		goto complete_everything;
 
 	/* Fill in state using command (current or base) flags. */
 	switch (cmd->entry->flags & allflags) {
 	case 0:
 		break;
-	case CMD_PREP_SESSION_T|CMD_PREP_PANE_T:
-	case CMD_PREP_SESSION_S|CMD_PREP_PANE_S:
+	case CMD_SESSION_T|CMD_PANE_T:
+	case CMD_SESSION_S|CMD_PANE_S:
 		if (flag != NULL && flag[strcspn(flag, ":.")] != '\0') {
 			statef->wl = cmd_find_pane(cmdq, flag, &statef->s,
 			    &statef->wp);
@@ -497,8 +497,8 @@ cmd_set_state_flag(struct cmd *cmd, struct cmd_q *cmdq, char c)
 			}
 		}
 		break;
-	case CMD_PREP_MOVEW_R|CMD_PREP_INDEX_T:
-	case CMD_PREP_MOVEW_R|CMD_PREP_INDEX_S:
+	case CMD_MOVEW_R|CMD_INDEX_T:
+	case CMD_MOVEW_R|CMD_INDEX_S:
 		statef->s = cmd_find_session(cmdq, flag, prefer);
 		if (statef->s == NULL) {
 			statef->idx = cmd_find_index(cmdq, flag, &statef->s);
@@ -506,27 +506,27 @@ cmd_set_state_flag(struct cmd *cmd, struct cmd_q *cmdq, char c)
 				return (-1);
 		}
 		break;
-	case CMD_PREP_SESSION_T:
-	case CMD_PREP_SESSION_S:
+	case CMD_SESSION_T:
+	case CMD_SESSION_S:
 		statef->s = cmd_find_session(cmdq, flag, prefer);
 		if (statef->s == NULL)
 			return (-1);
 		break;
-	case CMD_PREP_WINDOW_T:
-	case CMD_PREP_WINDOW_S:
+	case CMD_WINDOW_T:
+	case CMD_WINDOW_S:
 		statef->wl = cmd_find_window(cmdq, flag, &statef->s);
 		if (statef->wl == NULL)
 			return (-1);
 		break;
-	case CMD_PREP_PANE_T:
-	case CMD_PREP_PANE_S:
+	case CMD_PANE_T:
+	case CMD_PANE_S:
 		statef->wl = cmd_find_pane(cmdq, flag, &statef->s,
 		    &statef->wp);
 		if (statef->wl == NULL)
 			return (-1);
 		break;
-	case CMD_PREP_INDEX_T:
-	case CMD_PREP_INDEX_S:
+	case CMD_INDEX_T:
+	case CMD_INDEX_S:
 		statef->idx = cmd_find_index(cmdq, flag, &statef->s);
 		if (statef->idx == -2)
 			return (-1);
@@ -550,7 +550,7 @@ complete_everything:
 		if (statef->s == NULL)
 			statef->s = cmd_find_current(cmdq);
 		if (statef->s == NULL) {
-			if (flags & CMD_PREP_CANFAIL)
+			if (flags & CMD_CANFAIL)
 				return (0);
 
 			cmdq_error(cmdq, "no current session");
@@ -587,11 +587,11 @@ cmd_prepare_state(struct cmd *cmd, struct cmd_q *cmdq)
 	 * try the base command instead via cmd_get_state_client. No client is
 	 * allowed if no flags, otherwise it must be available.
 	 */
-	switch (cmd->entry->flags & (CMD_PREP_CLIENT_C|CMD_PREP_CLIENT_T)) {
+	switch (cmd->entry->flags & (CMD_CLIENT_C|CMD_CLIENT_T)) {
 	case 0:
 		state->c = cmd_get_state_client(cmdq, 1);
 		break;
-	case CMD_PREP_CLIENT_C:
+	case CMD_CLIENT_C:
 		cflag = args_get(args, 'c');
 		if (cflag == NULL)
 			state->c = cmd_get_state_client(cmdq, 0);
@@ -600,7 +600,7 @@ cmd_prepare_state(struct cmd *cmd, struct cmd_q *cmdq)
 		if (state->c == NULL)
 			return (-1);
 		break;
-	case CMD_PREP_CLIENT_T:
+	case CMD_CLIENT_T:
 		tflag = args_get(args, 't');
 		if (tflag == NULL)
 			state->c = cmd_get_state_client(cmdq, 0);

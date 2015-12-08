@@ -30,7 +30,7 @@ const struct cmd_entry cmd_kill_window_entry = {
 	"kill-window", "killw",
 	"at:", 0, 0,
 	"[-a] " CMD_TARGET_WINDOW_USAGE,
-	CMD_PREP_WINDOW_T,
+	CMD_WINDOW_T,
 	cmd_kill_window_exec
 };
 
@@ -38,7 +38,7 @@ const struct cmd_entry cmd_unlink_window_entry = {
 	"unlink-window", "unlinkw",
 	"kt:", 0, 0,
 	"[-k] " CMD_TARGET_WINDOW_USAGE,
-	CMD_PREP_WINDOW_T,
+	CMD_WINDOW_T,
 	cmd_kill_window_exec
 };
 

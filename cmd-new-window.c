@@ -44,7 +44,7 @@ const struct cmd_entry cmd_new_window_entry = {
 	 * regardless; making PREP_INDEX the thing we want -t to be used for
 	 * in the specific case.
 	 */
-	CMD_PREP_INDEX_T|CMD_PREP_CANFAIL,
+	CMD_INDEX_T|CMD_CANFAIL,
 	cmd_new_window_exec
 };
 

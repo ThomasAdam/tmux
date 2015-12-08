@@ -30,7 +30,7 @@ const struct cmd_entry cmd_select_pane_entry = {
 	"select-pane", "selectp",
 	"DdegLlMmP:Rt:U", 0, 0,
 	"[-DdegLlMmRU] [-P style] " CMD_TARGET_PANE_USAGE,
-	CMD_PREP_PANE_T,
+	CMD_PANE_T,
 	cmd_select_pane_exec
 };
 
@@ -38,7 +38,7 @@ const struct cmd_entry cmd_last_pane_entry = {
 	"last-pane", "lastp",
 	"det:", 0, 0,
 	"[-de] " CMD_TARGET_WINDOW_USAGE,
-	CMD_PREP_WINDOW_T,
+	CMD_WINDOW_T,
 	cmd_select_pane_exec
 };
 

@@ -34,7 +34,7 @@ const struct cmd_entry cmd_respawn_pane_entry = {
 	"respawn-pane", "respawnp",
 	"kt:", 0, -1,
 	"[-k] " CMD_TARGET_PANE_USAGE " [command]",
-	CMD_PREP_PANE_T,
+	CMD_PANE_T,
 	cmd_respawn_pane_exec
 };
 

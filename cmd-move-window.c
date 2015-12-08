@@ -32,7 +32,7 @@ const struct cmd_entry cmd_move_window_entry = {
 	"move-window", "movew",
 	"adkrs:t:", 0, 0,
 	"[-dkr] " CMD_SRCDST_WINDOW_USAGE,
-	CMD_PREP_WINDOW_S|CMD_PREP_MOVEW_R|CMD_PREP_INDEX_T,
+	CMD_WINDOW_S|CMD_MOVEW_R|CMD_INDEX_T,
 	cmd_move_window_exec
 };
 
@@ -40,7 +40,7 @@ const struct cmd_entry cmd_link_window_entry = {
 	"link-window", "linkw",
 	"adks:t:", 0, 0,
 	"[-dk] " CMD_SRCDST_WINDOW_USAGE,
-	CMD_PREP_WINDOW_S|CMD_PREP_INDEX_T,
+	CMD_WINDOW_S|CMD_INDEX_T,
 	cmd_move_window_exec
 };
 

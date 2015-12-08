@@ -40,7 +40,7 @@ const struct cmd_entry cmd_capture_pane_entry = {
 	"ab:CeE:JpPqS:t:", 0, 0,
 	"[-aCeJpPq] " CMD_BUFFER_USAGE " [-E end-line] [-S start-line]"
 	CMD_TARGET_PANE_USAGE,
-	CMD_PREP_PANE_T,
+	CMD_PANE_T,
 	cmd_capture_pane_exec
 };
 

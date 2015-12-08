@@ -33,7 +33,7 @@ const struct cmd_entry cmd_kill_session_entry = {
 	"kill-session", NULL,
 	"aCt:", 0, 0,
 	"[-aC] " CMD_TARGET_SESSION_USAGE,
-	CMD_PREP_SESSION_T,
+	CMD_SESSION_T,
 	cmd_kill_session_exec
 };
 

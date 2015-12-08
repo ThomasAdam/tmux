@@ -32,7 +32,7 @@ const struct cmd_entry cmd_swap_pane_entry = {
 	"swap-pane", "swapp",
 	"dDs:t:U", 0, 0,
 	"[-dDU] " CMD_SRCDST_PANE_USAGE,
-	CMD_PREP_PANE_S|CMD_PREP_PANE_T,
+	CMD_PANE_S|CMD_PANE_T,
 	cmd_swap_pane_exec
 };
 

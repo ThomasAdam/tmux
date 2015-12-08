@@ -51,7 +51,7 @@ const struct cmd_entry cmd_find_window_entry = {
 	"find-window", "findw",
 	"F:CNt:T", 1, 4,
 	"[-CNT] [-F format] " CMD_TARGET_WINDOW_USAGE " match-string",
-	CMD_PREP_WINDOW_T,
+	CMD_WINDOW_T,
 	cmd_find_window_exec
 };
 

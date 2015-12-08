@@ -41,7 +41,7 @@ const struct cmd_entry cmd_choose_client_entry = {
 	"choose-client", NULL,
 	"F:t:", 0, 1,
 	CMD_TARGET_WINDOW_USAGE " [-F format] [template]",
-	CMD_PREP_WINDOW_T,
+	CMD_WINDOW_T,
 	cmd_choose_client_exec
 };
 

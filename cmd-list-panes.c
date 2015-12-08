@@ -38,7 +38,7 @@ const struct cmd_entry cmd_list_panes_entry = {
 	"list-panes", "lsp",
 	"asF:t:", 0, 0,
 	"[-as] [-F format] " CMD_TARGET_WINDOW_USAGE,
-	CMD_PREP_WINDOW_T,
+	CMD_WINDOW_T,
 	cmd_list_panes_exec
 };
 

@@ -30,7 +30,7 @@ const struct cmd_entry cmd_rotate_window_entry = {
 	"rotate-window", "rotatew",
 	"Dt:U", 0, 0,
 	"[-DU] " CMD_TARGET_WINDOW_USAGE,
-	CMD_PREP_WINDOW_T,
+	CMD_WINDOW_T,
 	cmd_rotate_window_exec
 };
 

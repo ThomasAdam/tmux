@@ -34,7 +34,7 @@ const struct cmd_entry cmd_show_messages_entry = {
 	"show-messages", "showmsgs",
 	"JTt:", 0, 0,
 	"[-JT] " CMD_TARGET_CLIENT_USAGE,
-	CMD_PREP_CLIENT_T,
+	CMD_CLIENT_T,
 	cmd_show_messages_exec
 };
 

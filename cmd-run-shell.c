@@ -39,7 +39,7 @@ const struct cmd_entry cmd_run_shell_entry = {
 	"run-shell", "run",
 	"bt:", 1, 1,
 	"[-b] " CMD_TARGET_PANE_USAGE " shell-command",
-	CMD_PREP_PANE_T|CMD_PREP_CANFAIL,
+	CMD_PANE_T|CMD_CANFAIL,
 	cmd_run_shell_exec
 };
 

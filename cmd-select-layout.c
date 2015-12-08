@@ -32,7 +32,7 @@ const struct cmd_entry cmd_select_layout_entry = {
 	"select-layout", "selectl",
 	"nopt:", 0, 1,
 	"[-nop] " CMD_TARGET_WINDOW_USAGE " [layout-name]",
-	CMD_PREP_WINDOW_T,
+	CMD_WINDOW_T,
 	cmd_select_layout_exec
 };
 
@@ -40,7 +40,7 @@ const struct cmd_entry cmd_next_layout_entry = {
 	"next-layout", "nextl",
 	"t:", 0, 0,
 	CMD_TARGET_WINDOW_USAGE,
-	CMD_PREP_WINDOW_T,
+	CMD_WINDOW_T,
 	cmd_select_layout_exec
 };
 
@@ -48,7 +48,7 @@ const struct cmd_entry cmd_previous_layout_entry = {
 	"previous-layout", "prevl",
 	"t:", 0, 0,
 	CMD_TARGET_WINDOW_USAGE,
-	CMD_PREP_WINDOW_T,
+	CMD_WINDOW_T,
 	cmd_select_layout_exec
 };
 

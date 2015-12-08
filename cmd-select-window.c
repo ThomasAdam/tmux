@@ -32,7 +32,7 @@ const struct cmd_entry cmd_select_window_entry = {
 	"select-window", "selectw",
 	"lnpTt:", 0, 0,
 	"[-lnpT] " CMD_TARGET_WINDOW_USAGE,
-	CMD_PREP_WINDOW_T,
+	CMD_WINDOW_T,
 	cmd_select_window_exec
 };
 
@@ -40,7 +40,7 @@ const struct cmd_entry cmd_next_window_entry = {
 	"next-window", "next",
 	"at:", 0, 0,
 	"[-a] " CMD_TARGET_SESSION_USAGE,
-	CMD_PREP_SESSION_T,
+	CMD_SESSION_T,
 	cmd_select_window_exec
 };
 
@@ -48,7 +48,7 @@ const struct cmd_entry cmd_previous_window_entry = {
 	"previous-window", "prev",
 	"at:", 0, 0,
 	"[-a] " CMD_TARGET_SESSION_USAGE,
-	CMD_PREP_SESSION_T,
+	CMD_SESSION_T,
 	cmd_select_window_exec
 };
 
@@ -56,7 +56,7 @@ const struct cmd_entry cmd_last_window_entry = {
 	"last-window", "last",
 	"t:", 0, 0,
 	CMD_TARGET_SESSION_USAGE,
-	CMD_PREP_SESSION_T,
+	CMD_SESSION_T,
 	cmd_select_window_exec
 };
 

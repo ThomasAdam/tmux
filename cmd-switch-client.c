@@ -33,8 +33,7 @@ const struct cmd_entry cmd_switch_client_entry = {
 	"switch-client", "switchc",
 	"lc:Enpt:rT:", 0, 0,
 	"[-Elnpr] [-c target-client] [-t target-session] [-T key-table]",
-	CMD_READONLY|CMD_PREP_CLIENT_C|CMD_PREP_PANE_T|CMD_PREP_SESSION_T|
-	CMD_PREP_PREFERUNATTACHED,
+	CMD_READONLY|CMD_CLIENT_C|CMD_PANE_T|CMD_SESSION_T|CMD_PREFERUNATTACHED,
 	cmd_switch_client_exec
 };
 

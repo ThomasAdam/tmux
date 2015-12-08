@@ -34,7 +34,7 @@ const struct cmd_entry cmd_resize_pane_entry = {
 	"resize-pane", "resizep",
 	"DLMRt:Ux:y:Z", 0, 1,
 	"[-DLMRUZ] [-x width] [-y height] " CMD_TARGET_PANE_USAGE " [adjustment]",
-	CMD_PREP_PANE_T,
+	CMD_PANE_T,
 	cmd_resize_pane_exec
 };
 

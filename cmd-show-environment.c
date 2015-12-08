@@ -37,7 +37,7 @@ const struct cmd_entry cmd_show_environment_entry = {
 	"show-environment", "showenv",
 	"gst:", 0, 1,
 	"[-gs] " CMD_TARGET_SESSION_USAGE " [name]",
-	CMD_PREP_SESSION_T,
+	CMD_SESSION_T,
 	cmd_show_environment_exec
 };
 

@@ -40,7 +40,7 @@ const struct cmd_entry cmd_pipe_pane_entry = {
 	"pipe-pane", "pipep",
 	"ot:", 0, 1,
 	"[-o] " CMD_TARGET_PANE_USAGE " [command]",
-	CMD_PREP_PANE_T,
+	CMD_PANE_T,
 	cmd_pipe_pane_exec
 };
 

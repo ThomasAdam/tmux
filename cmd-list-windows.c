@@ -49,7 +49,7 @@ const struct cmd_entry cmd_list_windows_entry = {
 	"list-windows", "lsw",
 	"F:at:", 0, 0,
 	"[-a] [-F format] " CMD_TARGET_SESSION_USAGE,
-	CMD_PREP_SESSION_T,
+	CMD_SESSION_T,
 	cmd_list_windows_exec
 };
 

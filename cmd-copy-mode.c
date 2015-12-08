@@ -30,7 +30,7 @@ const struct cmd_entry cmd_copy_mode_entry = {
 	"copy-mode", NULL,
 	"Met:u", 0, 0,
 	"[-Mu] " CMD_TARGET_PANE_USAGE,
-	CMD_PREP_PANE_T,
+	CMD_PANE_T,
 	cmd_copy_mode_exec
 };
 

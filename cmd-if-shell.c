@@ -39,7 +39,7 @@ const struct cmd_entry cmd_if_shell_entry = {
 	"if-shell", "if",
 	"bFt:", 2, 3,
 	"[-bF] " CMD_TARGET_PANE_USAGE " shell-command command [command]",
-	CMD_PREP_PANE_T|CMD_PREP_CANFAIL,
+	CMD_PANE_T|CMD_CANFAIL,
 	cmd_if_shell_exec
 };
 

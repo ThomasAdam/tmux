@@ -32,7 +32,7 @@ const struct cmd_entry cmd_kill_pane_entry = {
 	"kill-pane", "killp",
 	"at:", 0, 0,
 	"[-a] " CMD_TARGET_PANE_USAGE,
-	CMD_PREP_PANE_T,
+	CMD_PANE_T,
 	cmd_kill_pane_exec
 };
 

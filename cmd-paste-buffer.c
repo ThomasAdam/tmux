@@ -36,7 +36,7 @@ const struct cmd_entry cmd_paste_buffer_entry = {
 	"paste-buffer", "pasteb",
 	"db:prs:t:", 0, 0,
 	"[-dpr] [-s separator] " CMD_BUFFER_USAGE " " CMD_TARGET_PANE_USAGE,
-	CMD_PREP_PANE_T,
+	CMD_PANE_T,
 	cmd_paste_buffer_exec
 };
 

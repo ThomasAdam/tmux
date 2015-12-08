@@ -41,7 +41,7 @@ const struct cmd_entry cmd_new_session_entry = {
 	"[-AdDEP] [-c start-directory] [-F format] [-n window-name] "
 	"[-s session-name] " CMD_TARGET_SESSION_USAGE " [-x width] "
 	"[-y height] [command]",
-	CMD_STARTSERVER|CMD_PREP_CANFAIL|CMD_PREP_SESSION_T,
+	CMD_STARTSERVER|CMD_CANFAIL|CMD_SESSION_T,
 	cmd_new_session_exec
 };
 
@@ -49,7 +49,7 @@ const struct cmd_entry cmd_has_session_entry = {
 	"has-session", "has",
 	"t:", 0, 0,
 	CMD_TARGET_SESSION_USAGE,
-	CMD_PREP_SESSION_T,
+	CMD_SESSION_T,
 	cmd_new_session_exec
 };
 

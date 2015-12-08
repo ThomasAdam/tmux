@@ -32,7 +32,7 @@ const struct cmd_entry cmd_rename_window_entry = {
 	"rename-window", "renamew",
 	"t:", 1, 1,
 	CMD_TARGET_WINDOW_USAGE " new-name",
-	CMD_PREP_WINDOW_T,
+	CMD_WINDOW_T,
 	cmd_rename_window_exec
 };
 

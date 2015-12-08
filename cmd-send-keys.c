@@ -33,7 +33,7 @@ const struct cmd_entry cmd_send_keys_entry = {
 	"send-keys", "send",
 	"lRMt:", 0, -1,
 	"[-lRM] " CMD_TARGET_PANE_USAGE " key ...",
-	CMD_PREP_PANE_T,
+	CMD_PANE_T,
 	cmd_send_keys_exec
 };
 
@@ -41,7 +41,7 @@ const struct cmd_entry cmd_send_prefix_entry = {
 	"send-prefix", NULL,
 	"2t:", 0, 0,
 	"[-2] " CMD_TARGET_PANE_USAGE,
-	CMD_PREP_PANE_T,
+	CMD_PANE_T,
 	cmd_send_keys_exec
 };
 
