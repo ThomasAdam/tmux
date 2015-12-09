@@ -126,7 +126,6 @@ cmd_new_session_exec(struct cmd *self, struct cmd_q *cmdq)
 	if (args_has(args, 'c')) {
 		ft = format_create(cmdq, 0);
 		format_defaults(ft, c, NULL, NULL, NULL);
-		cp = format_expand(ft, args_get(args, 'c'));
 		to_free = cwd = format_expand(ft, args_get(args, 'c'));
 		format_free(ft);
 	} else if (c != NULL && c->session == NULL)
