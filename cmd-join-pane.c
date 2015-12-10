@@ -36,7 +36,7 @@ const struct cmd_entry cmd_join_pane_entry = {
 	"join-pane", "joinp",
 	"bdhvp:l:s:t:", 0, 0,
 	"[-bdhv] [-p percentage|-l size] " CMD_SRCDST_PANE_USAGE,
-	CMD_PANE_S|CMD_PANE_T,
+	CMD_PANE_MARKED_S|CMD_PANE_T,
 	cmd_join_pane_exec
 };
 

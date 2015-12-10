@@ -1396,13 +1396,18 @@ struct cmd_entry {
 #define CMD_CANFAIL 0x1000
 #define CMD_PREFERUNATTACHED 0x2000
 #define CMD_MOVEW_R 0x4000 /* for movew -r only */
+#define CMD_PANE_MARKED_S 0x8000
+#define CMD_PANE_MARKED_T 0x10000
+#define CMD_WINDOW_MARKED_T 0x20000
+#define CMD_WINDOW_MARKED_S 0x40000
 	int		 flags;
 
 	enum cmd_retval	 (*exec)(struct cmd *, struct cmd_q *);
 };
 #define CMD_ALL_T (CMD_SESSION_T|CMD_WINDOW_T|CMD_PANE_T|CMD_INDEX_T| \
-    CMD_MOVEW_R)
-#define CMD_ALL_S (CMD_SESSION_S|CMD_WINDOW_S|CMD_PANE_S|CMD_INDEX_S)
+    CMD_MOVEW_R|CMD_PANE_MARKED_T|CMD_WINDOW_MARKED_T)
+#define CMD_ALL_S (CMD_SESSION_S|CMD_WINDOW_S|CMD_PANE_S|CMD_INDEX_S| \
+    CMD_PANE_MARKED_S|CMD_WINDOW_MARKED_S)
 
 /* Key binding and key table. */
 struct key_binding {
