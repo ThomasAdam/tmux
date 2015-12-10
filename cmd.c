@@ -518,9 +518,21 @@ cmd_set_state_flag(struct cmd *cmd, struct cmd_q *cmdq, char c)
 		if (statef->wl == NULL)
 			return (-1);
 		break;
+	case CMD_WINDOW_MARKED_T:
+	case CMD_WINDOW_MARKED_S:
+		statef->wl = cmd_find_window_marked(cmdq, flag, &statef->s);
+		if (statef->wl == NULL)
+			return (-1);
+		break;
 	case CMD_PANE_T:
 	case CMD_PANE_S:
 		statef->wl = cmd_find_pane(cmdq, flag, &statef->s,
+		    &statef->wp);
+		if (statef->wl == NULL)
+			return (-1);
+		break;
+	case CMD_PANE_MARKED_S:
+		statef->wl = cmd_find_pane_marked(cmdq, flag, &statef->s,
 		    &statef->wp);
 		if (statef->wl == NULL)
 			return (-1);

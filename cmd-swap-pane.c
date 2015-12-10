@@ -32,7 +32,7 @@ const struct cmd_entry cmd_swap_pane_entry = {
 	"swap-pane", "swapp",
 	"dDs:t:U", 0, 0,
 	"[-dDU] " CMD_SRCDST_PANE_USAGE,
-	CMD_PANE_S|CMD_PANE_T,
+	CMD_PANE_MARKED_S|CMD_PANE_T,
 	cmd_swap_pane_exec
 };
 
@@ -49,6 +49,9 @@ cmd_swap_pane_exec(struct cmd *self, struct cmd_q *cmdq)
 	dst_wl = cmdq->state.tflag.wl;
 	dst_w = dst_wl->window;
 	dst_wp = cmdq->state.tflag.wp;
+	src_wp = cmdq->state.sflag.wp;
+	src_wl = cmdq->state.sflag.wl;
+	src_w = src_wl->window;
 	server_unzoom_window(dst_w);
 
 	if (!args_has(args, 's')) {
@@ -61,19 +64,7 @@ cmd_swap_pane_exec(struct cmd *self, struct cmd_q *cmdq)
 			src_wp = TAILQ_PREV(dst_wp, window_panes, entry);
 			if (src_wp == NULL)
 				src_wp = TAILQ_LAST(&dst_w->panes, window_panes);
-		} else {
-			src_wl = cmd_find_pane_marked(cmdq, NULL, NULL,
-			    &src_wp);
-			if (src_wl == NULL)
-				return (CMD_RETURN_ERROR);
-			src_w = src_wl->window;
 		}
-	} else {
-		src_wl = cmd_find_pane_marked(cmdq, args_get(args, 's'), NULL,
-		    &src_wp);
-		if (src_wl == NULL)
-			return (CMD_RETURN_ERROR);
-		src_w = src_wl->window;
 	}
 	server_unzoom_window(src_w);
 
