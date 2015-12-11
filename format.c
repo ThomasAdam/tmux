@@ -501,8 +501,12 @@ format_create(struct cmd_q *cmdq, int flags)
 	format_add(ft, "socket_path", "%s", socket_path);
 	format_add_tv(ft, "start_time", &start_time);
 
-	if (cmdq != NULL && cmdq->parent != NULL)
-		format_add(ft, "command_name", cmdq->parent->entry->name);
+	if (cmdq != NULL && cmdq->cmd != NULL)
+		format_add(ft, "command_name", "%s", cmdq->cmd->entry->name);
+	if (cmdq != NULL && cmdq->parent != NULL) {
+		format_add(ft, "command_hooked", "%s",
+		    cmdq->parent->entry->name);
+	}
 
 	return (ft);
 }
