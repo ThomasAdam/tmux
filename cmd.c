@@ -532,6 +532,7 @@ cmd_set_state_flag(struct cmd *cmd, struct cmd_q *cmdq, char c)
 			return (-1);
 		break;
 	case CMD_PANE_MARKED_S:
+	case CMD_PANE_MARKED_T:
 		statef->wl = cmd_find_pane_marked(cmdq, flag, &statef->s,
 		    &statef->wp);
 		if (statef->wl == NULL)
