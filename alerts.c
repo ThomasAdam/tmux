@@ -34,6 +34,7 @@ int	alerts_check_bell(struct session *, struct winlink *);
 int	alerts_check_activity(struct session *, struct winlink *);
 int	alerts_check_silence(struct session *, struct winlink *);
 void	alerts_ring_bell(struct session *);
+void	alerts_run_hook(struct session *, struct winlink *, int);
 
 void
 alerts_timer(__unused int fd, __unused short events, void *arg)
@@ -73,6 +74,31 @@ alerts_callback(__unused int fd, __unused short events, __unused void *arg)
 	alerts_fired = 0;
 }
 
+void
+alerts_run_hook(struct session *s, struct winlink *wl, int flag)
+{
+	struct cmd_find_state	 fs;
+	u_int			 i;
+	const struct {
+		const char	*name;
+		int		 flag;
+	} alerts_hooks[] = {
+		{ "alert-bell", WINDOW_BELL },
+		{ "alert-silence", WINDOW_SILENCE },
+		{ "alert-activity", WINDOW_ACTIVITY }
+	};
+
+	fs.s = s;
+	fs.wl = wl;
+	fs.w = wl->window;
+	fs.wp = wl->window->active;
+
+	for (i = 0; i < nitems(alerts_hooks); i++) {
+		if (flag & alerts_hooks[i].flag)
+			hooks_run(s->hooks, NULL, &fs, alerts_hooks[i].name);
+	}
+}
+
 int
 alerts_check_all(struct session *s, struct winlink *wl)
 {
@@ -81,8 +107,10 @@ alerts_check_all(struct session *s, struct winlink *wl)
 	alerts  = alerts_check_bell(s, wl);
 	alerts |= alerts_check_activity(s, wl);
 	alerts |= alerts_check_silence(s, wl);
-	if (alerts != 0)
+	if (alerts != 0) {
+		alerts_run_hook(s, wl, alerts);
 		server_status_session(s);
+	}
 
 	return (alerts);
 }
