@@ -26,10 +26,10 @@
 
 #include "tmux.h"
 
-int		cmdq_hooks_run(struct hooks *, const char *, struct cmd *,
-		    struct cmd_q *);
-void		cmdq_hooks_emptyfn(struct cmd_q *);
-enum cmd_retval	cmdq_continue_one(struct cmd_q *);
+static int		cmdq_hooks_run(struct hooks *, const char *,
+			    struct cmd *, struct cmd_q *);
+static void		cmdq_hooks_emptyfn(struct cmd_q *);
+static enum cmd_retval	cmdq_continue_one(struct cmd_q *);
 
 /* Create new command queue. */
 struct cmd_q *
@@ -237,15 +237,15 @@ cmdq_append(struct cmd_q *cmdq, struct cmd_list *cmdlist, struct mouse_event *m)
 }
 
 /* Process one command. */
-enum cmd_retval
+static enum cmd_retval
 cmdq_continue_one(struct cmd_q *cmdq)
 {
 	struct cmd	*cmd = cmdq->cmd;
 	struct session	*s;
 	struct hooks	*hooks;
 	enum cmd_retval	 retval;
-	int		 flags = !!(cmd->flags & CMD_CONTROL);
 	char		*tmp;
+	int		 flags = !!(cmd->flags & CMD_CONTROL);
 
 	tmp = cmd_print(cmd);
 	log_debug("cmdq %p: %s", cmdq, tmp);
