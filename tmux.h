@@ -1586,7 +1586,10 @@ void		 hooks_add(struct hooks *, const char *, struct cmd_list *);
 void		 hooks_copy(struct hooks *, struct hooks *);
 void		 hooks_remove(struct hooks *, const char *);
 struct hook	*hooks_find(struct hooks *, const char *);
-void		 hooks_run(struct hooks *, const char *, struct client *);
+int printflike(3, 4) hooks_run(struct hooks *, struct client *, const char *,
+		    ...);
+int printflike(3, 4) hooks_wait(struct hooks *, struct cmd_q *, const char *,
+		    ...);
 
 /* mode-key.c */
 extern const struct mode_key_table mode_key_tables[];

@@ -25,9 +25,6 @@
 
 #include "tmux.h"
 
-static int		cmdq_hooks_run(struct hooks *, const char *,
-			    struct cmd_q *);
-static void		cmdq_hooks_emptyfn(struct cmd_q *);
 static enum cmd_retval	cmdq_continue_one(struct cmd_q *);
 
 /* Create new command queue. */
@@ -164,59 +161,6 @@ cmdq_run(struct cmd_q *cmdq, struct cmd_list *cmdlist, struct mouse_event *m)
 	}
 }
 
-/*
- * Run hooks based on the hooks prefix (before/after). Returns 1 if hooks are
- * running. This returns to the previous cmdq after the hook is done.
- */
-int
-cmdq_hooks_run(struct hooks *hooks, const char *prefix, struct cmd_q *cmdq)
-{
-	struct hook     *hook;
-	struct cmd_q	*hooks_cmdq;
-	char            *s;
-
-	xasprintf(&s, "%s-%s", prefix, cmdq->cmd->entry->name);
-
-	hook = hooks_find(hooks, s);
-	if (hook == NULL) {
-		free(s);
-		return (0);
-	}
-
-	hooks_cmdq = cmdq_new(cmdq != NULL ? cmdq->client : NULL);
-	hooks_cmdq->flags |= CMD_Q_NOHOOKS;
-	hooks_cmdq->parent = cmdq;
-
-	hooks_cmdq->emptyfn = cmdq_hooks_emptyfn;
-	hooks_cmdq->data = cmdq;
-
-	log_debug("entering hooks cmdq %p for %s", hooks_cmdq, s);
-	free(s);
-
-	if (cmdq != NULL)
-		cmdq->references++;
-	cmdq_run(hooks_cmdq, hook->cmdlist, NULL);
-
-	return (1);
-}
-
-/* Callback when hooks cmdq is empty. */
-void
-cmdq_hooks_emptyfn(struct cmd_q *hooks_cmdq)
-{
-	struct cmd_q	*cmdq = hooks_cmdq->data;
-
-	log_debug("exiting hooks cmdq %p", hooks_cmdq);
-
-	if (cmdq != NULL && hooks_cmdq->client_exit >= 0)
-		cmdq->client_exit = hooks_cmdq->client_exit;
-
-	if (cmdq != NULL && !cmdq_free(cmdq))
-		cmdq_continue(cmdq);
-
-	cmdq_free(hooks_cmdq);
-}
-
 /* Add command list to queue. */
 void
 cmdq_append(struct cmd_q *cmdq, struct cmd_list *cmdlist, struct mouse_event *m)
@@ -239,6 +183,7 @@ static enum cmd_retval
 cmdq_continue_one(struct cmd_q *cmdq)
 {
 	struct cmd	*cmd = cmdq->cmd;
+	const char	*name = cmd->entry->name;
 	struct session	*s;
 	struct hooks	*hooks;
 	enum cmd_retval	 retval;
@@ -273,7 +218,7 @@ cmdq_continue_one(struct cmd_q *cmdq)
 
 		if (~cmdq->flags & CMD_Q_REENTRY) {
 			cmdq->flags |= CMD_Q_REENTRY;
-			if (cmdq_hooks_run(hooks, "before", cmdq))
+			if (hooks_wait(hooks, cmdq, "before-%s", name) == 0)
 				return (CMD_RETURN_WAIT);
 			if (cmd_prepare_state(cmd, cmdq, cmdq->parent) != 0)
 				goto error;
@@ -286,7 +231,7 @@ cmdq_continue_one(struct cmd_q *cmdq)
 	if (retval == CMD_RETURN_ERROR)
 		goto error;
 
-	if (hooks != NULL && cmdq_hooks_run(hooks, "after", cmdq))
+	if (hooks != NULL && hooks_wait(hooks, cmdq, "after-%s", name) == 0)
 		retval = CMD_RETURN_WAIT;
 	cmdq_guard(cmdq, "end", flags);
 
