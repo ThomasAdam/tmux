@@ -794,13 +794,26 @@ cmd_find_clear_state(struct cmd_find_state *fs, struct cmd_q *cmdq, int flags)
 	fs->idx = -1;
 }
 
+/* Find current state. */
+int
+cmd_find_current(struct cmd_find_state *fs, struct cmd_q *cmdq, int flags)
+{
+	cmd_find_clear_state(fs, cmdq, flags);
+	if (cmd_find_current_session(fs) != 0) {
+		if (~flags & CMD_FIND_QUIET)
+			cmdq_error(cmdq, "no current session");
+		return (-1);
+	}
+	return (0);
+}
+
 /*
  * Split target into pieces and resolve for the given type. Fills in the given
  * state. Returns 0 on success or -1 on error.
  */
 int
-cmd_find_target(struct cmd_find_state *fs, struct cmd_q *cmdq,
-    const char *target, enum cmd_find_type type, int flags)
+cmd_find_target(struct cmd_find_state *fs, const struct cmd_find_state *parent,
+    struct cmd_q *cmdq, const char *target, enum cmd_find_type type, int flags)
 {
 	struct cmd_find_state	 current;
 	struct mouse_event	*m;
@@ -815,18 +828,13 @@ cmd_find_target(struct cmd_find_state *fs, struct cmd_q *cmdq,
 	log_debug("%s: cmdq %p, flags %#x", __func__, cmdq, flags);
 
 	/* Find current state. */
-	cmd_find_clear_state(&current, cmdq, flags);
+	memcpy(&current, parent, sizeof current);
 	if (server_check_marked() && (flags & CMD_FIND_DEFAULT_MARKED)) {
 		current.s = marked_session;
 		current.wl = marked_winlink;
 		current.idx = current.wl->idx;
 		current.w = current.wl->window;
 		current.wp = marked_window_pane;
-	}
-	if (current.s == NULL && cmd_find_current_session(&current) != 0) {
-		if (~flags & CMD_FIND_QUIET)
-			cmdq_error(cmdq, "no current session");
-		goto error;
 	}
 
 	/* Clear new state. */

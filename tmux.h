@@ -1379,7 +1379,7 @@ struct cmd_q {
 	struct cmd_q_items	 queue;
 	struct cmd_q_item	*item;
 	struct cmd		*cmd;
-	struct cmd		*parent;
+	struct cmd_q		*parent;
 
 	struct cmd_state	 state;
 
@@ -1766,7 +1766,10 @@ long long	 args_strtonum(struct args *, u_char, long long, long long,
 		     char **);
 
 /* cmd-find.c */
-int		 cmd_find_target(struct cmd_find_state *, struct cmd_q *,
+int		 cmd_find_current(struct cmd_find_state *, struct cmd_q *,
+		     int);
+int		 cmd_find_target(struct cmd_find_state *,
+		     const struct cmd_find_state *, struct cmd_q *,
 		     const char *, enum cmd_find_type, int);
 struct client	*cmd_find_client(struct cmd_q *, const char *, int);
 
@@ -1777,7 +1780,8 @@ char	       **cmd_copy_argv(int, char **);
 void		 cmd_free_argv(int, char **);
 char		*cmd_stringify_argv(int, char **);
 struct cmd	*cmd_parse(int, char **, const char *, u_int, char **);
-int		 cmd_prepare_state(struct cmd *, struct cmd_q *);
+int		 cmd_prepare_state(struct cmd *, struct cmd_q *,
+		     struct cmd_q *);
 char		*cmd_print(struct cmd *);
 int		 cmd_mouse_at(struct window_pane *, struct mouse_event *,
 		     u_int *, u_int *, int);

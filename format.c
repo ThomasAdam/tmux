@@ -505,7 +505,7 @@ format_create(struct cmd_q *cmdq, int flags)
 		format_add(ft, "command_name", "%s", cmdq->cmd->entry->name);
 	if (cmdq != NULL && cmdq->parent != NULL) {
 		format_add(ft, "command_hooked", "%s",
-		    cmdq->parent->entry->name);
+		    cmdq->parent->cmd->entry->name);
 	}
 
 	return (ft);

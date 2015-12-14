@@ -26,7 +26,7 @@
 #include "tmux.h"
 
 static int		cmdq_hooks_run(struct hooks *, const char *,
-			    struct cmd *, struct cmd_q *);
+			    struct cmd_q *);
 static void		cmdq_hooks_emptyfn(struct cmd_q *);
 static enum cmd_retval	cmdq_continue_one(struct cmd_q *);
 
@@ -169,14 +169,13 @@ cmdq_run(struct cmd_q *cmdq, struct cmd_list *cmdlist, struct mouse_event *m)
  * running. This returns to the previous cmdq after the hook is done.
  */
 int
-cmdq_hooks_run(struct hooks *hooks, const char *prefix, struct cmd *parent,
-    struct cmd_q *cmdq)
+cmdq_hooks_run(struct hooks *hooks, const char *prefix, struct cmd_q *cmdq)
 {
 	struct hook     *hook;
 	struct cmd_q	*hooks_cmdq;
 	char            *s;
 
-	xasprintf(&s, "%s-%s", prefix, parent->entry->name);
+	xasprintf(&s, "%s-%s", prefix, cmdq->cmd->entry->name);
 
 	hook = hooks_find(hooks, s);
 	if (hook == NULL) {
@@ -186,7 +185,7 @@ cmdq_hooks_run(struct hooks *hooks, const char *prefix, struct cmd *parent,
 
 	hooks_cmdq = cmdq_new(cmdq != NULL ? cmdq->client : NULL);
 	hooks_cmdq->flags |= CMD_Q_NOHOOKS;
-	hooks_cmdq->parent = parent;
+	hooks_cmdq->parent = cmdq;
 
 	hooks_cmdq->emptyfn = cmdq_hooks_emptyfn;
 	hooks_cmdq->data = cmdq;
@@ -256,10 +255,10 @@ cmdq_continue_one(struct cmd_q *cmdq)
 	if (~cmdq->flags & CMD_Q_REENTRY)
 		cmdq_guard(cmdq, "begin", flags);
 
-	if (~cmdq->flags & CMD_Q_NOHOOKS) {
-		if (cmd_prepare_state(cmd, cmdq) != 0)
-			goto error;
+	if (cmd_prepare_state(cmd, cmdq, cmdq->parent) != 0)
+		goto error;
 
+	if (~cmdq->flags & CMD_Q_NOHOOKS) {
 		s = NULL;
 		if (cmdq->state.tflag.s != NULL)
 			s = cmdq->state.tflag.s;
@@ -274,20 +273,20 @@ cmdq_continue_one(struct cmd_q *cmdq)
 
 		if (~cmdq->flags & CMD_Q_REENTRY) {
 			cmdq->flags |= CMD_Q_REENTRY;
-			if (cmdq_hooks_run(hooks, "before", cmd, cmdq))
+			if (cmdq_hooks_run(hooks, "before", cmdq))
 				return (CMD_RETURN_WAIT);
+			if (cmd_prepare_state(cmd, cmdq, cmdq->parent) != 0)
+				goto error;
 		}
 	} else
 		hooks = NULL;
 	cmdq->flags &= ~CMD_Q_REENTRY;
 
-	if (cmd_prepare_state(cmd, cmdq) != 0)
-		goto error;
 	retval = cmd->entry->exec(cmd, cmdq);
 	if (retval == CMD_RETURN_ERROR)
 		goto error;
 
-	if (hooks != NULL && cmdq_hooks_run(hooks, "after", cmd, cmdq))
+	if (hooks != NULL && cmdq_hooks_run(hooks, "after", cmdq))
 		retval = CMD_RETURN_WAIT;
 	cmdq_guard(cmdq, "end", flags);
 
@@ -295,7 +294,6 @@ cmdq_continue_one(struct cmd_q *cmdq)
 
 error:
 	cmdq_guard(cmdq, "error", flags);
-
 	cmdq->flags &= ~CMD_Q_REENTRY;
 	return (CMD_RETURN_ERROR);
 }
@@ -324,7 +322,7 @@ cmdq_continue(struct cmd_q *cmdq)
 	 * CMD_RETURN_WAIT), move onto the next command; otherwise, leave the
 	 * state of the queue as it is.
 	 */
-	if (!(cmdq->flags & CMD_Q_REENTRY)) {
+	if (~cmdq->flags & CMD_Q_REENTRY) {
 		if (cmdq->item == NULL) {
 			cmdq->item = TAILQ_FIRST(&cmdq->queue);
 			cmdq->cmd = TAILQ_FIRST(&cmdq->item->cmdlist->list);
