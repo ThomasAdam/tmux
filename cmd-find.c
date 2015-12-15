@@ -879,7 +879,7 @@ cmd_find_log_state(const char *prefix, struct cmd_find_state *fs)
  * state. Returns 0 on success or -1 on error.
  */
 int
-cmd_find_target(struct cmd_find_state *fs, const struct cmd_find_state *current,
+cmd_find_target(struct cmd_find_state *fs, struct cmd_find_state *current,
     struct cmd_q *cmdq, const char *target, enum cmd_find_type type, int flags)
 {
 	struct mouse_event	*m;
@@ -898,7 +898,7 @@ cmd_find_target(struct cmd_find_state *fs, const struct cmd_find_state *current,
 
 	/* Find current state. */
 	fs->current = current;
-	if (server_check_marked() && (flags & CMD_FIND_DEFAULT_MARKED)) {
+	if (server_check_marked() && (flags & CMD_FIND_DEFAULT_MARKED))
 		fs->current = &marked_pane;
 
 	/* An empty or NULL target is the current. */

@@ -392,8 +392,8 @@ cmd_prepare_state_flag(char c, const char *target, enum cmd_entry_flag flag,
     struct cmd_q *cmdq, struct cmd_q *parent)
 {
 	int			 targetflags, error;
-	struct cmd_find_state	*fs;
-	struct cmd_find_state	*current;
+	struct cmd_find_state	*fs = NULL;
+	struct cmd_find_state	*current = NULL;
 	struct cmd_find_state	 tmp;
 
 	if (flag == CMD_NONE ||

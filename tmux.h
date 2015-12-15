@@ -1772,8 +1772,8 @@ long long	 args_strtonum(struct args *, u_char, long long, long long,
 int		 cmd_find_current(struct cmd_find_state *, struct cmd_q *,
 		     int);
 int		 cmd_find_target(struct cmd_find_state *,
-		     const struct cmd_find_state *, struct cmd_q *,
-		     const char *, enum cmd_find_type, int);
+		     struct cmd_find_state *, struct cmd_q *, const char *,
+		     enum cmd_find_type, int);
 struct client	*cmd_find_client(struct cmd_q *, const char *, int);
 void		 cmd_find_clear_state(struct cmd_find_state *, struct cmd_q *,
 		     int);
