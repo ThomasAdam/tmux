@@ -1775,6 +1775,12 @@ int		 cmd_find_target(struct cmd_find_state *,
 		     const struct cmd_find_state *, struct cmd_q *,
 		     const char *, enum cmd_find_type, int);
 struct client	*cmd_find_client(struct cmd_q *, const char *, int);
+void		 cmd_find_clear_state(struct cmd_find_state *, struct cmd_q *,
+		     int);
+int		 cmd_find_valid_state(struct cmd_find_state *);
+void		 cmd_find_copy_state(struct cmd_find_state *,
+		     struct cmd_find_state *);
+void		 cmd_find_log_state(const char *, struct cmd_find_state *);
 
 /* cmd.c */
 int		 cmd_pack_argv(int, char **, char *, size_t);
@@ -1853,9 +1859,7 @@ void	alerts_check_session(struct session *);
 /* server.c */
 extern struct tmuxproc *server_proc;
 extern struct clients clients;
-extern struct session *marked_session;
-extern struct winlink *marked_winlink;
-extern struct window_pane *marked_window_pane;
+extern struct cmd_find_state marked_pane;
 void	 server_set_marked(struct session *, struct winlink *,
 	     struct window_pane *);
 void	 server_clear_marked(void);
