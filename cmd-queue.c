@@ -221,7 +221,8 @@ cmdq_continue_one(struct cmd_q *cmdq)
 
 		if (~cmdq->flags & CMD_Q_REENTRY) {
 			cmdq->flags |= CMD_Q_REENTRY;
-			if (hooks_wait(hooks, cmdq, "before-%s", name) == 0)
+			if (hooks_wait(hooks, cmdq, NULL,
+			    "before-%s", name) == 0)
 				return (CMD_RETURN_WAIT);
 			if (cmd_prepare_state(cmd, cmdq, cmdq->parent) != 0)
 				goto error;
@@ -234,7 +235,8 @@ cmdq_continue_one(struct cmd_q *cmdq)
 	if (retval == CMD_RETURN_ERROR)
 		goto error;
 
-	if (hooks != NULL && hooks_wait(hooks, cmdq, "after-%s", name) == 0)
+	if (hooks != NULL && hooks_wait(hooks, cmdq, NULL,
+	    "after-%s", name) == 0)
 		retval = CMD_RETURN_WAIT;
 	cmdq_guard(cmdq, "end", flags);
 
