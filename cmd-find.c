@@ -942,9 +942,19 @@ cmd_find_target(struct cmd_find_state *fs, struct cmd_find_state *current,
 	cmd_find_clear_state(fs, cmdq, flags);
 
 	/* Find current state. */
-	fs->current = current;
 	if (server_check_marked() && (flags & CMD_FIND_DEFAULT_MARKED))
 		fs->current = &marked_pane;
+	else if (cmd_find_valid_state(&cmdq->current))
+		fs->current = &cmdq->current;
+	else {
+		cmd_find_clear_state(&current, cmdq, flags);
+		if (cmd_find_current_session(&current) != 0) {
+			if (~flags & CMD_FIND_QUIET)
+				cmdq_error(cmdq, "no current session");
+			goto error;
+		}
+		fs->current = &current;
+	}
 
 	/* An empty or NULL target is the current. */
 	if (target == NULL || *target == '\0')
