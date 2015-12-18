@@ -947,13 +947,13 @@ cmd_find_target(struct cmd_find_state *fs, struct cmd_find_state *current,
 	else if (cmd_find_valid_state(&cmdq->current))
 		fs->current = &cmdq->current;
 	else {
-		cmd_find_clear_state(&current, cmdq, flags);
-		if (cmd_find_current_session(&current) != 0) {
+		cmd_find_clear_state(current, cmdq, flags);
+		if (cmd_find_current_session(current) != 0) {
 			if (~flags & CMD_FIND_QUIET)
 				cmdq_error(cmdq, "no current session");
 			goto error;
 		}
-		fs->current = &current;
+		fs->current = current;
 	}
 
 	/* An empty or NULL target is the current. */
