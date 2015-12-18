@@ -3237,6 +3237,16 @@ command may have hooks associated with them.
 .Pp
 Additionally, the following hooks are available:
 .Bl -tag -width "XXXXXXXXXXXXXXXX"
+.It alert-activity
+Run when a window has activity.
+See
+.Em monitor-activity .
+.It alert-bell
+Run when a window has received a bell.
+.It alert-silence
+Run when a window has is silent.
+See
+.Em monitor-silence .
 .It client-attached
 Run when a client is attached.
 .It client-detached
