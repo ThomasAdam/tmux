@@ -93,7 +93,6 @@ cmd_switch_client_exec(struct cmd *self, struct cmd_q *cmdq)
 		if (cmdq->client == NULL)
 			return (CMD_RETURN_NORMAL);
 
-		s = state->tflag.s;
 		if (state->tflag.wl != NULL) {
 			wp = state->tflag.wp;
 			if (wp != NULL)
