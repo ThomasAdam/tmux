@@ -1988,6 +1988,9 @@ void	 screen_write_putc(struct screen_write_ctx *, const struct grid_cell *,
 	     u_char);
 void	 screen_write_copy(struct screen_write_ctx *, struct screen *, u_int,
 	     u_int, u_int, u_int);
+void	 screen_write_box(struct screen_write_ctx *, u_int, u_int);
+void	 screen_write_preview(struct screen_write_ctx *, struct screen *, u_int,
+	     u_int);
 void	 screen_write_backspace(struct screen_write_ctx *);
 void	 screen_write_mode_set(struct screen_write_ctx *, int);
 void	 screen_write_mode_clear(struct screen_write_ctx *, int);
@@ -2155,6 +2158,9 @@ int		 layout_set_lookup(const char *);
 u_int		 layout_set_select(struct window *, u_int);
 u_int		 layout_set_next(struct window *);
 u_int		 layout_set_previous(struct window *);
+
+/* window-buffer.c */
+extern const struct window_mode window_buffer_mode;
 
 /* window-clock.c */
 extern const struct window_mode window_clock_mode;

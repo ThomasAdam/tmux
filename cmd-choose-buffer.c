@@ -24,23 +24,20 @@
 #include "tmux.h"
 
 /*
- * Enter choice mode to choose a buffer.
+ * Enter buffer mode.
  */
 
-#define CHOOSE_BUFFER_TEMPLATE						\
-	"#{buffer_name}: #{buffer_size} bytes: #{buffer_sample}"
-
-static enum cmd_retval	cmd_choose_buffer_exec(struct cmd *,
-			    struct cmdq_item *);
+static enum cmd_retval	 cmd_choose_buffer_exec(struct cmd *,
+    struct cmdq_item *);
 
 const struct cmd_entry cmd_choose_buffer_entry = {
 	.name = "choose-buffer",
 	.alias = NULL,
 
-	.args = { "F:t:", 0, 1 },
-	.usage = CMD_TARGET_WINDOW_USAGE " [-F format] [template]",
+	.args = { "t:", 0, 0 },
+	.usage = CMD_TARGET_PANE_USAGE,
 
-	.tflag = CMD_WINDOW,
+	.tflag = CMD_PANE,
 
 	.flags = 0,
 	.exec = cmd_choose_buffer_exec
@@ -49,53 +46,10 @@ const struct cmd_entry cmd_choose_buffer_entry = {
 static enum cmd_retval
 cmd_choose_buffer_exec(struct cmd *self, struct cmdq_item *item)
 {
-	struct args			*args = self->args;
-	struct client			*c = item->state.c;
-	struct winlink			*wl = item->state.tflag.wl;
-	struct window_choose_data	*cdata;
-	struct paste_buffer		*pb;
-	char				*action, *action_data;
-	const char			*template;
-	u_int				 idx;
+	struct window_pane	*wp = item->state.tflag.wp;
 
-	if (c == NULL) {
-		cmdq_error(item, "no client available");
-		return (CMD_RETURN_ERROR);
-	}
-
-	if ((template = args_get(args, 'F')) == NULL)
-		template = CHOOSE_BUFFER_TEMPLATE;
-
-	if (paste_get_top(NULL) == NULL)
-		return (CMD_RETURN_NORMAL);
-
-	if (window_pane_set_mode(wl->window->active, &window_choose_mode) != 0)
-		return (CMD_RETURN_NORMAL);
-
-	if (args->argc != 0)
-		action = xstrdup(args->argv[0]);
-	else
-		action = xstrdup("paste-buffer -b '%%'");
-
-	idx = 0;
-	pb = NULL;
-	while ((pb = paste_walk(pb)) != NULL) {
-		cdata = window_choose_data_create(TREE_OTHER, c, c->session);
-		cdata->idx = idx;
-
-		cdata->ft_template = xstrdup(template);
-		format_defaults_paste_buffer(cdata->ft, pb);
-
-		xasprintf(&action_data, "%s", paste_buffer_name(pb));
-		cdata->command = cmd_template_replace(action, action_data, 1);
-		free(action_data);
-
-		window_choose_add(wl->window->active, cdata);
-		idx++;
-	}
-	free(action);
-
-	window_choose_ready(wl->window->active, 0, NULL);
+	if (paste_get_top(NULL) != NULL)
+		window_pane_set_mode(wp, &window_buffer_mode);
 
 	return (CMD_RETURN_NORMAL);
 }

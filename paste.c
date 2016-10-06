@@ -190,6 +190,8 @@ paste_add(char *data, size_t size)
 
 	pb->created = time(NULL);
 
+	pb->created = time(NULL);
+
 	pb->order = paste_next_order++;
 	RB_INSERT(paste_name_tree, &paste_by_name, pb);
 	RB_INSERT(paste_time_tree, &paste_by_time, pb);
@@ -279,6 +281,8 @@ paste_set(char *data, size_t size, const char *name, char **cause)
 
 	pb->automatic = 0;
 	pb->order = paste_next_order++;
+
+	pb->created = time(NULL);
 
 	pb->created = time(NULL);
 
