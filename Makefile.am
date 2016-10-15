@@ -187,6 +187,7 @@ dist_tmux_SOURCES = \
 	window-clock.c \
 	window-copy.c \
 	window.c \
+	window-tree.c \
 	xmalloc.c \
 	xterm-keys.c
 nodist_tmux_SOURCES = osdep-@PLATFORM@.c

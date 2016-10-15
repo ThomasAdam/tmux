@@ -2161,6 +2161,7 @@ u_int		 layout_set_previous(struct window *);
 
 /* window-buffer.c */
 extern const struct window_mode window_buffer_mode;
+extern const struct window_mode window_tree_mode;
 
 /* window-clock.c */
 extern const struct window_mode window_clock_mode;

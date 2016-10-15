@@ -44,7 +44,7 @@ const struct cmd_entry cmd_choose_buffer_entry = {
 };
 
 static enum cmd_retval
-cmd_choose_buffer_exec(struct cmd *self, struct cmdq_item *item)
+cmd_choose_buffer_exec(__unused struct cmd *self, struct cmdq_item *item)
 {
 	struct window_pane	*wp = item->state.tflag.wp;
 
