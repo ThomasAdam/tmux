@@ -183,7 +183,7 @@ cmd_find_window_exec(struct cmd *self, struct cmdq_item *item)
 		goto out;
 	}
 
-	if (window_pane_set_mode(wl->window->active, &window_choose_mode) != 0)
+	if (window_pane_set_mode(wl->window->active, &window_choose_mode, NULL) != 0)
 		goto out;
 
 	i = 0;

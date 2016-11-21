@@ -400,7 +400,7 @@ cmdq_print(struct cmdq_item *item, const char *fmt, ...)
 		w = c->session->curw->window;
 		if (w->active->mode != &window_copy_mode) {
 			window_pane_reset_mode(w->active);
-			window_pane_set_mode(w->active, &window_copy_mode);
+			window_pane_set_mode(w->active, &window_copy_mode, NULL);
 			window_copy_init_for_output(w->active);
 		}
 		window_copy_vadd(w->active, fmt, ap);

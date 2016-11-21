@@ -61,7 +61,7 @@ const struct options_table_entry options_table[] = {
 	  .scope = OPTIONS_TABLE_SERVER,
 	  .minimum = 1,
 	  .maximum = INT_MAX,
-	  .default_num = 20
+	  .default_num = 50
 	},
 
 	{ .name = "default-terminal",

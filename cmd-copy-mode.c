@@ -68,12 +68,12 @@ cmd_copy_mode_exec(struct cmd *self, struct cmdq_item *item)
 	}
 
 	if (self->entry == &cmd_clock_mode_entry) {
-		window_pane_set_mode(wp, &window_clock_mode);
+		window_pane_set_mode(wp, &window_clock_mode, NULL);
 		return (CMD_RETURN_NORMAL);
 	}
 
 	if (wp->mode != &window_copy_mode) {
-		if (window_pane_set_mode(wp, &window_copy_mode) != 0)
+		if (window_pane_set_mode(wp, &window_copy_mode, NULL) != 0)
 			return (CMD_RETURN_NORMAL);
 		window_copy_init_from_pane(wp, args_has(self->args, 'e'));
 	}

@@ -107,7 +107,7 @@ cmd_choose_tree_exec(struct cmd *self, struct cmdq_item *item)
 		return (CMD_RETURN_ERROR);
 	}
 
-	if (window_pane_set_mode(wl->window->active, &window_choose_mode) != 0)
+	if (window_pane_set_mode(wl->window->active, &window_choose_mode, NULL) != 0)
 		return (CMD_RETURN_NORMAL);
 
 	/* Sort out which command this is. */
