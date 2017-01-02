@@ -1298,12 +1298,31 @@ the end of the visible pane.
 The default is to capture only the visible contents of the pane.
 .It Xo
 .Ic choose-client
-.Op Fl F Ar format
 .Op Fl t Ar target-window
 .Op Ar template
 .Xc
-Put a window into client choice mode, allowing a client to be selected
+Put a window into choose client mode, allowing a client to be chosen
 interactively from a list.
+Information about the selected client is shown below the list if there is room.
+The following keys may be used in client mode:
+.Bl -column "Key" "Function" -offset indent
+.It Sy "Key" Ta Sy "Function"
+.It Li "Enter" Ta "Choose selected client"
+.It Li "Up" Ta "Select previous client"
+.It Li "Down" Ta "Select next client"
+.It Li "t" Ta "Toggle if client is tagged"
+.It Li "T" Ta "Tag no clients"
+.It Li "C-t" Ta "Tag all clients"
+.It Li "d" Ta "Detach selected client"
+.It Li "D" Ta "Detach tagged clients"
+.It Li "x" Ta "Detach selected client (with SIGHUP)"
+.It Li "X" Ta "Detach tagged clients (with SIGHUP)"
+.It Li "z" Ta "Suspend selected client"
+.It Li "Z" Ta "Suspend tagged clients"
+.It Li "O" Ta "Change sort order"
+.It Li "q" Ta "Exit buffer mode"
+.El
+.Pp
 After a client is chosen,
 .Ql %%
 is replaced by the client
@@ -1314,11 +1333,7 @@ and the result executed as a command.
 If
 .Ar template
 is not given, "detach-client -t '%%'" is used.
-For the meaning of the
-.Fl F
-flag, see the
-.Sx FORMATS
-section.
+.Pp
 This command works only if at least one client is attached.
 .It Xo
 .Ic choose-session
@@ -3901,13 +3916,29 @@ The buffer commands are as follows:
 .Bl -tag -width Ds
 .It Xo
 .Ic choose-buffer
-.Op Fl F Ar format
 .Op Fl t Ar target-window
 .Op Ar template
 .Xc
-Put a window into buffer choice mode, where a buffer may be chosen
+Put a window into choose buffer mode, where a buffer may be chosen
 interactively from a list.
-After a buffer is selected,
+A preview of the selected buffer contents is shown below the list if there is
+room.
+The following keys may be used in buffer mode:
+.Bl -column "Key" "Function" -offset indent
+.It Sy "Key" Ta Sy "Function"
+.It Li "Enter" Ta "Choose selected buffer"
+.It Li "Up" Ta "Select previous buffer"
+.It Li "Down" Ta "Select next buffer"
+.It Li "t" Ta "Toggle if buffer is tagged"
+.It Li "T" Ta "Tag no buffers"
+.It Li "C-t" Ta "Tag all buffers"
+.It Li "d" Ta "Delete selected buffer"
+.It Li "D" Ta "Delete tagged buffers"
+.It Li "O" Ta "Change sort order"
+.It Li "q" Ta "Exit buffer mode"
+.El
+.Pp
+After a buffer is chosen,
 .Ql %%
 is replaced by the buffer name in
 .Ar template
@@ -3915,11 +3946,7 @@ and the result executed as a command.
 If
 .Ar template
 is not given, "paste-buffer -b '%%'" is used.
-For the meaning of the
-.Fl F
-flag, see the
-.Sx FORMATS
-section.
+.Pp
 This command works only if at least one client is attached.
 .It Ic clear-history Op Fl t Ar target-pane
 .D1 (alias: Ic clearhist )

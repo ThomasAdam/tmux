@@ -47,6 +47,21 @@ static void	server_client_dispatch_command(struct client *, struct imsg *);
 static void	server_client_dispatch_identify(struct client *, struct imsg *);
 static void	server_client_dispatch_shell(struct client *);
 
+/* Number of attached clients. */
+u_int
+server_client_how_many(void)
+{
+	struct client  	*c;
+	u_int		 n;
+
+	n = 0;
+	TAILQ_FOREACH(c, &clients, entry) {
+		if (c->session != NULL && (~c->flags & CLIENT_DETACHING))
+			n++;
+	}
+	return (n);
+}
+
 /* Check if this client is inside this server. */
 int
 server_client_check_nested(struct client *c)
@@ -281,14 +296,29 @@ server_client_free(__unused int fd, __unused short events, void *arg)
 		free(c);
 }
 
+/* Suspend a client. */
+void
+server_client_suspend(struct client *c)
+{
+	struct session	*s = c->session;
+
+	if (s == NULL || (c->flags & CLIENT_DETACHING))
+		return;
+
+	tty_stop_tty(&c->tty);
+	c->flags |= CLIENT_SUSPENDED;
+	proc_send(c->peer, MSG_SUSPEND, -1, NULL, 0);
+}
+
 /* Detach a client. */
 void
 server_client_detach(struct client *c, enum msgtype msgtype)
 {
 	struct session	*s = c->session;
 
-	if (s == NULL)
+	if (s == NULL || (c->flags & CLIENT_DETACHING))
 		return;
+	c->flags |= CLIENT_DETACHING;
 
 	notify_client("client-detached", c);
 	proc_send_s(c->peer, msgtype, s->name);

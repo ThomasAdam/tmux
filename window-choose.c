@@ -24,7 +24,7 @@
 
 #include "tmux.h"
 
-static struct screen *window_choose_init(struct window_pane *);
+static struct screen *window_choose_init(struct window_pane *, struct args *);
 static void	window_choose_free(struct window_pane *);
 static void	window_choose_resize(struct window_pane *, u_int, u_int);
 static void	window_choose_key(struct window_pane *, struct client *,
@@ -164,7 +164,7 @@ window_choose_ready(struct window_pane *wp, u_int cur,
 }
 
 static struct screen *
-window_choose_init(struct window_pane *wp)
+window_choose_init(struct window_pane *wp, __unused struct args *args)
 {
 	struct window_choose_mode_data	*data;
 	struct screen			*s;

@@ -698,12 +698,12 @@ window_destroy_panes(struct window *w)
 	}
 }
 
-/* Retuns the printable flags on a window, empty string if no flags set. */
-char *
-window_printable_flags(struct session *s, struct winlink *wl)
+const char *
+window_printable_flags(struct winlink *wl)
 {
-	char	flags[32];
-	int	pos;
+	struct session	*s = wl->session;
+	static char	flags[32];
+	int		pos;
 
 	pos = 0;
 	if (wl->flags & WINLINK_ACTIVITY)
@@ -721,7 +721,23 @@ window_printable_flags(struct session *s, struct winlink *wl)
 	if (wl->window->flags & WINDOW_ZOOMED)
 		flags[pos++] = 'Z';
 	flags[pos] = '\0';
-	return (xstrdup(flags));
+	return (flags);
+}
+
+const char *
+window_pane_printable_flags(struct window_pane *wp)
+{
+	struct window	*w = wp->window;
+	static char	 flags[32];
+	int		 pos;
+
+	pos = 0;
+	if (wp == w->active)
+		flags[pos++] = '*';
+	if (wp == w->last)
+		flags[pos++] = '-';
+	flags[pos] = '\0';
+	return (flags);
 }
 
 struct window_pane *
@@ -1126,7 +1142,8 @@ window_pane_mode_timer(__unused int fd, __unused short events, void *arg)
 }
 
 int
-window_pane_set_mode(struct window_pane *wp, const struct window_mode *mode)
+window_pane_set_mode(struct window_pane *wp, const struct window_mode *mode,
+    struct args *args)
 {
 	struct screen	*s;
 	struct timeval	 tv = { .tv_sec = 10 };
@@ -1139,7 +1156,7 @@ window_pane_set_mode(struct window_pane *wp, const struct window_mode *mode)
 	evtimer_set(&wp->modetimer, window_pane_mode_timer, wp);
 	evtimer_add(&wp->modetimer, &tv);
 
-	if ((s = wp->mode->init(wp)) != NULL)
+	if ((s = wp->mode->init(wp, args)) != NULL)
 		wp->screen = s;
 	wp->flags |= (PANE_REDRAW|PANE_CHANGED);
 

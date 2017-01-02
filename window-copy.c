@@ -27,7 +27,7 @@
 static const char *window_copy_key_table(struct window_pane *);
 static void	window_copy_command(struct window_pane *, struct client *,
 		    struct session *, struct args *, struct mouse_event *);
-static struct screen *window_copy_init(struct window_pane *);
+static struct screen *window_copy_init(struct window_pane *, struct args *);
 static void	window_copy_free(struct window_pane *);
 static void	window_copy_pagedown(struct window_pane *, int);
 static void	window_copy_next_paragraph(struct window_pane *);
@@ -179,7 +179,7 @@ struct window_copy_mode_data {
 };
 
 static struct screen *
-window_copy_init(struct window_pane *wp)
+window_copy_init(struct window_pane *wp, __unused struct args *args)
 {
 	struct window_copy_mode_data	*data;
 	struct screen			*s;
