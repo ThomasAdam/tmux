@@ -73,6 +73,7 @@ dist_tmux_SOURCES = \
 	arguments.c \
 	attributes.c \
 	cfg.c \
+	choose-tree.c \
 	client.c \
 	cmd-attach-session.c \
 	cmd-bind-key.c \
