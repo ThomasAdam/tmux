@@ -211,6 +211,7 @@ window_choose2_init(struct window_pane *wp, struct args *args)
 
 static void
 window_choose2_free(struct window_pane *wp)
+
 {
 	struct window_choose2_data	*data = wp->modedata;
 
@@ -598,6 +599,8 @@ window_choose2_draw_screen(struct window_pane *wp)
 	struct grid_cell		 gc0;
 	struct grid_cell		 gc;
 	u_int				 width, height, i, needed, x, n, sy;
+	u_int				 wl_size = 0, wl_count = 0;
+	int				 last_wl = 0;
 	char				 line[1024];
 	const char			*tag, *prefix, *marker, *label = NULL;
 	const char			*description;
@@ -614,6 +617,11 @@ window_choose2_draw_screen(struct window_pane *wp)
 	screen_write_start(&ctx, NULL, s);
 	screen_write_clearscreen(&ctx, 8);
 
+	RB_FOREACH(item, window_choose2_tree, &data->tree) {
+		if (item->type == WINDOW_CHOOSE2_WINDOW)
+			wl_size++;
+	}
+
 	i = 0;
 	RB_FOREACH(item, window_choose2_tree, &data->tree) {
 		sp = item->s;
@@ -628,19 +636,10 @@ window_choose2_draw_screen(struct window_pane *wp)
 
 		screen_write_cursormove(&ctx, 0, i - 1 - data->offset);
 
-		tag = "";
-		if (item->tagged)
-			tag = "*";
-
 		marker = " ";
-		if (item->expanded)
-			marker = "-";
-		else
-			marker = "+";
-		if (item->last)
-			prefix = "\001mq\001>";
-		else
-			prefix = "\001tq\001>";
+		marker = item->expanded ? "-" : "+";
+		prefix = item->last ? "\001mq\001>" : "\001tq\001>";
+		tag = item->tagged ? "*" : "";
 
 		x = width;
 		switch (item->type) {
@@ -654,6 +653,9 @@ window_choose2_draw_screen(struct window_pane *wp)
 			    description);
 			break;
 		case WINDOW_CHOOSE2_WINDOW:
+			wl_count++;
+			if (wl_size == wl_count)
+				last_wl = 1;
 			snprintf(line, sizeof line, "%s %s %u%s: %s%s",
 			    prefix, marker, wlp->idx, tag, wlp->window->name,
 			    window_printable_flags(wlp));
@@ -661,7 +663,17 @@ window_choose2_draw_screen(struct window_pane *wp)
 			break;
 		case WINDOW_CHOOSE2_PANE:
 			window_pane_index(wpp, &n);
-			snprintf(line, sizeof line, "    %s %u%s: \"%s\"%s",
+			prefix = "\001x   tq\001>";
+			if (item->last && !last_wl)
+				prefix = "\001x   mq\001>";
+
+			if (last_wl)
+				prefix = "\001    tq\001>";
+
+			if (item->last && last_wl)
+				prefix = "\001    mq\001>";
+
+			snprintf(line, sizeof line, "%s %u%s: \"%s\"%s",
 			    prefix, n, tag, wp->base.title,
 			    window_pane_printable_flags(wpp));
 			x = width + 2;
