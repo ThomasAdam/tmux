@@ -233,7 +233,7 @@ server_link_window(struct session *src, struct winlink *srcwl,
     struct session *dst, int dstidx, int killflag, int selectflag,
     char **cause)
 {
-	struct winlink		*dstwl;
+	struct winlink		*dstwl, *wl;
 	struct session_group	*srcsg, *dstsg;
 
 	srcsg = session_group_find(src);
@@ -276,6 +276,9 @@ server_link_window(struct session *src, struct winlink *srcwl,
 	if (dstwl == NULL)
 		return (-1);
 
+	if ((wl = winlink_find_by_window(&dst->windows, dstwl->window)) != NULL)
+		wl->window->flags |= WINDOW_LINKED;
+
 	if (selectflag)
 		session_select(dst, dstwl->idx);
 	server_redraw_session_group(dst);
@@ -286,6 +289,9 @@ server_link_window(struct session *src, struct winlink *srcwl,
 void
 server_unlink_window(struct session *s, struct winlink *wl)
 {
+	if (TAILQ_NEXT(TAILQ_FIRST(&wl->window->winlinks), wentry) == NULL)
+		wl->window->flags &= ~WINDOW_LINKED;
+
 	if (session_detach(s, wl))
 		server_destroy_session_group(s);
 	else

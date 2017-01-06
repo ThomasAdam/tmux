@@ -892,6 +892,7 @@ struct window {
 #define WINDOW_FORCEWIDTH 0x2000
 #define WINDOW_FORCEHEIGHT 0x4000
 #define WINDOW_STYLECHANGED 0x8000
+#define WINDOW_LINKED 0x10000
 #define WINDOW_ALERTFLAGS (WINDOW_BELL|WINDOW_ACTIVITY|WINDOW_SILENCE)
 
 	int		 alerts_queued;
@@ -2265,7 +2266,6 @@ struct winlink	*session_attach(struct session *, struct window *, int,
 		     char **);
 int		 session_detach(struct session *, struct winlink *);
 int		 session_has(struct session *, struct window *);
-int		 session_is_linked(struct session *, struct window *);
 int		 session_next(struct session *, int);
 int		 session_previous(struct session *, int);
 int		 session_select(struct session *, int);

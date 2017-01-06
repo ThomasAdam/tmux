@@ -61,7 +61,7 @@ cmd_kill_window_exec(struct cmd *self, struct cmdq_item *item)
 	struct session		*s = item->state.tflag.s;
 
 	if (self->entry == &cmd_unlink_window_entry) {
-		if (!args_has(self->args, 'k') && !session_is_linked(s, w)) {
+		if (!args_has(self->args, 'k') && !(w->flags & WINDOW_LINKED)) {
 			cmdq_error(item, "window only linked to one session");
 			return (CMD_RETURN_ERROR);
 		}
