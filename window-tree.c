@@ -260,23 +260,27 @@ window_tree_build_window(struct session *s, struct winlink *wl, void* modedata,
 
 	l = NULL;
 	n = 0;
-	TAILQ_FOREACH(wp, &wl->window->panes, entry) {
-		if (filter != NULL) {
-			cp = format_single(NULL, filter, NULL, s, wl, wp);
-			if (!format_true(cp)) {
+
+	if (window_count_panes(wl->window) > 1) {
+		TAILQ_FOREACH(wp, &wl->window->panes, entry) {
+			if (filter != NULL) {
+				cp = format_single(NULL, filter, NULL, s, wl,
+				    wp);
+				if (!format_true(cp)) {
+					free(cp);
+					continue;
+				}
 				free(cp);
-				continue;
 			}
-			free(cp);
+			l = xreallocarray(l, n + 1, sizeof *l);
+			l[n++] = wp;
 		}
-		l = xreallocarray(l, n + 1, sizeof *l);
-		l[n++] = wp;
-	}
-	if (n == 0) {
-		window_tree_free_item(item);
-		data->item_size--;
-		mode_tree_remove(data->data, mti);
-		return (0);
+		if (n == 0) {
+			window_tree_free_item(item);
+			data->item_size--;
+			mode_tree_remove(data->data, mti);
+			return (0);
+		}
 	}
 
 	switch (sort_type) {
