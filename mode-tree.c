@@ -203,6 +203,8 @@ mode_tree_set_current(struct mode_tree_data *mtd, uint64_t tag)
 void
 mode_tree_up(struct mode_tree_data *mtd, int wrap)
 {
+	mode_tree_build(mtd);
+
 	if (mtd->current == 0) {
 		if (wrap) {
 			mtd->current = mtd->line_size - 1;
@@ -219,6 +221,8 @@ mode_tree_up(struct mode_tree_data *mtd, int wrap)
 void
 mode_tree_down(struct mode_tree_data *mtd, int wrap)
 {
+	mode_tree_build(mtd);
+
 	if (mtd->current == mtd->line_size - 1) {
 		if (wrap) {
 			mtd->current = 0;
