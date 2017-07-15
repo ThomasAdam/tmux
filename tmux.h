@@ -888,6 +888,7 @@ struct winlink {
 #define WINLINK_ACTIVITY 0x2
 #define WINLINK_SILENCE 0x4
 #define WINLINK_ALERTFLAGS (WINLINK_BELL|WINLINK_ACTIVITY|WINLINK_SILENCE)
+#define WINLINK_LINKED 0x8
 
 	RB_ENTRY(winlink) entry;
 	TAILQ_ENTRY(winlink) wentry;
@@ -2310,7 +2311,6 @@ struct winlink	*session_attach(struct session *, struct window *, int,
 		     char **);
 int		 session_detach(struct session *, struct winlink *);
 int		 session_has(struct session *, struct window *);
-int		 session_is_linked(struct session *, struct window *);
 int		 session_next(struct session *, int);
 int		 session_previous(struct session *, int);
 int		 session_select(struct session *, int);

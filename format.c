@@ -1380,7 +1380,7 @@ format_defaults_winlink(struct format_tree *ft, struct winlink *wl)
 	    !!(wl->flags & WINLINK_SILENCE));
 	format_add(ft, "window_last_flag", "%d",
 	    !!(wl == TAILQ_FIRST(&s->lastw)));
-	format_add(ft, "window_linked", "%d", session_is_linked(s, wl->window));
+	format_add(ft, "window_linked", "%d", !!(wl->flags & WINLINK_LINKED));
 }
 
 /* Set default format keys for a window pane. */

@@ -260,12 +260,17 @@ server_link_window(struct session *src, struct winlink *srcwl,
 		session_select(dst, dstwl->idx);
 	server_redraw_session_group(dst);
 
+	srcwl->flags |= WINLINK_LINKED;
+	dstwl->flags |= WINLINK_LINKED;
+
 	return (0);
 }
 
 void
 server_unlink_window(struct session *s, struct winlink *wl)
 {
+	wl->flags &= ~WINLINK_LINKED;
+
 	if (session_detach(s, wl))
 		server_destroy_session_group(s);
 	else
