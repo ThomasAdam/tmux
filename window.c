@@ -816,6 +816,8 @@ window_pane_create(struct window *w, u_int sx, u_int sy, u_int hlimit)
 	wp->xoff = 0;
 	wp->yoff = 0;
 
+	wp->act_line = 0;
+
 	wp->sx = wp->osx = sx;
 	wp->sy = wp->osx = sy;
 

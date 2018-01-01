@@ -346,6 +346,7 @@ key_bindings_init(void)
 		"bind -Tcopy-mode M-Down send -X halfpage-down",
 		"bind -Tcopy-mode C-Up send -X scroll-up",
 		"bind -Tcopy-mode C-Down send -X scroll-down",
+		"bind -Tcopy-mode a send -X activity-marker",
 
 		"bind -Tcopy-mode-vi C-c send -X cancel",
 		"bind -Tcopy-mode-vi C-d send -X halfpage-down",
@@ -392,6 +393,7 @@ key_bindings_init(void)
 		"bind -Tcopy-mode-vi V send -X select-line",
 		"bind -Tcopy-mode-vi W send -X next-space",
 		"bind -Tcopy-mode-vi ^ send -X back-to-indentation",
+		"bind -Tcopy-mode-vi a send -X activity-marker",
 		"bind -Tcopy-mode-vi b send -X previous-word",
 		"bind -Tcopy-mode-vi e send -X next-word-end",
 		"bind -Tcopy-mode-vi f command-prompt -1p'(jump forward)' 'send -X jump-forward \"%%%\"'",

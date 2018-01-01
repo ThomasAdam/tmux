@@ -533,6 +533,10 @@ window_copy_command(struct window_pane *wp, struct client *c, struct session *s,
 		window_copy_move_mouse(m);
 
 	if (args->argc == 1) {
+		if (strcmp(command, "activity-marker") == 0) {
+			window_copy_scroll_to(wp, 0, sn->grid->hsize + wp->act_line);
+			redraw = 1;
+		}
 		if (strcmp(command, "append-selection") == 0) {
 			if (s != NULL)
 				window_copy_append_selection(wp, NULL);

@@ -852,6 +852,7 @@ input_parse(struct window_pane *wp)
 	if (EVBUFFER_LENGTH(evb) == 0)
 		return;
 
+	wp->flags |= PANE_ACTIVITY;
 	window_update_activity(wp->window);
 	wp->flags |= PANE_CHANGED;
 

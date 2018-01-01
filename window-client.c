@@ -226,7 +226,7 @@ window_client_draw(__unused void *modedata, void *itemdata,
 	screen_write_preview(ctx, &wp->base, sx, sy - 3);
 
 	screen_write_cursormove(ctx, cx, cy + sy - 2);
-	screen_write_hline(ctx, sx, 0, 0);
+	screen_write_hline(ctx, &grid_default_cell, sx,  0, 0);
 
 	screen_write_cursormove(ctx, cx, cy + sy - 1);
 	if (c->status.old_status != NULL)

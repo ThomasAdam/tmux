@@ -20,6 +20,7 @@
 
 #include <event.h>
 #include <stdlib.h>
+#include <string.h>
 
 #include "tmux.h"
 
@@ -34,6 +35,7 @@ static int	alerts_action_applies(struct winlink *, const char *);
 static int	alerts_check_all(struct window *);
 static int	alerts_check_bell(struct window *);
 static int	alerts_check_activity(struct window *);
+static void	alerts_check_activity_marker(struct winlink *);
 static int	alerts_check_silence(struct window *);
 static void	alerts_set_message(struct winlink *, const char *,
 		    const char *);
@@ -249,9 +251,51 @@ alerts_check_activity(struct window *w)
 		s->flags |= SESSION_ALERTED;
 
 		alerts_set_message(wl, "Activity", "visual-activity");
+		alerts_check_activity_marker(wl);
 	}
 
 	return (WINDOW_ACTIVITY);
+}
+
+static void
+alerts_check_activity_marker(struct winlink *wl)
+{
+	struct screen_write_ctx	 ctx;
+	struct grid_cell	 gc;
+	struct window		*w = wl->window;
+	struct window_pane	*wp = NULL;
+
+	if (!options_get_number(w->options, "monitor-activity-marker"))
+		return;
+
+	style_apply(&gc, w->options, "window-activity-marker-style");
+
+	TAILQ_FOREACH(wp, &w->panes, entry) {
+		if (!window_pane_visible(wp))
+			continue;
+		if (wp->flags & PANE_ACTIVITY)
+			break;
+	}
+
+	if (wp == NULL)
+		return;
+
+	screen_write_start(&ctx, wp, NULL);
+	wp->flags |= PANE_MARKER;
+
+
+	/* Free the activity marker, and shuffle the lines around to remove
+	 * it.
+	 */
+	grid_clear_activity_marker(ctx.s->grid, wp->act_line, 8);
+
+	/* Write the activity marker. */
+	screen_write_carriagereturn(&ctx);
+	screen_write_hline(&ctx, &gc, wp->sx, 0, 0);
+	screen_write_linefeed(&ctx, 0, 8);
+	screen_write_stop(&ctx);
+
+	wp->flags &= ~PANE_ACTIVITY;
 }
 
 static int

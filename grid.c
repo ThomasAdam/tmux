@@ -43,7 +43,7 @@ static const struct grid_cell_entry grid_default_entry = {
 	0, { .data = { 0, 8, 8, ' ' } }
 };
 
-static void	grid_empty_line(struct grid *, u_int, u_int);
+static void    grid_empty_line(struct grid *, u_int, u_int);
 
 /* Store cell in entry. */
 static void
@@ -354,6 +354,19 @@ grid_clear_history(struct grid *gd)
 
 	gd->linedata = xreallocarray(gd->linedata, gd->sy,
 	    sizeof *gd->linedata);
+}
+
+/* Clear the activity marker on a pane. */
+void
+grid_clear_activity_marker(struct grid *gd, u_int line, u_int bg)
+{
+
+	if (line > 0) {
+		grid_empty_line(gd, line, bg);
+		grid_free_line(gd, line);
+		memmove(&gd->linedata[line], &gd->linedata[line + 1],
+		    (gd->sy + gd->hsize) - line + 1 * (sizeof *gd->linedata));
+	}
 }
 
 /* Scroll a region up, moving the top line into the history. */

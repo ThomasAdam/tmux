@@ -729,6 +729,8 @@ struct window_pane {
 	u_int		 xoff;
 	u_int		 yoff;
 
+	u_int		 act_line;
+
 	int		 flags;
 #define PANE_REDRAW 0x1
 #define PANE_DROP 0x2
@@ -741,6 +743,8 @@ struct window_pane {
 #define PANE_EXITED 0x100
 #define PANE_STATUSREADY 0x200
 #define PANE_STATUSDRAWN 0x400
+#define PANE_ACTIVITY 0x800
+#define PANE_MARKER 0x1000
 
 	int		 argc;
 	char	       **argv;
@@ -2000,6 +2004,7 @@ struct grid *grid_create(u_int, u_int, u_int);
 void	 grid_destroy(struct grid *);
 int	 grid_compare(struct grid *, struct grid *);
 void	 grid_collect_history(struct grid *);
+void	 grid_clear_activity_marker(struct grid *, u_int, u_int);
 void	 grid_scroll_history(struct grid *, u_int);
 void	 grid_scroll_history_region(struct grid *, u_int, u_int, u_int);
 void	 grid_clear_history(struct grid *);
@@ -2061,8 +2066,10 @@ void	 screen_write_copy(struct screen_write_ctx *, struct screen *, u_int,
 	     u_int, u_int, u_int, bitstr_t *, const struct grid_cell *);
 void	 screen_write_fast_copy(struct screen_write_ctx *, struct screen *,
 	     u_int, u_int, u_int, u_int);
-void	 screen_write_hline(struct screen_write_ctx *, u_int, int, int);
-void	 screen_write_vline(struct screen_write_ctx *, u_int, int, int);
+void	 screen_write_hline(struct screen_write_ctx *, const struct grid_cell *,
+	     u_int, int, int);
+void	 screen_write_vline(struct screen_write_ctx *, const struct grid_cell *,
+	     u_int, int, int);
 void	 screen_write_box(struct screen_write_ctx *, u_int, u_int);
 void	 screen_write_preview(struct screen_write_ctx *, struct screen *, u_int,
 	     u_int);

@@ -554,7 +554,7 @@ window_tree_draw_session(struct window_tree_modedata *data, struct session *s,
 	if (left) {
 		data->left = cx + 2;
 		screen_write_cursormove(ctx, cx + 2, cy);
-		screen_write_vline(ctx, sy, 0, 0);
+		screen_write_vline(ctx, &grid_default_cell, sy, 0, 0);
 		screen_write_cursormove(ctx, cx, cy + sy / 2);
 		screen_write_puts(ctx, &grid_default_cell, "<");
 	} else
@@ -562,7 +562,7 @@ window_tree_draw_session(struct window_tree_modedata *data, struct session *s,
 	if (right) {
 		data->right = cx + sx - 3;
 		screen_write_cursormove(ctx, cx + sx - 3, cy);
-		screen_write_vline(ctx, sy, 0, 0);
+		screen_write_vline(ctx, &grid_default_cell, sy, 0, 0);
 		screen_write_cursormove(ctx, cx + sx - 1, cy + sy / 2);
 		screen_write_puts(ctx, &grid_default_cell, ">");
 	} else
@@ -608,7 +608,7 @@ window_tree_draw_session(struct window_tree_modedata *data, struct session *s,
 
 		if (loop != end - 1) {
 			screen_write_cursormove(ctx, cx + offset + width, cy);
-			screen_write_vline(ctx, sy, 0, 0);
+			screen_write_vline(ctx, &grid_default_cell, sy, 0, 0);
 		}
 		loop++;
 
@@ -687,7 +687,7 @@ window_tree_draw_window(struct window_tree_modedata *data, struct session *s,
 	if (left) {
 		data->left = cx + 2;
 		screen_write_cursormove(ctx, cx + 2, cy);
-		screen_write_vline(ctx, sy, 0, 0);
+		screen_write_vline(ctx, &grid_default_cell, sy, 0, 0);
 		screen_write_cursormove(ctx, cx, cy + sy / 2);
 		screen_write_puts(ctx, &grid_default_cell, "<");
 	} else
@@ -695,7 +695,7 @@ window_tree_draw_window(struct window_tree_modedata *data, struct session *s,
 	if (right) {
 		data->right = cx + sx - 3;
 		screen_write_cursormove(ctx, cx + sx - 3, cy);
-		screen_write_vline(ctx, sy, 0, 0);
+		screen_write_vline(ctx, &grid_default_cell, sy, 0, 0);
 		screen_write_cursormove(ctx, cx + sx - 1, cy + sy / 2);
 		screen_write_puts(ctx, &grid_default_cell, ">");
 	} else
@@ -740,7 +740,7 @@ window_tree_draw_window(struct window_tree_modedata *data, struct session *s,
 
 		if (loop != end - 1) {
 			screen_write_cursormove(ctx, cx + offset + width, cy);
-			screen_write_vline(ctx, sy, 0, 0);
+			screen_write_vline(ctx, &grid_default_cell, sy, 0, 0);
 		}
 		loop++;
 

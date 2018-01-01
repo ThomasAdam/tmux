@@ -655,6 +655,11 @@ const struct options_table_entry options_table[] = {
 	  .scope = OPTIONS_TABLE_WINDOW,
 	  .default_num = 0
 	},
+	{ .name = "monitor-activity-marker",
+	  .type = OPTIONS_TABLE_FLAG,
+	  .scope = OPTIONS_TABLE_WINDOW,
+	  .default_num = 0
+	},
 
 	{ .name = "monitor-bell",
 	  .type = OPTIONS_TABLE_FLAG,
@@ -764,6 +769,12 @@ const struct options_table_entry options_table[] = {
 	  .type = OPTIONS_TABLE_STYLE,
 	  .scope = OPTIONS_TABLE_WINDOW,
 	  .default_str = "default"
+	},
+
+	{ .name = "window-activity-marker-style",
+	  .type = OPTIONS_TABLE_STYLE,
+	  .scope = OPTIONS_TABLE_WINDOW,
+	  .default_str = "bg=default,fg=magenta"
 	},
 
 	{ .name = "window-size",
