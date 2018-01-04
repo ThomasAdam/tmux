@@ -784,7 +784,10 @@ struct window_pane {
 #define PANE_EXITED 0x100
 #define PANE_STATUSREADY 0x200
 #define PANE_STATUSDRAWN 0x400
-
+#define PANE_BELL 0x800
+#define PANE_ACTIVITY 0x1000
+#define PANE_SILENCE 0x2000
+#define PANE_ALERTFLAGS (PANE_BELL|PANE_ACTIVITY|PANE_SILENCE)
 	int		 argc;
 	char	       **argv;
 	char		*shell;
@@ -895,10 +898,6 @@ struct winlink {
 	char		*status_text;
 
 	int		 flags;
-#define WINLINK_BELL 0x1
-#define WINLINK_ACTIVITY 0x2
-#define WINLINK_SILENCE 0x4
-#define WINLINK_ALERTFLAGS (WINLINK_BELL|WINLINK_ACTIVITY|WINLINK_SILENCE)
 
 	RB_ENTRY(winlink) entry;
 	TAILQ_ENTRY(winlink) wentry;
@@ -2118,6 +2117,7 @@ struct winlink	*winlink_find_by_index(struct winlinks *, int);
 struct winlink	*winlink_find_by_window(struct winlinks *, struct window *);
 struct winlink	*winlink_find_by_window_id(struct winlinks *, u_int);
 u_int		 winlink_count(struct winlinks *);
+int		 winlink_pane_alert_flags(struct winlink *);
 struct winlink	*winlink_add(struct winlinks *, int);
 void		 winlink_set_window(struct winlink *, struct window *);
 void		 winlink_remove(struct winlinks *, struct winlink *);

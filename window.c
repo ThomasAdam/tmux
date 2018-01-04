@@ -150,6 +150,25 @@ winlink_next_index(struct winlinks *wwl, int idx)
 	return (-1);
 }
 
+int
+winlink_pane_alert_flags(struct winlink *wl)
+{
+	struct window		*w = wl->window;
+	struct window_pane	*wp;
+	int		 	 ret_flags = 0;
+
+	TAILQ_FOREACH(wp, &w->panes, entry) {
+		if (wp->flags & PANE_BELL)
+			ret_flags |= PANE_BELL;
+		if (wp->flags & PANE_ACTIVITY)
+			ret_flags |= PANE_ACTIVITY;
+		if (wp->flags & PANE_SILENCE)
+			ret_flags |= PANE_SILENCE;
+	}
+
+	return (ret_flags);
+}
+
 u_int
 winlink_count(struct winlinks *wwl)
 {
@@ -746,14 +765,15 @@ window_printable_flags(struct winlink *wl)
 {
 	struct session	*s = wl->session;
 	static char	 flags[32];
-	int		 pos;
+	int		 pos, pane_flags;
 
 	pos = 0;
-	if (wl->flags & WINLINK_ACTIVITY)
+	pane_flags = winlink_pane_alert_flags(wl);
+	if (pane_flags & PANE_ACTIVITY)
 		flags[pos++] = '#';
-	if (wl->flags & WINLINK_BELL)
+	if (pane_flags & PANE_BELL)
 		flags[pos++] = '!';
-	if (wl->flags & WINLINK_SILENCE)
+	if (pane_flags & PANE_SILENCE)
 		flags[pos++] = '~';
 	if (wl == s->curw)
 		flags[pos++] = '*';
