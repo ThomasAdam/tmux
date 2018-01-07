@@ -44,7 +44,7 @@ int		 ptm_fd = -1;
 const char	*shell_command;
 
 static __dead void	 usage(void);
-static char		*make_label(const char *);
+static char		*make_label(const char *, char **);
 
 static const char	*getshell(void);
 static int		 checkshell(const char *);
@@ -106,12 +106,13 @@ areshell(const char *shell)
 }
 
 static char *
-make_label(const char *label)
+make_label(const char *label, char **cause)
 {
 	char		*base, resolved[PATH_MAX], *path, *s;
 	struct stat	 sb;
 	uid_t		 uid;
-	int		 saved_errno;
+
+	*cause = NULL;
 
 	if (label == NULL)
 		label = "default";
@@ -144,9 +145,8 @@ make_label(const char *label)
 	return (path);
 
 fail:
-	saved_errno = errno;
+	xasprintf(cause, "cannot create %s: %s", base, strerror(errno));
 	free(base);
-	errno = saved_errno;
 	return (NULL);
 }
 
@@ -188,7 +188,7 @@ find_home(void)
 int
 main(int argc, char **argv)
 {
-	char					*path, *label, **var;
+	char					*path, *label, *cause, **var;
 	char					 tmp[PATH_MAX];
 	const char				*s, *shell, *cwd;
 	int					 opt, flags, keys;
@@ -341,8 +341,11 @@ main(int argc, char **argv)
 			path[strcspn(path, ",")] = '\0';
 		}
 	}
-	if (path == NULL && (path = make_label(label)) == NULL) {
-		fprintf(stderr, "can't create socket: %s\n", strerror(errno));
+	if (path == NULL && (path = make_label(label, &cause)) == NULL) {
+		if (cause != NULL) {
+			fprintf(stderr, "%s\n", cause);
+			free(cause);
+		}
 		exit(1);
 	}
 	socket_path = path;
