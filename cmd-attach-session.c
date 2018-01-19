@@ -42,7 +42,7 @@ const struct cmd_entry cmd_attach_session_entry = {
 
 	/* -t is special */
 
-	.flags = CMD_STARTSERVER,
+	.flags = CMD_STARTSERVER|CMD_AFTERHOOK,
 	.exec = cmd_attach_session_exec
 };
 

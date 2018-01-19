@@ -218,7 +218,7 @@ cmdq_fire_command(struct cmdq_item *item)
 	const struct cmd_entry	*entry = cmd->entry;
 	enum cmd_retval		 retval;
 	struct cmd_find_state	*fsp, fs;
-	int			 flags;
+	int			 flags, t_flag_failed = 0;
 
 	flags = !!(cmd->flags & CMD_CONTROL);
 	cmdq_guard(item, "begin", flags);
@@ -229,7 +229,9 @@ cmdq_fire_command(struct cmdq_item *item)
 	if (retval == CMD_RETURN_ERROR)
 		goto out;
 	retval = cmdq_find_flag(item, &item->target, &entry->target);
-	if (retval == CMD_RETURN_ERROR)
+	if ((entry->flags & CMD_AFTERHOOK) && (retval == CMD_RETURN_ERROR))
+		t_flag_failed = 1;
+	else if (retval == CMD_RETURN_ERROR)
 		goto out;
 
 	retval = entry->exec(cmd, item);
@@ -237,14 +239,18 @@ cmdq_fire_command(struct cmdq_item *item)
 		goto out;
 
 	if (entry->flags & CMD_AFTERHOOK) {
-		if (cmd_find_valid_state(&item->target))
-			fsp = &item->target;
-		else if (cmd_find_valid_state(&item->shared->current))
+		if (t_flag_failed)
 			fsp = &item->shared->current;
-		else if (cmd_find_from_client(&fs, item->client, 0) == 0)
-			fsp = &fs;
-		else
-			goto out;
+		else {
+			if (cmd_find_valid_state(&item->target))
+				fsp = &item->target;
+			else if (cmd_find_valid_state(&item->shared->current))
+				fsp = &item->shared->current;
+			else if (cmd_find_from_client(&fs, item->client, 0) == 0)
+				fsp = &fs;
+			else
+				goto out;
+		}
 		hooks_insert(fsp->s->hooks, item, fsp, "after-%s", entry->name);
 	}
 
