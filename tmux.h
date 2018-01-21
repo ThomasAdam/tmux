@@ -1324,10 +1324,21 @@ struct cmd_entry {
 };
 
 /* Status line. */
+struct status_text {
+	const char	*text;
+	u_int		 line;
+
+	TAILQ_ENTRY(status_text) entry;
+};
+
 struct status_line {
-	struct event	 timer;
-	struct screen	 status;
-	struct screen	*old_status;
+	struct event	 		timer;
+	struct screen	 		status;
+	struct screen			*old_status;
+	const char			*old_status_text;
+	u_int				 no_of_lines;
+
+	TAILQ_HEAD(, status_text) 	 status_lines;
 };
 
 /* Client connection. */
@@ -1854,6 +1865,7 @@ void	cmd_wait_for_flush(void);
 
 /* client.c */
 int	client_main(struct event_base *, int, char **, int);
+void	client_update_status(struct client *);
 
 /* key-bindings.c */
 RB_PROTOTYPE(key_bindings, key_binding, entry, key_bindings_cmp);
@@ -1945,8 +1957,9 @@ void	 server_unzoom_window(struct window *);
 void	 status_timer_start(struct client *);
 void	 status_timer_start_all(void);
 void	 status_update_saved(struct session *s);
+void	 status_lines_parse(struct client *);
 int	 status_at_line(struct client *);
-u_int	 status_line_size(struct session *);
+u_int	 status_line_size(struct client *);
 struct window *status_get_window_at(struct client *, u_int);
 int	 status_redraw(struct client *);
 void printflike(2, 3) status_message_set(struct client *, const char *, ...);

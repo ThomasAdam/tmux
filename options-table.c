@@ -510,6 +510,12 @@ const struct options_table_entry options_table[] = {
 	  .default_str = "bg=green,fg=black"
 	},
 
+	{ .name = "status-text",
+	  .type = OPTIONS_TABLE_STRING,
+	  .scope = OPTIONS_TABLE_SESSION,
+	  .default_str = ""
+	},
+
 	{ .name = "update-environment",
 	  .type = OPTIONS_TABLE_ARRAY,
 	  .scope = OPTIONS_TABLE_SESSION,

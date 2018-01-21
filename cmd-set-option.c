@@ -251,6 +251,16 @@ cmd_set_option_exec(struct cmd *self, struct cmdq_item *item)
 	if (strcmp(name, "status") == 0 ||
 	    strcmp(name, "status-interval") == 0)
 		status_timer_start_all();
+	if (strcmp(name, "status-text") == 0) {
+		/* Compare the new status-text with the old one.  If they
+		 * differ then update the status cache.
+		 */
+		TAILQ_FOREACH(loop, &clients, entry) {
+			if (loop->status.old_status_text == NULL ||
+			    strcmp(loop->status.old_status_text, value) != 0)
+				client_update_status(loop);
+		}
+	}
 	if (strcmp(name, "monitor-silence") == 0)
 		alerts_reset_all();
 	if (strcmp(name, "window-style") == 0 ||

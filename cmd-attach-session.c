@@ -149,6 +149,11 @@ cmd_attach_session(struct cmdq_item *item, const char *tflag, int dflag,
 		server_redraw_client(c);
 		s->curw->flags &= ~WINLINK_ALERTFLAGS;
 
+		/* If this session is attached to other clients, ensure the
+		 * status line is updated for that client.
+		 */
+		client_update_status(c);
+
 		if (~c->flags & CLIENT_CONTROL)
 			proc_send(c->peer, MSG_READY, -1, NULL, 0);
 		notify_client("client-attached", c);

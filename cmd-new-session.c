@@ -78,7 +78,7 @@ cmd_new_session_exec(struct cmd *self, struct cmdq_item *item)
 	char		       **argv, *cause, *cp, *newname, *cwd = NULL;
 	int			 detached, already_attached, idx, argc;
 	int			 is_control = 0;
-	u_int			 sx, sy;
+	u_int			 sx, sy, lines;
 	struct environ_entry	*envent;
 	struct cmd_find_state	 fs;
 	enum cmd_retval		 retval;
@@ -232,6 +232,18 @@ cmd_new_session_exec(struct cmd *self, struct cmdq_item *item)
 	if (sy == 0)
 		sy = 1;
 
+	/* Adjust for status line. */
+	if (options_get_number(global_s_options, "status")) {
+		lines = 1;
+		if (*options_get_string(global_s_options, "status-text") != '\0')
+			lines = status_line_size(c);
+	} else
+		lines = 0;
+	if (sy > lines)
+		sy -= lines;
+	else
+		sy = 1;
+
 	/* Figure out the command for the new window. */
 	argc = -1;
 	argv = NULL;
@@ -313,6 +325,7 @@ cmd_new_session_exec(struct cmd *self, struct cmdq_item *item)
 		c->session = s;
 		if (~item->shared->flags & CMDQ_SHARED_REPEAT)
 			server_client_set_key_table(c, NULL);
+		client_update_status(c);
 		status_timer_start(c);
 		notify_client("client-session-changed", c);
 		session_update_activity(s, NULL);

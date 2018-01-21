@@ -133,6 +133,7 @@ cmd_switch_client_exec(struct cmd *self, struct cmdq_item *item)
 	session_update_activity(s, NULL);
 	gettimeofday(&s->last_attached_time, NULL);
 
+	client_update_status(c);
 	recalculate_sizes();
 	server_check_unattached();
 	server_redraw_client(c);

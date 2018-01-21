@@ -723,3 +723,19 @@ client_dispatch_attached(struct imsg *imsg)
 		break;
 	}
 }
+
+void
+client_update_status(struct client *c)
+{
+	struct client	*c_loop;
+
+	if (c->session == NULL)
+		return;
+
+	status_lines_parse(c);
+	TAILQ_FOREACH(c_loop, &clients, entry) {
+		if (c_loop->session != c->session || c == c_loop)
+			continue;
+		status_lines_parse(c_loop);
+	}
+}

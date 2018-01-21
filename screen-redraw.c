@@ -388,7 +388,7 @@ screen_redraw_screen(struct client *c, int draw_panes, int draw_status,
 	if (c->flags & CLIENT_STATUSOFF)
 		lines = 0;
 	else
-		lines = status_line_size(c->session);
+		lines = status_line_size(c);
 	if (c->message_string != NULL || c->prompt_string != NULL)
 		lines = (lines == 0) ? 1 : lines;
 
@@ -425,7 +425,7 @@ screen_redraw_pane(struct client *c, struct window_pane *wp)
 
 	yoff = wp->yoff;
 	if (status_at_line(c) == 0)
-		yoff += status_line_size(c->session);
+		yoff += status_line_size(c);
 
 	log_debug("%s: redraw pane %%%u (at %u,%u)", c->name, wp->id,
 	    wp->xoff, yoff);

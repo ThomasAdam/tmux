@@ -167,6 +167,78 @@ status_timer_callback(__unused int fd, __unused short events, void *arg)
 	log_debug("client %p, status interval %d", c, (int)tv.tv_sec);
 }
 
+void
+status_lines_parse(struct client *c)
+{
+	struct status_text	*st = NULL, *st1;
+	const char		*st_text;
+	char			*st_text1, *text;
+	u_int			 size = 0, line = 1;
+
+	st_text = options_get_string(c->session->options, "status-text");
+
+	free((char *)c->status.old_status_text);
+	c->status.old_status_text = xstrdup(st_text);
+
+	/* Blank string to indicate tearing down the status items. */
+	if (*st_text == '\0') {
+		/* Zeroed out.  No more extra lines. */
+		if (TAILQ_EMPTY(&c->status.status_lines))
+			goto out;
+
+		TAILQ_FOREACH_SAFE(st, &c->status.status_lines, entry, st1) {
+			TAILQ_REMOVE(&c->status.status_lines, st, entry);
+			free((char *)st->text);
+			free(st);
+		}
+		goto out;
+	}
+
+	st_text1 = xstrdup(st_text);
+	/* If the status_line cache is empty then add everything we know
+	 * about wholesale as a special case.
+	 */
+	if (TAILQ_EMPTY(&c->status.status_lines)) {
+		while ((text = strsep(&st_text1, ";")) != NULL) {
+			if (*text == '\0')
+				continue;
+
+			st = xmalloc(sizeof *st);
+			st->text = xstrdup(text);
+			st->line = line;
+			TAILQ_INSERT_HEAD(&c->status.status_lines, st, entry);
+
+			line++;
+		}
+		goto out;
+	}
+
+	/* Tear down previous entries, and add new ones. */
+	TAILQ_FOREACH_SAFE(st, &c->status.status_lines, entry, st1) {
+		TAILQ_REMOVE(&c->status.status_lines, st, entry);
+		free((char *)st->text);
+		free(st);
+	}
+
+	while ((text = strsep(&st_text1, ";")) != NULL) {
+		st = xmalloc(sizeof *st);
+		st->text = xstrdup(text);
+		st->line = line;
+		TAILQ_INSERT_TAIL(&c->status.status_lines, st, entry);
+
+		line++;
+	}
+
+out:
+	size = 0;
+	TAILQ_FOREACH(st, &c->status.status_lines, entry) {
+		size++;
+	}
+
+	/* +1 to include the status line itself. */
+	c->status.no_of_lines = size + 1;
+}
+
 /* Start status timer for client. */
 void
 status_timer_start(struct client *c)
@@ -214,7 +286,7 @@ status_at_line(struct client *c)
 		return (-1);
 	if (s->statusat != 1)
 		return (s->statusat);
-	return (c->tty.sy - status_line_size(s));
+	return (c->tty.sy - c->status.no_of_lines);
 }
 
 /*
@@ -223,11 +295,19 @@ status_at_line(struct client *c)
  * CLIENT_STATUSOFF flag is set for this).
  */
 u_int
-status_line_size(struct session *s)
+status_line_size(struct client *c)
 {
-	if (s->statusat == -1)
+	struct session	*s = c->session;
+	u_int		 lines;
+
+	if (s == NULL || !options_get_number(s->options, "status"))
 		return (0);
-	return (1);
+
+	lines = c->status.no_of_lines;
+
+	if (s->sy < lines)
+		return (s->sy);
+	return (lines);
 }
 
 /* Retrieve options for left string. */
@@ -308,12 +388,13 @@ status_redraw(struct client *c)
 	struct screen		 old_status, window_list;
 	struct grid_cell	 stdgc, lgc, rgc, gc;
 	struct options		*oo;
+	struct status_text	*st;
 	time_t			 t;
-	char			*left, *right;
-	const char		*sep;
-	u_int			 offset, needed, lines;
+	char			*left, *right, *expanded;
+	const char		*sl, *sep;
+	u_int			 offset, needed, lines, i, x;
 	u_int			 wlstart, wlwidth, wlavailable, wloffset, wlsize;
-	size_t			 llen, rlen, seplen;
+	size_t			 llen, rlen, seplen, expandedlen;
 	int			 larrow, rarrow;
 
 	/* Delete the saved status line, if any. */
@@ -324,7 +405,7 @@ status_redraw(struct client *c)
 	}
 
 	/* No status line? */
-	lines = status_line_size(s);
+	lines = c->status.no_of_lines;
 	if (c->tty.sy == 0 || lines == 0)
 		return (1);
 	left = right = NULL;
@@ -340,8 +421,10 @@ status_redraw(struct client *c)
 	memcpy(&old_status, &c->status.status, sizeof old_status);
 	screen_init(&c->status.status, c->tty.sx, lines, 0);
 	screen_write_start(&ctx, NULL, &c->status.status);
-	for (offset = 0; offset < lines * c->tty.sx; offset++)
-		screen_write_putc(&ctx, &stdgc, ' ');
+	for (i = 0; i < lines; i++) {
+		for (offset = 0; offset < c->tty.sx; offset++)
+			screen_write_putc(&ctx, &stdgc, ' ');
+	}
 	screen_write_stop(&ctx);
 
 	/* If the height is too small, blank status line. */
@@ -511,6 +594,34 @@ draw:
 	screen_write_fast_copy(&ctx, &window_list, wlstart, 0, wlwidth, 1);
 	screen_free(&window_list);
 
+	/* Draw the status text line if any. */
+	i = 1;
+	TAILQ_FOREACH(st, &c->status.status_lines, entry) {
+		sl = st->text;
+		expanded = status_replace(c, NULL, sl, t);
+		expandedlen = screen_write_cstrlen("%s", expanded);
+		switch (options_get_number(s->options, "status-justify")) {
+		case 1:	/* centred */
+			if (expandedlen > c->tty.sx)
+				x = 0;
+			else
+				x = c->tty.sx / 2 - expandedlen / 2;
+			break;
+		case 2:	/* right */
+			if (expandedlen > c->tty.sx)
+				x = 0;
+			else
+				x = c->tty.sx - expandedlen;
+			break;
+		default:
+			x = 0;
+			break;
+		}
+		screen_write_cursormove(&ctx, x, st->line);
+		screen_write_cnputs(&ctx, c->tty.sx, &stdgc, "%s", expanded);
+		free(expanded);
+	}
+
 	screen_write_stop(&ctx);
 
 out:
@@ -659,7 +770,7 @@ status_message_redraw(struct client *c)
 		return (0);
 	memcpy(&old_status, &c->status.status, sizeof old_status);
 
-	lines = status_line_size(c->session);
+	lines = c->status.no_of_lines;
 	if (lines <= 1) {
 		lines = 1;
 		screen_init(&c->status.status, c->tty.sx, 1, 0);
@@ -676,7 +787,12 @@ status_message_redraw(struct client *c)
 	screen_write_cursormove(&ctx, 0, 0);
 	for (offset = 0; offset < lines * c->tty.sx; offset++)
 		screen_write_putc(&ctx, &gc, ' ');
+	if (lines > 1) {
+		screen_write_copy(&ctx, &old_status, 0, 0, c->tty.sx, lines - 1,
+		    NULL, NULL);
+	}
 	screen_write_cursormove(&ctx, 0, lines - 1);
+
 	screen_write_nputs(&ctx, len, &gc, "%s", c->message_string);
 	screen_write_stop(&ctx);
 
@@ -812,7 +928,7 @@ status_prompt_redraw(struct client *c)
 		return (0);
 	memcpy(&old_status, &c->status.status, sizeof old_status);
 
-	lines = status_line_size(c->session);
+	lines = c->status.no_of_lines;
 	if (lines <= 1) {
 		lines = 1;
 		screen_init(&c->status.status, c->tty.sx, 1, 0);
@@ -832,6 +948,11 @@ status_prompt_redraw(struct client *c)
 		start = c->tty.sx;
 
 	screen_write_start(&ctx, NULL, &c->status.status);
+
+	if (lines > 1) {
+		screen_write_copy(&ctx, &old_status, 0, 0, c->tty.sx, lines - 1,
+		    NULL, NULL);
+	}
 	screen_write_cursormove(&ctx, 0, 0);
 	for (offset = 0; offset < lines * c->tty.sx; offset++)
 		screen_write_putc(&ctx, &gc, ' ');

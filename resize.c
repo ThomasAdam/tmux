@@ -53,11 +53,11 @@ recalculate_sizes(void)
 	int			 flag, is_zoomed, forced;
 
 	RB_FOREACH(s, sessions, &sessions) {
-		lines = status_line_size(s);
 
 		s->attached = 0;
 		ssx = ssy = UINT_MAX;
 		TAILQ_FOREACH(c, &clients, entry) {
+			lines = status_line_size(c);
 			if (c->flags & CLIENT_SUSPENDED)
 				continue;
 			if ((c->flags & (CLIENT_CONTROL|CLIENT_SIZECHANGED)) ==
@@ -71,8 +71,7 @@ recalculate_sizes(void)
 					c->flags |= CLIENT_STATUSOFF;
 				if ((~c->flags & CLIENT_STATUSOFF) &&
 				    !(c->flags & CLIENT_CONTROL) &&
-				    c->tty.sy > lines &&
-				    c->tty.sy - lines < ssy)
+				    c->tty.sy > 1 && c->tty.sy - 1 < ssy)
 					ssy = c->tty.sy - lines;
 				else if (c->tty.sy < ssy)
 					ssy = c->tty.sy;

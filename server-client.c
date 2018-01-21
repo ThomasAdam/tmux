@@ -194,6 +194,8 @@ server_client_create(int fd)
 	c->tty.sy = 24;
 
 	screen_init(&c->status.status, c->tty.sx, 1, 0);
+	TAILQ_INIT(&c->status.status_lines);
+	c->status.no_of_lines = 1;
 
 	c->message_string = NULL;
 	TAILQ_INIT(&c->message_log);
@@ -1234,7 +1236,7 @@ server_client_reset_state(struct client *c)
 	if (status_at_line(c) != 0)
 		lines = 0;
 	else
-		lines = status_line_size(c->session);
+		lines = status_line_size(c);
 	if (!window_pane_visible(wp) || wp->yoff + s->cy >= c->tty.sy - lines)
 		tty_cursor(&c->tty, 0, 0);
 	else
