@@ -380,6 +380,18 @@ const struct options_table_entry options_table[] = {
 	  .style = "status-style"
 	},
 
+	{ .name = "status-caption",
+	  .type = OPTIONS_TABLE_FLAG,
+	  .scope = OPTIONS_TABLE_SESSION,
+	  .default_num = 1
+	},
+
+	{ .name = "status-caption-text",
+	  .type = OPTIONS_TABLE_STRING,
+	  .scope = OPTIONS_TABLE_SESSION,
+	  .default_str = ""
+	},
+
 	{ .name = "status-fg",
 	  .type = OPTIONS_TABLE_COLOUR,
 	  .scope = OPTIONS_TABLE_SESSION,
