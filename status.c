@@ -171,63 +171,43 @@ void
 status_lines_parse(struct client *c)
 {
 	struct status_text	*st = NULL, *st1;
+	struct format_tree	*ft = NULL;
 	const char		*st_text;
 	char			*st_text1, *text;
 	u_int			 size = 0, line = 1;
 
 	st_text = options_get_string(c->session->options, "status-text");
+	if (*st_text == '\0')
+		goto remove;
 
 	free((char *)c->status.old_status_text);
 	c->status.old_status_text = xstrdup(st_text);
 
-	/* Blank string to indicate tearing down the status items. */
-	if (*st_text == '\0') {
-		/* Zeroed out.  No more extra lines. */
-		if (TAILQ_EMPTY(&c->status.status_lines))
-			goto out;
-
-		TAILQ_FOREACH_SAFE(st, &c->status.status_lines, entry, st1) {
-			TAILQ_REMOVE(&c->status.status_lines, st, entry);
-			free((char *)st->text);
-			free(st);
-		}
-		goto out;
-	}
-
-	st_text1 = xstrdup(st_text);
-	/* If the status_line cache is empty then add everything we know
-	 * about wholesale as a special case.
-	 */
-	if (TAILQ_EMPTY(&c->status.status_lines)) {
-		while ((text = strsep(&st_text1, ";")) != NULL) {
-			if (*text == '\0')
-				continue;
-
-			st = xmalloc(sizeof *st);
-			st->text = xstrdup(text);
-			st->line = line;
-			TAILQ_INSERT_HEAD(&c->status.status_lines, st, entry);
-
-			line++;
-		}
-		goto out;
-	}
-
-	/* Tear down previous entries, and add new ones. */
+remove:
 	TAILQ_FOREACH_SAFE(st, &c->status.status_lines, entry, st1) {
 		TAILQ_REMOVE(&c->status.status_lines, st, entry);
 		free((char *)st->text);
 		free(st);
 	}
 
+	/* Blank string to turn off extra statuses. */
+	if (*st_text == '\0')
+		goto out;
+
+	ft = format_create(c, NULL, FORMAT_NONE, 0);
+	format_defaults(ft, c, NULL, NULL, NULL);
+
+	log_debug("%s: before formatted split: <<%s>>", __func__, st_text);
+	st_text1 = format_expand(ft, st_text);
+	log_debug("%s: formatted split: <<%s>>", __func__, st_text1);
+
 	while ((text = strsep(&st_text1, ";")) != NULL) {
 		st = xmalloc(sizeof *st);
 		st->text = xstrdup(text);
-		st->line = line;
+		st->line = line++;
 		TAILQ_INSERT_TAIL(&c->status.status_lines, st, entry);
-
-		line++;
 	}
+	format_free(ft);
 
 out:
 	size = 0;
