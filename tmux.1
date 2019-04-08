@@ -3692,6 +3692,32 @@ and
 by a
 .Ql } .
 .Pp
+The following variables are available, where appropriate:
+.Bl -column "XXXXXXXX" "XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX"
+.It Sy "Prefix" Ta Sy "Meaning" Ta Sy "Example"
+.It Li "?" Ta "Conditional (terniary)" Ta "?automatic-rename,yes,no" Ta
+"Returns 1 if true, 0 if not"
+.It Li "==:" Ta "Equality (equals)" Ta "==:#{host},myhost"
+.It Li "!=:" Ta "Equality (does not equal)" Ta "...."
+.It Li "&&:" Ta "Equality (both equals)" Ta "...."
+.It Li "||:" Ta "Equality (either equals)" Ta "...."
+.It Li "=<num>:" Ta  "Maximum length (start of string)" Ta "...."
+.It Li "=-num>:" Ta "Maximum length (end of string)" Ta "...."
+.It Li "(<command>)" "Command output" Ta "...."
+.It Li "m:" Ta "fnmatch(3)" Ta "...."
+.It Li "C:" Ta "fnmatch(3) in pane content" Ta "...."
+.It Li "t:" Ta "Converts time to string" Ta "...."
+.It Li "b:" Ta "Prefixes basename(3)" Ta "...."
+.It Li "d:" Ta "Prefixes dirname(3)" Ta "...."
+.It Li "s:" Ta "Performs substitution" Ta "...."
+.It Li "q:" Ta "sh(1) escape special characters" Ta "...."
+.It Li "E:" Ta "Expands the specified format twice" Ta "...."
+.It Li "T:" Ta "As 'E' but expands via strftime(3)" Ta "...."
+.It Li "S:" Ta "Loops over all sessions" Ta "...."
+.It Li "W:" Ta "Loops over all windows" Ta "...."
+.It Li "P:" Ta "Loops over all panes" Ta "...."
+.El
+.Pp
 Conditionals are available by prefixing with
 .Ql \&?
 and separating two alternatives with a comma;
