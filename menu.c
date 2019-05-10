@@ -311,7 +311,7 @@ menu_display(struct menu *menu, int flags, struct cmdq_item *item, u_int px,
 	struct menu_data	*md;
 
 	if (c->tty.sx < menu->width + 4 || c->tty.sy < menu->count + 2)
-		return (0);
+		return (-1);
 
 	md = xcalloc(1, sizeof *md);
 	md->item = item;

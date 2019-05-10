@@ -179,6 +179,9 @@ static const char *options_table_client_menu_default[] = {
 	"#{?#{lock-command},Lock,},l,lock-client",
 	NULL
 };
+static const char *options_table_user_menu_default[] = {
+	NULL
+};
 
 /* Helper for hook options. */
 #define OPTIONS_TABLE_HOOK(hook_name, default_value) \
@@ -866,6 +869,13 @@ const struct options_table_entry options_table[] = {
 	  .scope = OPTIONS_TABLE_SERVER,
 	  .flags = OPTIONS_TABLE_IS_ARRAY,
 	  .default_arr = options_table_client_menu_default
+	},
+
+	{ .name = "user-menu",
+	  .type = OPTIONS_TABLE_STRING,
+	  .scope = OPTIONS_TABLE_SERVER,
+	  .flags = OPTIONS_TABLE_IS_ARRAY,
+	  .default_arr = options_table_user_menu_default
 	},
 
 	/* Hook options. */

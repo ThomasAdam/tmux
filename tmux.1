@@ -2742,6 +2742,15 @@ command for more information on menus and the
 .Ic client-menu
 option for the format of menu options.
 .It Xo Ic set-clipboard
+.It Xo Ic user-menu[]
+.Ar name,key,command
+.Xc
+Specify the user menu.
+See the
+.Ic display-menu
+command for more information on menus and the
+.Ic client-menu
+option for the format of menu options.
 .Op Ic on | external | off
 .Xc
 Attempt to set the terminal clipboard content using the
@@ -4514,9 +4523,10 @@ A menu is specified by a server option, the option name must be given to
 It may be one of:
 .Ic client-menu ,
 .Ic session-menu ,
-.Ic window-menu
+.Ic window-menu ,
+.Ic pane-menu ,
 or
-.Ic pane-menu .
+.Ic user-menu .
 See the
 .Ic client-menu
 option for the option format.

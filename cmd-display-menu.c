@@ -82,6 +82,9 @@ cmd_display_menu_exec(struct cmd *self, struct cmdq_item *item)
 		return (CMD_RETURN_ERROR);
 	}
 
+	if (menu->count == 0)
+		return (CMD_RETURN_NORMAL);
+
 	xp = args_get(args, 'x');
 	if (xp == NULL)
 		px = 0;
@@ -149,6 +152,8 @@ cmd_display_menu_exec(struct cmd *self, struct cmdq_item *item)
 	flags = 0;
 	if (!item->shared->mouse.valid)
 		flags |= MENU_NOMOUSE;
-	menu_display(menu, flags, item, px, py, c, fs, NULL, NULL);
+	if (menu_display(menu, flags, item, px, py, c, fs, NULL, NULL) != 0)
+		return (CMD_RETURN_ERROR);
+
 	return (CMD_RETURN_WAIT);
 }
