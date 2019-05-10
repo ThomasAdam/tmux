@@ -129,6 +129,57 @@ static const char *options_table_status_format_default[] = {
 	OPTIONS_TABLE_STATUS_FORMAT1, OPTIONS_TABLE_STATUS_FORMAT2, NULL
 };
 
+/* Menu option defaults. */
+static const char *options_table_session_menu_default[] = {
+	"Next,n,switch-client -n",
+	"Previous,p,switch-client -p",
+	"",
+	"Renumber,N,move-window -r",
+	"Rename,n,command-prompt -I \"#S\" \"rename-session -- '%%'\"",
+	"",
+	"New Session,s,new-session",
+	"New Window,w,new-window",
+	NULL
+};
+static const char *options_table_window_menu_default[] = {
+	"Swap Left,l,swap-window -t,-1",
+	"Swap Right,r,swap-window -t,+1",
+	"#{?pane_marked_set,,#[dim]}Swap Marked,s,swap-window",
+	"",
+	"Kill,X,kill-window",
+	"Respawn,R,respawn-window -k",
+	"",
+	"#{?pane_marked,Unmark,Mark},m,select-pane -m",
+	"Rename,n,command-prompt -I \"#W\" \"rename-window -- '%%'\"",
+	"",
+	"New After,w,new-window -a",
+	"New At End,W,new-window",
+	NULL
+};
+static const char *options_table_pane_menu_default[] = {
+	"Horizontal Split,h,split-window -h",
+	"Vertical Split,v,split-window -v",
+	"",
+	"Swap Up,u,swap-pane -U",
+	"Swap Down,d,swap-pane -D",
+	"#{?pane_marked_set,,#[dim]}Swap Marked,s,swap-pane",
+	"",
+	"Kill,X,kill-pane",
+	"Respawn,R,respawn-pane -k",
+	"",
+	"#{?pane_marked,Unmark,Mark},m,select-pane -m",
+	"#{?window_zoomed_flag,Unzoom,Zoom},z,resize-pane -Z",
+	NULL
+};
+static const char *options_table_client_menu_default[] = {
+	"Detach,d,detach-client",
+	"Detach & Kill,X,detach-client -P",
+	"Detach Others,o,detach-client -a",
+	"",
+	"#{?#{lock-command},Lock,},l,lock-client",
+	NULL
+};
+
 /* Helper for hook options. */
 #define OPTIONS_TABLE_HOOK(hook_name, default_value) \
 	{ .name = hook_name, \
@@ -786,6 +837,35 @@ const struct options_table_entry options_table[] = {
 	  .type = OPTIONS_TABLE_FLAG,
 	  .scope = OPTIONS_TABLE_WINDOW,
 	  .default_num = 1
+	},
+
+	/* Menu options. */
+	{ .name = "session-menu",
+	  .type = OPTIONS_TABLE_STRING,
+	  .scope = OPTIONS_TABLE_SERVER,
+	  .flags = OPTIONS_TABLE_IS_ARRAY,
+	  .default_arr = options_table_session_menu_default
+	},
+
+	{ .name = "window-menu",
+	  .type = OPTIONS_TABLE_STRING,
+	  .scope = OPTIONS_TABLE_SERVER,
+	  .flags = OPTIONS_TABLE_IS_ARRAY,
+	  .default_arr = options_table_window_menu_default
+	},
+
+	{ .name = "pane-menu",
+	  .type = OPTIONS_TABLE_STRING,
+	  .scope = OPTIONS_TABLE_SERVER,
+	  .flags = OPTIONS_TABLE_IS_ARRAY,
+	  .default_arr = options_table_pane_menu_default
+	},
+
+	{ .name = "client-menu",
+	  .type = OPTIONS_TABLE_STRING,
+	  .scope = OPTIONS_TABLE_SERVER,
+	  .flags = OPTIONS_TABLE_IS_ARRAY,
+	  .default_arr = options_table_client_menu_default
 	},
 
 	/* Hook options. */

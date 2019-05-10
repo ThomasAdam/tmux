@@ -2629,6 +2629,32 @@ Available server options are:
 Set the number of buffers; as new buffers are added to the top of the stack,
 old ones are removed from the bottom if necessary to maintain this maximum
 length.
+.It Xo Ic client-menu[]
+.Ar name,key,command
+.Xc
+Specify the client menu.
+See the
+.Ic display-menu
+command for more information on menus.
+.Pp
+Each item in the array specifies a menu item.
+Each menu item consists of three comma-separated parts:
+.Bl -enum -width Ds
+.It name
+The menu item name.
+This is a format and may include embedded styles, see the
+.Sx FORMATS
+and
+.Sx STYLES
+sections.
+.It key
+The menu item shortcut key.
+If this is empty the menu item has no key shortcut.
+.It command
+The command run when the menu item is chosen.
+.El
+.Pp
+An empty array item is a separator line in the menu.
 .It Xo Ic command-alias[]
 .Ar name=value
 .Xc
@@ -2697,6 +2723,24 @@ will write command prompt history on exit and load it from on start.
 Set the number of error or information messages to save in the message log for
 each client.
 The default is 100.
+.It Xo Ic pane-menu[]
+.Ar name,key,command
+.Xc
+Specify the pane menu.
+See the
+.Ic display-menu
+command for more information on menus and the
+.Ic client-menu
+option for the format of menu options.
+.It Xo Ic session-menu[]
+.Ar name,key,command
+.Xc
+Specify the session menu.
+See the
+.Ic display-menu
+command for more information on menus and the
+.Ic client-menu
+option for the format of menu options.
 .It Xo Ic set-clipboard
 .Op Ic on | external | off
 .Xc
@@ -2762,6 +2806,15 @@ for all terminal types matching
 The terminal entry value is passed through
 .Xr strunvis 3
 before interpretation.
+.It Xo Ic window-menu[]
+.Ar name,key,command
+.Xc
+Specify the window menu.
+See the
+.Ic display-menu
+command for more information on menus and the
+.Ic client-menu
+option for the format of menu options.
 .El
 .Pp
 Available session options are:
@@ -4443,6 +4496,61 @@ option.
 .Pp
 This command works only from inside
 .Nm .
+.It Xo Ic display-menu
+.Op Fl c Ar target-client
+.Op Fl M Ar menu
+.Op Fl t Ar target-pane
+.Op Fl T Ar title
+.Op Fl x Ar position
+.Op Fl y Ar position
+.Xc
+.D1 (alias: Ic menu)
+Display a menu on
+.Ar target-client .
+.Ar target-pane
+gives the target for any commands run from the menu.
+A menu is specified by a server option, the option name must be given to
+.Fl M .
+It may be one of:
+.Ic client-menu ,
+.Ic session-menu ,
+.Ic window-menu
+or
+.Ic pane-menu .
+See the
+.Ic client-menu
+option for the option format.
+.Fl T
+is a format for the menu title (see
+.Sx FORMATS ) .
+.Pp
+.Fl x
+and
+.Fl y
+give the position of the menu.
+Both may be a row or column number, or one of the following special values:
+.Bl -column "XXXXX" "XXXX" -offset indent
+.It Sy "Value" Ta Sy "Flag" Ta Sy "Meaning"
+.It Li "R" Ta Fl x Ta "The right side of the terminal"
+.It Li "P" Ta "Both" Ta "The bottom left of the pane"
+.It Li "M" Ta "Both" Ta "The mouse position"
+.It Li "W" Ta Fl x Ta "The window position on the status line"
+.It Li "S" Ta Fl y Ta "The line above or below the status line"
+.El
+.Pp
+Each menu consists of items followed by a key shortcut shown in brackets.
+If the menu is too large to fit on the terminal, it is not displayed.
+Pressing the key shortcut chooses the corresponding item.
+If the mouse is enabled and the menu is opened from a mouse key binding, releasing
+the mouse button with an item selected will choose that item.
+The following keys are also available:
+.Bl -column "Key" "Function" -offset indent
+.It Sy "Key" Ta Sy "Function"
+.It Li "Enter" Ta "Choose selected item"
+.It Li "Up" Ta "Select previous item"
+.It Li "Down" Ta "Select next item"
+.It Li "q" Ta "Exit menu"
+.El
 .It Xo Ic display-message
 .Op Fl aIpv
 .Op Fl c Ar target-client

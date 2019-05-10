@@ -750,6 +750,21 @@ struct screen_redraw_ctx {
 #define screen_hsize(s) ((s)->grid->hsize)
 #define screen_hlimit(s) ((s)->grid->hlimit)
 
+/* Menu. */
+struct menu_item {
+	char		*name;
+	char		*command;
+	key_code	 key;
+};
+struct menu {
+	char			*title;
+	struct menu_item	*items;
+	u_int			 count;
+	u_int			 width;
+};
+typedef void (*menu_choice_cb)(struct menu *, u_int, key_code, void *);
+#define MENU_NOMOUSE 0x1
+
 /*
  * Window mode. Windows can be in several modes and this is used to call the
  * right function to handle input and output.
@@ -1689,7 +1704,7 @@ char		*paste_make_sample(struct paste_buffer *);
 #define FORMAT_PANE 0x80000000U
 #define FORMAT_WINDOW 0x40000000U
 struct format_tree;
-const char	*format_skip(const char *s, const char *end);
+const char	*format_skip(const char *, const char *);
 int		 format_true(const char *);
 struct format_tree *format_create(struct client *, struct cmdq_item *, int,
 		     int);
@@ -2202,6 +2217,7 @@ void	 screen_write_fast_copy(struct screen_write_ctx *, struct screen *,
 	     u_int, u_int, u_int, u_int);
 void	 screen_write_hline(struct screen_write_ctx *, u_int, int, int);
 void	 screen_write_vline(struct screen_write_ctx *, u_int, int, int);
+void	 screen_write_menu(struct screen_write_ctx *, struct menu *, int);
 void	 screen_write_box(struct screen_write_ctx *, u_int, u_int);
 void	 screen_write_preview(struct screen_write_ctx *, struct screen *, u_int,
 	     u_int);
@@ -2537,6 +2553,16 @@ void	log_close(void);
 void printflike(1, 2) log_debug(const char *, ...);
 __dead void printflike(1, 2) fatal(const char *, ...);
 __dead void printflike(1, 2) fatalx(const char *, ...);
+
+/* menu.c */
+struct menu	*menu_create_from_items(struct menu_item *, u_int,
+		    struct client *, struct cmd_find_state *, const char *);
+struct menu	*menu_create_from_option(const char *, struct client *,
+		    struct cmd_find_state *, const char *);
+void		 menu_free(struct menu *);
+int		 menu_display(struct menu *, int, struct cmdq_item *, u_int,
+		    u_int, struct client *, struct cmd_find_state *,
+		    menu_choice_cb, void *);
 
 /* style.c */
 int		 style_parse(struct style *,const struct grid_cell *,
