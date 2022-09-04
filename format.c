@@ -1484,15 +1484,16 @@ format_cb_client_written(struct format_tree *ft)
 static void *
 format_cb_config_files(__unused struct format_tree *ft)
 {
-	char	*s = NULL;
-	size_t	 slen = 0;
-	u_int	 i;
-	size_t	 n;
+	struct cfg_file *cf;
+	char		*s = NULL;
+	size_t	 	 slen = 0;
+	u_int	 	 i;
+	size_t	 	 n;
 
-	for (i = 0; i < cfg_nfiles; i++) {
-		n = strlen(cfg_files[i]) + 1;
+	TAILQ_FOREACH(cf, &cfg_files, entry) {
+		n = strlen(cf->name) + 1;
 		s = xrealloc(s, slen + n + 1);
-		slen += xsnprintf(s + slen, n + 1, "%s,", cfg_files[i]);
+		slen += xsnprintf(s + slen, n + 1, "%s,", cf->name);
 	}
 	if (s == NULL)
 		return (xstrdup(""));

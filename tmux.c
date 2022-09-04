@@ -38,6 +38,7 @@ struct options	*global_s_options;	/* session options */
 struct options	*global_w_options;	/* window options */
 struct environ	*global_environ;
 
+struct cfg_files cfg_files;
 struct timeval	 start_time;
 const char	*socket_path;
 int		 ptm_fd = -1;
@@ -333,10 +334,13 @@ main(int argc, char **argv)
 {
 	char					*path = NULL, *label = NULL;
 	char					*cause, **var;
+	char 					**cf_files;
+	u_int 					 ncf_files;
 	const char				*s, *cwd;
 	int					 opt, keys, feat = 0, fflag = 0;
 	uint64_t				 flags = 0;
 	const struct options_table_entry	*oe;
+	struct cfg_file 				*cf, *cf2;
 	u_int					 i;
 
 	if (setlocale(LC_CTYPE, "en_US.UTF-8") == NULL &&
@@ -354,12 +358,22 @@ main(int argc, char **argv)
 	if (**argv == '-')
 		flags = CLIENT_LOGIN;
 
+	TAILQ_INIT(&cfg_files);
+
 	global_environ = environ_create();
 	for (var = environ; *var != NULL; var++)
 		environ_put(global_environ, *var, 0);
 	if ((cwd = find_cwd()) != NULL)
 		environ_set(global_environ, "PWD", 0, "%s", cwd);
-	expand_paths(TMUX_CONF, &cfg_files, &cfg_nfiles, 1);
+	expand_paths(TMUX_CONF, &cf_files, &ncf_files, 1);
+
+	for (i = 0; i < ncf_files; i++) {
+		cf = xcalloc(1, sizeof *cf);
+		cf->name = xstrdup(cf_files[i]);
+		cf->type = CFG_FILE_SERVER;
+		TAILQ_INSERT_TAIL(&cfg_files, cf, entry);
+		free(cf_files[i]);
+	}
 
 	while ((opt = getopt(argc, argv, "2c:CDdf:lL:NqS:T:uUvV")) != -1) {
 		switch (opt) {
@@ -381,13 +395,16 @@ main(int argc, char **argv)
 		case 'f':
 			if (!fflag) {
 				fflag = 1;
-				for (i = 0; i < cfg_nfiles; i++)
-					free(cfg_files[i]);
-				cfg_nfiles = 0;
+				TAILQ_FOREACH_SAFE(cf, &cfg_files, entry, cf2) {
+					TAILQ_REMOVE(&cfg_files, cf, entry);
+					free((char *)cf->name);
+					free(cf);
+				}
 			}
-			cfg_files = xreallocarray(cfg_files, cfg_nfiles + 1,
-			    sizeof *cfg_files);
-			cfg_files[cfg_nfiles++] = xstrdup(optarg);
+			cf = xcalloc(1, sizeof *cf);
+			cf->name = xstrdup(optarg);
+			cf->type = CFG_FILE_SERVER;
+			TAILQ_INSERT_TAIL(&cfg_files, cf, entry);
 			cfg_quiet = 0;
 			break;
  		case 'V':

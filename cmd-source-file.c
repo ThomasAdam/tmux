@@ -23,6 +23,7 @@
 #include <stdlib.h>
 #include <string.h>
 
+#include "compat/queue.h"
 #include "tmux.h"
 
 /*
@@ -132,6 +133,7 @@ cmd_source_file_exec(struct cmd *self, struct cmdq_item *item)
 	struct client			*c = cmdq_get_client(item);
 	enum cmd_retval			 retval = CMD_RETURN_NORMAL;
 	char				*pattern, *cwd, *expanded = NULL;
+	struct cfg_file 		*cf;
 	const char			*path, *error;
 	glob_t				 g;
 	int				 result;
@@ -196,6 +198,13 @@ cmd_source_file_exec(struct cmd *self, struct cmdq_item *item)
 
 	if (cdata->nfiles != 0) {
 		file_read(c, cdata->files[0], cmd_source_file_done, cdata);
+
+		cf = xcalloc(1, sizeof *cf);
+		cf->name = xstrdup(cdata->files[0]);
+		cf->type = CFG_FILE_SOURCE;
+
+		TAILQ_INSERT_TAIL(&cfg_files, cf, entry);
+
 		retval = CMD_RETURN_WAIT;
 	} else
 		cmd_source_file_complete(c, cdata);

@@ -33,8 +33,6 @@ static u_int		  cfg_ncauses;
 static struct cmdq_item	 *cfg_item;
 
 int                       cfg_quiet = 1;
-char                    **cfg_files;
-u_int                     cfg_nfiles;
 
 static enum cmd_retval
 cfg_client_done(__unused struct cmdq_item *item, __unused void *data)
@@ -64,8 +62,8 @@ cfg_done(__unused struct cmdq_item *item, __unused void *data)
 void
 start_cfg(void)
 {
-	struct client	 *c;
-	u_int		  i;
+	struct client	 	*c;
+	struct cfg_file		*cf;
 
 	/*
 	 * Configuration files are loaded without a client, so commands are run
@@ -83,11 +81,11 @@ start_cfg(void)
 		cmdq_append(c, cfg_item);
 	}
 
-	for (i = 0; i < cfg_nfiles; i++) {
+	TAILQ_FOREACH(cf, &cfg_files, entry) {
 		if (cfg_quiet)
-			load_cfg(cfg_files[i], c, NULL, CMD_PARSE_QUIET, NULL);
+			load_cfg(cf->name, c, NULL, CMD_PARSE_QUIET, NULL);
 		else
-			load_cfg(cfg_files[i], c, NULL, 0, NULL);
+			load_cfg(cf->name, c, NULL, 0, NULL);
 	}
 
 	cmdq_append(NULL, cmdq_get_callback(cfg_done, NULL));

@@ -2054,10 +2054,20 @@ pid_t	proc_fork_and_daemon(int *);
 uid_t	proc_get_peer_uid(struct tmuxpeer *);
 
 /* cfg.c */
+struct cfg_file {
+	const char 		*name;
+	int 		 	 type;
+#define CFG_FILE_SERVER 	 0x1
+#define CFG_FILE_SOURCE 	 0x2
+
+	TAILQ_ENTRY(cfg_file) 	 entry;
+};
+TAILQ_HEAD(cfg_files, cfg_file);
+
+extern struct cfg_files cfg_files;
+
 extern int cfg_finished;
 extern struct client *cfg_client;
-extern char **cfg_files;
-extern u_int cfg_nfiles;
 extern int cfg_quiet;
 void	start_cfg(void);
 int	load_cfg(const char *, struct client *, struct cmdq_item *, int,
