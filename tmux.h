@@ -2077,6 +2077,8 @@ int	load_cfg_from_buffer(const void *, size_t, const char *,
 void printflike(1, 2) cfg_add_cause(const char *, ...);
 void	cfg_print_causes(struct cmdq_item *);
 void	cfg_show_causes(struct session *);
+void 	cfg_file_add( const char *, int);
+void 	cfg_file_free(struct cfg_file *);
 
 /* paste.c */
 struct paste_buffer;

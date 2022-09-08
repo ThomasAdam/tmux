@@ -1480,24 +1480,41 @@ format_cb_client_written(struct format_tree *ft)
 	return (NULL);
 }
 
-/* Callback for config_files. */
-static void *
-format_cb_config_files(__unused struct format_tree *ft)
+static void
+format_cfg_files(char **s, int type)
 {
 	struct cfg_file *cf;
-	char		*s = NULL;
 	size_t	 	 slen = 0;
 	u_int	 	 i;
 	size_t	 	 n;
 
+	log_debug(__func__, "THOMAS: I'm here");
+	if (TAILQ_EMPTY(&cfg_files))
+		log_debug(__func__, "THOMAS: TAILQ is empty");
+
+	*s = NULL;
 	TAILQ_FOREACH(cf, &cfg_files, entry) {
+		if (cf->type != type)
+			continue;
 		n = strlen(cf->name) + 1;
-		s = xrealloc(s, slen + n + 1);
-		slen += xsnprintf(s + slen, n + 1, "%s,", cf->name);
+		*s = xrealloc(*s, slen + n + 1);
+		slen += xsnprintf(*s + slen, n + 1, "%s,", cf->name);
+		log_debug(__func__, "THOMAS: n: %d, slen: %d", n, slen);
 	}
+	*s[slen] = '\0';
+}
+
+/* Callback for config_files. */
+static void *
+format_cb_config_files(__unused struct format_tree *ft)
+{
+	char 	*s;
+
+	log_debug(__func__, "THOMAS: CALLING...");
+	format_cfg_files(&s, CFG_FILE_SERVER);
+
 	if (s == NULL)
 		return (xstrdup(""));
-	s[slen - 1] = '\0';
 	return (s);
 }
 

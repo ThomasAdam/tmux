@@ -334,8 +334,8 @@ main(int argc, char **argv)
 {
 	char					*path = NULL, *label = NULL;
 	char					*cause, **var;
-	char 					**cf_files;
-	u_int 					 ncf_files;
+	char 					**config_files;
+	u_int 					 config_nfiles;
 	const char				*s, *cwd;
 	int					 opt, keys, feat = 0, fflag = 0;
 	uint64_t				 flags = 0;
@@ -365,14 +365,14 @@ main(int argc, char **argv)
 		environ_put(global_environ, *var, 0);
 	if ((cwd = find_cwd()) != NULL)
 		environ_set(global_environ, "PWD", 0, "%s", cwd);
-	expand_paths(TMUX_CONF, &cf_files, &ncf_files, 1);
+	expand_paths(TMUX_CONF, &config_files, &config_nfiles, 1);
 
-	for (i = 0; i < ncf_files; i++) {
+	for (i = 0; i < config_nfiles; i++) {
 		cf = xcalloc(1, sizeof *cf);
-		cf->name = xstrdup(cf_files[i]);
+		cf->name = xstrdup(config_files[i]);
 		cf->type = CFG_FILE_SERVER;
 		TAILQ_INSERT_TAIL(&cfg_files, cf, entry);
-		free(cf_files[i]);
+		free(config_files[i]);
 	}
 
 	while ((opt = getopt(argc, argv, "2c:CDdf:lL:NqS:T:uUvV")) != -1) {
@@ -401,10 +401,7 @@ main(int argc, char **argv)
 					free(cf);
 				}
 			}
-			cf = xcalloc(1, sizeof *cf);
-			cf->name = xstrdup(optarg);
-			cf->type = CFG_FILE_SERVER;
-			TAILQ_INSERT_TAIL(&cfg_files, cf, entry);
+			cfg_file_add(optarg, CFG_FILE_SERVER);
 			cfg_quiet = 0;
 			break;
  		case 'V':

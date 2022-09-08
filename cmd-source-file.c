@@ -198,12 +198,7 @@ cmd_source_file_exec(struct cmd *self, struct cmdq_item *item)
 
 	if (cdata->nfiles != 0) {
 		file_read(c, cdata->files[0], cmd_source_file_done, cdata);
-
-		cf = xcalloc(1, sizeof *cf);
-		cf->name = xstrdup(cdata->files[0]);
-		cf->type = CFG_FILE_SOURCE;
-
-		TAILQ_INSERT_TAIL(&cfg_files, cf, entry);
+		cfg_file_add(cdata->files[0], CFG_FILE_SOURCE);
 
 		retval = CMD_RETURN_WAIT;
 	} else

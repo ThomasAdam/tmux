@@ -274,3 +274,19 @@ out:
 	cfg_causes = NULL;
 	cfg_ncauses = 0;
 }
+
+void cfg_file_add(const char *name, int type)
+{
+	struct 	cfg_file 	*cf;
+
+	cf = xcalloc(1, sizeof *cf) ;
+	cf->name = xstrdup(name);
+	cf->type = type;
+
+	TAILQ_INSERT_TAIL(&cfg_files, cf, entry);
+}
+
+void
+cfg_file_free(struct cfg_file *cf)
+{
+}
