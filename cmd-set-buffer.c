@@ -57,14 +57,12 @@ cmd_set_buffer_exec(struct cmd *self, struct cmdq_item *item)
 {
 	struct args		*args = cmd_get_args(self);
 	struct client		*tc = cmdq_get_target_client(item);
-	struct paste_buffer	*pb;
-	char			*bufname, *bufdata = NULL, *cause = NULL;
+	struct paste_buffer	*pb = NULL;
+	char			*bufname = NULL, *bufdata = NULL, *cause = NULL;
 	const char		*olddata;
 	size_t			 bufsize = 0, newsize;
 
-	if (args_get(args, 'b') == NULL)
-		pb = NULL;
-	else {
+	if (args_get(args, 'b') != NULL) {
 		bufname = xstrdup(args_get(args, 'b'));
 		pb = paste_get_name(bufname);
 	}
