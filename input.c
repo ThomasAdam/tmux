@@ -1263,11 +1263,11 @@ input_input(struct input_ctx *ictx)
 
 	available = ictx->input_space;
 	while (ictx->input_len + 1 >= available) {
-		available *= 2;
-		if (available > input_buffer_size) {
+		if (available > input_buffer_size / 2) {
 			ictx->flags |= INPUT_DISCARD;
 			return (0);
 		}
+		available *= 2;
 		ictx->input_buf = xrealloc(ictx->input_buf, available);
 		ictx->input_space = available;
 	}
